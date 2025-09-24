@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Modal, Animated, Dimensions, Linking, Alert } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { PanGestureHandler, State } from 'react-native-gesture-handler';
-import { Menu, Bell, Search, Clock, MapPin, Phone, ChevronRight, Calendar, User, X, Navigation, Copy, Handshake, MessageSquare, Mail, ChevronDown, CheckSquare, Square } from 'lucide-react-native';
-import { useRouter } from 'expo-router';
-import FloatingActionMenu from '@/components/FloatingActionMenu';
 import DrawerMenu from '@/components/DrawerMenu';
+import FloatingActionMenu from '@/components/FloatingActionMenu';
 import NewAppointmentModal from '@/components/NewAppointmentModal';
 import { useTabBar } from '@/contexts/TabBarContext';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import { Bell, Calendar, CheckSquare, ChevronDown, ChevronRight, Clock, Copy, FileText, Handshake, Mail, MapPin, MessageSquare, Navigation, Phone, Search, Target, TrendingUp, X } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import { Alert, Animated, Dimensions, Linking, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { PanGestureHandler, State } from 'react-native-gesture-handler';
 
 const { height: screenHeight } = Dimensions.get('window');
 
@@ -142,7 +142,7 @@ export default function Dashboard() {
       priority: 'medium',
       status: 'pending',
       statusColor: '#6B7280',
-      type: 'Send Update',
+      type: 'Update',
       assignedBy: 'Chris Palmer',
       dueDate: 'Today',
       actionType: 'call',
@@ -170,7 +170,7 @@ export default function Dashboard() {
       priority: 'high',
       status: 'pending',
       statusColor: '#6B7280',
-      type: 'Send Update',
+      type: 'Update',
       assignedBy: 'Tanner Mullen',
       dueDate: 'Today',
       actionType: 'email',
@@ -360,7 +360,7 @@ export default function Dashboard() {
               <ChevronRight size={16} color="#FFFFFF" />
             </View>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Dashboard</Text>
+          <Text style={styles.headerTitle}>Welcome back, Tanner</Text>
           <View style={styles.headerActions}>
             <TouchableOpacity style={styles.headerButton}>
               <Search size={24} color="#FFFFFF" />
@@ -464,7 +464,9 @@ export default function Dashboard() {
                           <View style={styles.appointmentCard}>
                             <View style={styles.appointmentHeader}>
                               <View style={styles.timeSection}>
-                                <Clock size={18} color="#6366F1" />
+                                <View style={styles.appointmentIconContainer}>
+                                  <Clock size={20} color="#6366F1" />
+                                </View>
                                 <View style={styles.timeInfo}>
                                   <Text style={styles.appointmentTime}>{item.startTime} - {item.endTime}</Text>
                                   <Text style={styles.appointmentDuration}>({item.duration})</Text>
@@ -533,7 +535,6 @@ export default function Dashboard() {
                                 </View>
                                 <View style={styles.taskHeaderInfo}>
                                   <Text style={styles.taskTime}>{item.time}</Text>
-                                  <Text style={styles.taskType}>{item.type}</Text>
                                 </View>
                               </View>
                               <TouchableOpacity 
@@ -564,23 +565,11 @@ export default function Dashboard() {
                               <Text style={styles.taskTitle}>{item.title}</Text>
                               <Text style={styles.taskDescription}>{item.description}</Text>
                               
-                              <View style={styles.taskDetails}>
-                                <View style={styles.taskDetailRow}>
-                                  <Text style={styles.taskDetailLabel}>Assigned by:</Text>
-                                  <Text style={styles.taskDetailValue}>{item.assignedBy}</Text>
-                                </View>
-                                <View style={styles.taskDetailRow}>
-                                  <Text style={styles.taskDetailLabel}>Due date:</Text>
-                                  <Text style={styles.taskDetailValue}>{item.dueDate}</Text>
-                                </View>
-                              </View>
                               
-                              {item.actionType !== 'none' && (
-                                <TouchableOpacity style={styles.taskActionButton}>
-                                  <Text style={styles.taskActionText}>{item.actionLabel}</Text>
-                                  <ChevronRight size={16} color="#8B5CF6" />
-                                </TouchableOpacity>
-                              )}
+                              <TouchableOpacity style={styles.taskActionButton}>
+                                <Text style={styles.taskActionText}>View Details</Text>
+                                <ChevronRight size={16} color="#8B5CF6" />
+                              </TouchableOpacity>
                             </View>
                           </View>
                         )}
@@ -591,8 +580,104 @@ export default function Dashboard() {
             </>
           ) : (
             <View style={styles.updatesContent}>
-              <Text style={styles.updatesTitle}>Updates</Text>
-              <Text style={styles.updatesText}>Updates section coming soon...</Text>
+              {/* Today's Overview */}
+              <View style={styles.overviewCard}>
+                <Text style={styles.overviewTitle}>Today's Performance</Text>
+                <View style={styles.overviewGrid}>
+                  <View style={styles.overviewItem}>
+                    <Text style={styles.overviewValue}>5</Text>
+                    <Text style={styles.overviewLabel}>New Leads</Text>
+                    <Text style={styles.overviewChange}>+2 from yesterday</Text>
+                  </View>
+                  <View style={styles.overviewItem}>
+                    <Text style={styles.overviewValue}>$5,000</Text>
+                    <Text style={styles.overviewLabel}>Revenue</Text>
+                    <Text style={styles.overviewChange}>+$1,200 from yesterday</Text>
+                  </View>
+                  <View style={styles.overviewItem}>
+                    <Text style={styles.overviewValue}>2</Text>
+                    <Text style={styles.overviewLabel}>Jobs Sold</Text>
+                    <Text style={styles.overviewChange}>Bathroom & Kitchen</Text>
+                  </View>
+                  <View style={styles.overviewItem}>
+                    <Text style={styles.overviewValue}>40%</Text>
+                    <Text style={styles.overviewLabel}>Conversion</Text>
+                    <Text style={styles.overviewChange}>+5% this week</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Top Lead Source */}
+              <View style={styles.leadSourceCard}>
+                <View style={styles.leadSourceHeader}>
+                  <Text style={styles.leadSourceTitle}>Top Lead Source</Text>
+                  <View style={styles.leadSourceBadge}>
+                    <Text style={styles.leadSourceBadgeText}>Google Ads</Text>
+                  </View>
+                </View>
+                <View style={styles.leadSourceStats}>
+                  <View style={styles.leadSourceStat}>
+                    <Text style={styles.leadSourceStatValue}>3</Text>
+                    <Text style={styles.leadSourceStatLabel}>leads</Text>
+                  </View>
+                  <View style={styles.leadSourceStat}>
+                    <Text style={styles.leadSourceStatValue}>$2,400</Text>
+                    <Text style={styles.leadSourceStatLabel}>value</Text>
+                  </View>
+                  <View style={styles.leadSourceStat}>
+                    <Text style={styles.leadSourceStatValue}>$800</Text>
+                    <Text style={styles.leadSourceStatLabel}>avg</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Key Insights */}
+              <View style={styles.insightsCard}>
+                <Text style={styles.insightsTitle}>Key Insights</Text>
+                <View style={styles.insightsList}>
+                  <View style={styles.insightItem}>
+                    <View style={styles.insightIcon}>
+                      <TrendingUp size={16} color="#10B981" />
+                    </View>
+                    <Text style={styles.insightText}>Lead quality up 15% this week</Text>
+                  </View>
+                  <View style={styles.insightItem}>
+                    <View style={styles.insightIcon}>
+                      <Clock size={16} color="#F59E0B" />
+                    </View>
+                    <Text style={styles.insightText}>Avg response time: 2.3 hours</Text>
+                  </View>
+                  <View style={styles.insightItem}>
+                    <View style={styles.insightIcon}>
+                      <Target size={16} color="#3B82F6" />
+                    </View>
+                    <Text style={styles.insightText}>Pipeline value: $45,000</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Quick Actions */}
+              <View style={styles.actionsCard}>
+                <Text style={styles.actionsTitle}>Quick Actions</Text>
+                <View style={styles.actionsGrid}>
+                  <TouchableOpacity style={styles.actionButton}>
+                    <Phone size={18} color="#10B981" />
+                    <Text style={styles.actionText}>Call Leads</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.actionButton}>
+                    <Mail size={18} color="#3B82F6" />
+                    <Text style={styles.actionText}>Send Emails</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.actionButton}>
+                    <FileText size={18} color="#8B5CF6" />
+                    <Text style={styles.actionText}>Create Proposals</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.actionButton}>
+                    <Calendar size={18} color="#F59E0B" />
+                    <Text style={styles.actionText}>Schedule</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
           )}
         </View>
@@ -1129,6 +1214,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
+  appointmentIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#EEF2FF',
+    borderWidth: 2,
+    borderColor: '#E0E7FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   timeInfo: {
     gap: 2,
   },
@@ -1441,21 +1536,184 @@ const styles = StyleSheet.create({
   },
   // Updates Section
   updatesContent: {
+    padding: 16,
+    gap: 16,
+  },
+  // Overview Card
+  overviewCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 40,
-    alignItems: 'center',
+    borderRadius: 12,
+    padding: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.05,
     shadowRadius: 8,
-    elevation: 3,
+    elevation: 2,
   },
-  updatesTitle: {
+  overviewTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 16,
+  },
+  overviewGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  overviewItem: {
+    flex: 1,
+    minWidth: '45%',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+  },
+  overviewValue: {
     fontSize: 24,
     fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  overviewLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#6B7280',
+    marginBottom: 2,
+  },
+  overviewChange: {
+    fontSize: 11,
+    color: '#059669',
+    fontWeight: '500',
+  },
+  // Lead Source Card
+  leadSourceCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  leadSourceHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  leadSourceTitle: {
+    fontSize: 16,
+    fontWeight: '600',
     color: '#1F2937',
-    marginBottom: 12,
+  },
+  leadSourceBadge: {
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  leadSourceBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#059669',
+  },
+  leadSourceStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  leadSourceStat: {
+    alignItems: 'center',
+  },
+  leadSourceStatValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  leadSourceStatLabel: {
+    fontSize: 11,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  // Insights Card
+  insightsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  insightsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 16,
+  },
+  insightsList: {
+    gap: 12,
+  },
+  insightItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  insightIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  insightText: {
+    fontSize: 14,
+    color: '#374151',
+    flex: 1,
+    lineHeight: 20,
+  },
+  // Actions Card
+  actionsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  actionsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 16,
+  },
+  actionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  actionButton: {
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  actionText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#374151',
+    textAlign: 'center',
   },
   updatesText: {
     fontSize: 16,
