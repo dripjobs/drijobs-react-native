@@ -2,7 +2,7 @@ import DrawerMenu from '@/components/DrawerMenu';
 import FloatingActionMenu from '@/components/FloatingActionMenu';
 import { useTabBar } from '@/contexts/TabBarContext';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Calendar, CheckSquare, ChevronRight, Clock, DollarSign, CreditCard as Edit, FileText, Filter, Mail, MapPin, MessageSquare, MoreHorizontal, Navigation, Paperclip, Phone, Plus, Search, TrendingUp, X } from 'lucide-react-native';
+import { Calendar, CheckSquare, ChevronRight, Clock, DollarSign, Edit, FileText, Filter, Mail, MapPin, MessageSquare, MoreHorizontal, Navigation, Paperclip, Phone, Plus, Search, Tag, TrendingUp, User, X } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Modal, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -14,7 +14,26 @@ export default function Contacts() {
   const [expandedContact, setExpandedContact] = useState<number | null>(null);
   const [selectedContact, setSelectedContact] = useState<any>(null);
   const [showContactCard, setShowContactCard] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [activeTab, setActiveTab] = useState('Information');
+  const [expandedActionItem, setExpandedActionItem] = useState<string | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    title: '',
+    company: '',
+    email: '',
+    phone: '',
+    secondaryEmail: '',
+    secondaryPhone: '',
+    address: '',
+    contactTag: '',
+    originalLeadSource: '',
+    status: '',
+    createdBy: '',
+    customFields: [] as Array<{id: string, label: string, value: string}>
+  });
+  const [formErrors, setFormErrors] = useState<{[key: string]: string}>({});
+  const [isSaving, setIsSaving] = useState(false);
 
   const contacts = [
     { 
@@ -26,7 +45,18 @@ export default function Contacts() {
       phone: '+1 (555) 123-4567', 
       address: '123 Business Ave, Suite 100, New York, NY 10001',
       secondaryEmail: 'sarah.personal@gmail.com',
-      secondaryPhone: '+1 (555) 123-4568'
+      secondaryPhone: '+1 (555) 123-4568',
+      addresses: [
+        { id: 1, address: '123 Business Ave, Suite 100, New York, NY 10001', isPrimary: true, type: 'Office' },
+        { id: 2, address: '456 Home St, New York, NY 10002', isPrimary: false, type: 'Residential' }
+      ],
+      createdAt: '2024-01-14T10:30:00Z',
+      createdBy: 'User',
+      customFields: [
+        { id: 1, label: 'Preferred Contact Method', value: 'Email' },
+        { id: 2, label: 'Industry', value: 'Technology' },
+        { id: 3, label: 'Company Size', value: '50-100 employees' }
+      ]
     },
     { 
       id: 2, 
@@ -37,7 +67,11 @@ export default function Contacts() {
       phone: '+1 (555) 987-6543', 
       address: '456 Innovation St, San Francisco, CA 94105',
       secondaryEmail: '',
-      secondaryPhone: '+1 (555) 987-6544'
+      secondaryPhone: '+1 (555) 987-6544',
+      addresses: [
+        { id: 1, address: '456 Innovation St, San Francisco, CA 94105', isPrimary: true, type: 'Office' }
+      ],
+      createdAt: '2024-01-15T14:20:00Z'
     },
     { 
       id: 3, 
@@ -48,7 +82,11 @@ export default function Contacts() {
       phone: '+1 (555) 456-7890', 
       address: '789 Tech Blvd, Austin, TX 78701',
       secondaryEmail: 'emily.rodriguez@gmail.com',
-      secondaryPhone: ''
+      secondaryPhone: '',
+      addresses: [
+        { id: 1, address: '789 Tech Blvd, Austin, TX 78701', isPrimary: true, type: 'Office' }
+      ],
+      createdAt: '2024-01-16T09:15:00Z'
     },
     { 
       id: 4, 
@@ -59,7 +97,11 @@ export default function Contacts() {
       phone: '+1 (555) 321-0987', 
       address: '321 Code Lane, Seattle, WA 98101',
       secondaryEmail: '',
-      secondaryPhone: ''
+      secondaryPhone: '',
+      addresses: [
+        { id: 1, address: '321 Code Lane, Seattle, WA 98101', isPrimary: true, type: 'Office' }
+      ],
+      createdAt: '2024-01-17T11:45:00Z'
     },
     { 
       id: 5, 
@@ -194,7 +236,13 @@ export default function Contacts() {
       secondaryEmail: '',
       secondaryPhone: '+1 (555) 901-2346'
     },
-  ].sort((a, b) => a.name.localeCompare(b.name));
+  ].map(contact => ({
+    ...contact,
+    addresses: contact.addresses || [{ id: 1, address: contact.address, isPrimary: true, type: 'Office' }],
+    createdAt: contact.createdAt || '2024-01-14T10:30:00Z',
+    createdBy: contact.createdBy || 'User',
+    customFields: contact.customFields || []
+  })).sort((a, b) => a.name.localeCompare(b.name));
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -216,6 +264,149 @@ export default function Contacts() {
   const handleViewContactCard = (contact: any) => {
     setSelectedContact(contact);
     setShowContactCard(true);
+  };
+
+  const handleContactAction = (actionType: string, value: string) => {
+    setExpandedActionItem(expandedActionItem === actionType ? null : actionType);
+  };
+
+  const handleEditContact = () => {
+    console.log('Edit contact button pressed');
+    if (selectedContact) {
+      console.log('Setting edit form data for:', selectedContact.name);
+      setEditFormData({
+        name: selectedContact.name || '',
+        title: selectedContact.title || '',
+        company: selectedContact.company || '',
+        email: selectedContact.email || '',
+        phone: selectedContact.phone || '',
+        secondaryEmail: selectedContact.secondaryEmail || '',
+        secondaryPhone: selectedContact.secondaryPhone || '',
+        address: selectedContact.addresses?.find(addr => addr.isPrimary)?.address || selectedContact.address || '',
+        contactTag: selectedContact.contactTag || 'Customer',
+        originalLeadSource: selectedContact.originalLeadSource || 'Website',
+        status: selectedContact.status || 'Active',
+        createdBy: selectedContact.createdBy || 'User',
+        customFields: selectedContact.customFields || []
+      });
+      setFormErrors({});
+      
+      // Close the contact details modal first
+      setShowContactCard(false);
+      
+      // Then open the edit modal after a short delay
+      setTimeout(() => {
+        console.log('Setting showEditModal to true');
+        setShowEditModal(true);
+      }, 300);
+    } else {
+      console.log('No selected contact');
+    }
+  };
+
+  const validateForm = () => {
+    const errors: {[key: string]: string} = {};
+    
+    if (!editFormData.name.trim()) {
+      errors.name = 'Name is required';
+    }
+    
+    if (editFormData.email && !/\S+@\S+\.\S+/.test(editFormData.email)) {
+      errors.email = 'Please enter a valid email';
+    }
+    
+    if (editFormData.secondaryEmail && !/\S+@\S+\.\S+/.test(editFormData.secondaryEmail)) {
+      errors.secondaryEmail = 'Please enter a valid email';
+    }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSaveContact = async () => {
+    if (!validateForm()) {
+      return;
+    }
+    
+    setIsSaving(true);
+    
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Here you would typically save to your backend
+      console.log('Saving contact:', editFormData);
+      
+      // Update the selected contact with new data
+      if (selectedContact) {
+        // Update the selectedContact state with the new data
+        setSelectedContact({
+          ...selectedContact,
+          name: editFormData.name,
+          title: editFormData.title,
+          company: editFormData.company,
+          email: editFormData.email,
+          phone: editFormData.phone,
+          secondaryEmail: editFormData.secondaryEmail,
+          secondaryPhone: editFormData.secondaryPhone,
+          address: editFormData.address,
+          contactTag: editFormData.contactTag,
+          originalLeadSource: editFormData.originalLeadSource,
+          status: editFormData.status,
+          createdBy: editFormData.createdBy,
+          customFields: editFormData.customFields,
+          // Update addresses array if needed
+          addresses: selectedContact.addresses?.map(addr => 
+            addr.isPrimary ? { ...addr, address: editFormData.address } : addr
+          ) || [{ id: '1', address: editFormData.address, isPrimary: true, type: 'Primary' }]
+        });
+      }
+      
+      setShowEditModal(false);
+      setFormErrors({});
+      
+      // Show success message
+      alert('Contact updated successfully!');
+      
+      // Return to contact details modal
+      setTimeout(() => {
+        setShowContactCard(true);
+      }, 100);
+      
+    } catch (error) {
+      console.error('Error saving contact:', error);
+      alert('Failed to save contact. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const addCustomField = () => {
+    const newField = {
+      id: Date.now().toString(),
+      label: '',
+      value: ''
+    };
+    setEditFormData(prev => ({
+      ...prev,
+      customFields: [...prev.customFields, newField]
+    }));
+  };
+
+  const removeCustomField = (id: string) => {
+    setEditFormData(prev => ({
+      ...prev,
+      customFields: prev.customFields.filter(field => field.id !== id)
+    }));
+  };
+
+  const updateCustomField = (id: string, field: 'label' | 'value', newValue: string) => {
+    setEditFormData(prev => ({
+      ...prev,
+      customFields: prev.customFields.map(fieldItem => 
+        fieldItem.id === id ? { ...fieldItem, [field]: newValue } : fieldItem
+      )
+    }));
   };
 
   const handleMenuAction = (action: string, contact: any) => {
@@ -443,51 +634,20 @@ export default function Contacts() {
                 {selectedContact?.company && <Text style={styles.contactCompany}>{selectedContact.company}</Text>}
               </View>
             </View>
-
-            {/* Contact Information */}
-            <View style={styles.contactInfoSection}>
-              <View style={styles.infoCard}>
-                <View style={styles.infoRow}>
-                  <Mail size={16} color="#6B7280" />
-                  <Text style={styles.infoLabel}>Primary Email</Text>
-                  <Text style={styles.infoValue}>{selectedContact?.email}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Phone size={16} color="#6B7280" />
-                  <Text style={styles.infoLabel}>Primary Phone</Text>
-                  <Text style={styles.infoValue}>{selectedContact?.phone}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <MapPin size={16} color="#6B7280" />
-                  <Text style={styles.infoLabel}>Address</Text>
-                  <Text style={styles.infoValue}>{selectedContact?.address}</Text>
-                </View>
-                {selectedContact?.secondaryEmail && (
-                  <View style={styles.infoRow}>
-                    <Mail size={16} color="#6B7280" />
-                    <Text style={styles.infoLabel}>Secondary Email</Text>
-                    <Text style={styles.infoValue}>{selectedContact.secondaryEmail}</Text>
-                  </View>
-                )}
-                {selectedContact?.secondaryPhone && (
-                  <View style={styles.infoRow}>
-                    <Phone size={16} color="#6B7280" />
-                    <Text style={styles.infoLabel}>Secondary Phone</Text>
-                    <Text style={styles.infoValue}>{selectedContact.secondaryPhone}</Text>
-                  </View>
-                )}
-              </View>
-              
-              <TouchableOpacity style={styles.editButton}>
-                <Edit size={16} color="#6366F1" />
-                <Text style={styles.editButtonText}>Edit Contact Details</Text>
-              </TouchableOpacity>
-            </View>
+            
+            {/* Edit Button */}
+            <TouchableOpacity 
+              style={styles.editButton}
+              onPress={handleEditContact}
+            >
+              <Edit size={18} color="#FFFFFF" />
+              <Text style={styles.editButtonText}>Edit Contact Details</Text>
+            </TouchableOpacity>
 
             {/* Tabs */}
             <View style={styles.tabsContainer}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsScrollView}>
-                {['Information', 'Deals', 'Proposals', 'Appointments', 'Invoices', 'Payments', 'Tasks', 'Notes', 'Attachments', 'Call History'].map((tab) => (
+                {['Information', 'Addresses', 'Deals', 'Proposals', 'Appointments', 'Invoices', 'Payments', 'Tasks', 'Notes', 'Attachments', 'Call History'].map((tab) => (
                   <TouchableOpacity
                     key={tab}
                     style={[styles.tab, activeTab === tab && styles.activeTab]}
@@ -506,32 +666,332 @@ export default function Contacts() {
               {activeTab === 'Information' && (
                 <View style={styles.tabSection}>
                   <Text style={styles.sectionTitle}>Contact Information</Text>
-                  <View style={styles.infoCard}>
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Contact Number</Text>
-                      <Text style={styles.infoValue}>C001</Text>
+                  
+                  {/* Unified Contact Information Card */}
+                  <View style={styles.unifiedContactCard}>
+                    {/* Contact Details Section */}
+                    <View style={styles.contactDetailsSection}>
+                      <View style={styles.contactDetailItem}>
+                        <View style={styles.contactDetailIcon}>
+                          <Mail size={20} color="#8E8E93" />
+                        </View>
+                        <View style={styles.contactDetailContent}>
+                          <Text style={styles.contactDetailLabel}>Email</Text>
+                          <TouchableOpacity style={styles.contactDetailValue}>
+                            <Text style={styles.contactDetailText}>{selectedContact?.email}</Text>
+                          </TouchableOpacity>
+                        </View>
+                        <TouchableOpacity 
+                          style={styles.contactActionButton}
+                          onPress={() => handleContactAction('email', selectedContact?.email)}
+                        >
+                          <MoreHorizontal size={16} color="#6B7280" />
+                        </TouchableOpacity>
+                      </View>
+                      
+                      {expandedActionItem === 'email' && (
+                        <View style={styles.inlineActionMenu}>
+                          <Text style={styles.quickActionsTitle}>Quick Actions</Text>
+                          <TouchableOpacity style={styles.inlineActionItem}>
+                            <Mail size={16} color="#6366F1" />
+                            <Text style={styles.inlineActionText}>Send Email</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity style={styles.inlineActionItem}>
+                            <FileText size={16} color="#6B7280" />
+                            <Text style={styles.inlineActionText}>Copy Email</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity style={styles.inlineActionItem}>
+                            <Edit size={16} color="#6B7280" />
+                            <Text style={styles.inlineActionText}>Edit Email</Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                      
+                      <View style={styles.contactDetailItem}>
+                        <View style={styles.contactDetailIcon}>
+                          <Phone size={20} color="#8E8E93" />
+                        </View>
+                        <View style={styles.contactDetailContent}>
+                          <Text style={styles.contactDetailLabel}>Phone</Text>
+                          <TouchableOpacity style={styles.contactDetailValue}>
+                            <Text style={styles.contactDetailText}>{selectedContact?.phone}</Text>
+                          </TouchableOpacity>
+                        </View>
+                        <TouchableOpacity 
+                          style={styles.contactActionButton}
+                          onPress={() => handleContactAction('phone', selectedContact?.phone)}
+                        >
+                          <MoreHorizontal size={16} color="#6B7280" />
+                        </TouchableOpacity>
+                      </View>
+                      
+                      {expandedActionItem === 'phone' && (
+                        <View style={styles.inlineActionMenu}>
+                          <Text style={styles.quickActionsTitle}>Quick Actions</Text>
+                          <TouchableOpacity style={styles.inlineActionItem}>
+                            <Phone size={16} color="#10B981" />
+                            <Text style={styles.inlineActionText}>Call</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity style={styles.inlineActionItem}>
+                            <MessageSquare size={16} color="#3B82F6" />
+                            <Text style={styles.inlineActionText}>Send Text</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity style={styles.inlineActionItem}>
+                            <FileText size={16} color="#6B7280" />
+                            <Text style={styles.inlineActionText}>Copy Number</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity style={styles.inlineActionItem}>
+                            <Edit size={16} color="#6B7280" />
+                            <Text style={styles.inlineActionText}>Edit Phone</Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                      
+                      <View style={styles.contactDetailItem}>
+                        <View style={styles.contactDetailIcon}>
+                          <MapPin size={20} color="#8E8E93" />
+                        </View>
+                        <View style={styles.contactDetailContent}>
+                          <Text style={styles.contactDetailLabel}>Primary Address</Text>
+                          <TouchableOpacity style={styles.contactDetailValue}>
+                            <Text style={styles.contactDetailText}>
+                              {selectedContact?.addresses?.find(addr => addr.isPrimary)?.address || selectedContact?.address}
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                        <TouchableOpacity 
+                          style={styles.contactActionButton}
+                          onPress={() => handleContactAction('address', selectedContact?.addresses?.find(addr => addr.isPrimary)?.address || selectedContact?.address)}
+                        >
+                          <MoreHorizontal size={16} color="#6B7280" />
+                        </TouchableOpacity>
+                      </View>
+                      
+                      {expandedActionItem === 'address' && (
+                        <View style={styles.inlineActionMenu}>
+                          <Text style={styles.quickActionsTitle}>Quick Actions</Text>
+                          <TouchableOpacity style={styles.inlineActionItem}>
+                            <MapPin size={16} color="#007AFF" />
+                            <Text style={styles.inlineActionText}>Navigate</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity style={styles.inlineActionItem}>
+                            <FileText size={16} color="#6B7280" />
+                            <Text style={styles.inlineActionText}>Copy Address</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity style={styles.inlineActionItem}>
+                            <Edit size={16} color="#6B7280" />
+                            <Text style={styles.inlineActionText}>Edit Address</Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                      
+                      {selectedContact?.secondaryEmail && (
+                        <View style={styles.contactDetailItem}>
+                          <View style={styles.contactDetailIcon}>
+                            <Mail size={20} color="#8E8E93" />
+                          </View>
+                          <View style={styles.contactDetailContent}>
+                            <Text style={styles.contactDetailLabel}>Secondary Email</Text>
+                            <TouchableOpacity style={styles.contactDetailValue}>
+                              <Text style={styles.contactDetailText}>{selectedContact.secondaryEmail}</Text>
+                            </TouchableOpacity>
+                          </View>
+                          <TouchableOpacity 
+                            style={styles.contactActionButton}
+                            onPress={() => handleContactAction('email', selectedContact?.secondaryEmail)}
+                          >
+                            <MoreHorizontal size={16} color="#6B7280" />
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                      
+                      {selectedContact?.secondaryPhone && (
+                        <View style={styles.contactDetailItem}>
+                          <View style={styles.contactDetailIcon}>
+                            <Phone size={20} color="#8E8E93" />
+                          </View>
+                          <View style={styles.contactDetailContent}>
+                            <Text style={styles.contactDetailLabel}>Secondary Phone</Text>
+                            <TouchableOpacity style={styles.contactDetailValue}>
+                              <Text style={styles.contactDetailText}>{selectedContact.secondaryPhone}</Text>
+                            </TouchableOpacity>
+                          </View>
+                          <TouchableOpacity 
+                            style={styles.contactActionButton}
+                            onPress={() => handleContactAction('phone', selectedContact?.secondaryPhone)}
+                          >
+                            <MoreHorizontal size={16} color="#6B7280" />
+                          </TouchableOpacity>
+                        </View>
+                      )}
                     </View>
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Full Name</Text>
-                      <Text style={styles.infoValue}>{selectedContact?.name}</Text>
-                    </View>
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Contact Tag</Text>
-                      <Text style={styles.infoValue}>Customer</Text>
-                    </View>
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Lead Source</Text>
-                      <Text style={styles.infoValue}>Website</Text>
-                    </View>
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Status</Text>
-                      <Text style={[styles.infoValue, { color: '#10B981' }]}>Active</Text>
-                    </View>
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Created</Text>
-                      <Text style={styles.infoValue}>January 14, 2024</Text>
+                    
+                    {/* Divider */}
+                    <View style={styles.contactDivider} />
+                    
+                    {/* Additional Information Section */}
+                    <View style={styles.additionalInfoSection}>
+                      <View style={styles.additionalInfoItem}>
+                        <View style={styles.additionalInfoIcon}>
+                          <User size={18} color="#8E8E93" />
+                        </View>
+                        <View style={styles.additionalInfoContent}>
+                          <Text style={styles.additionalInfoLabel}>Contact ID</Text>
+                          <Text style={styles.additionalInfoValue}>C001</Text>
+                        </View>
+                      </View>
+                      
+                      <View style={styles.additionalInfoItem}>
+                        <View style={styles.additionalInfoIcon}>
+                          <Tag size={18} color="#8E8E93" />
+                        </View>
+                        <View style={styles.additionalInfoContent}>
+                          <Text style={styles.additionalInfoLabel}>Tag</Text>
+                          <Text style={styles.additionalInfoValue}>Customer</Text>
+                        </View>
+                      </View>
+                      
+                      <View style={styles.additionalInfoItem}>
+                        <View style={styles.additionalInfoIcon}>
+                          <TrendingUp size={18} color="#8E8E93" />
+                        </View>
+                        <View style={styles.additionalInfoContent}>
+                          <Text style={styles.additionalInfoLabel}>Original Lead Source</Text>
+                          <Text style={styles.additionalInfoValue}>Website</Text>
+                        </View>
+                      </View>
+                      
+                      <View style={styles.additionalInfoItem}>
+                        <View style={styles.additionalInfoIcon}>
+                          <CheckSquare size={18} color="#34C759" />
+                        </View>
+                        <View style={styles.additionalInfoContent}>
+                          <Text style={styles.additionalInfoLabel}>Status</Text>
+                          <Text style={[styles.additionalInfoValue, { color: '#34C759' }]}>Active</Text>
+                        </View>
+                      </View>
+                      
+                      <View style={styles.additionalInfoItem}>
+                        <View style={styles.additionalInfoIcon}>
+                          <Clock size={18} color="#8E8E93" />
+                        </View>
+                        <View style={styles.additionalInfoContent}>
+                          <Text style={styles.additionalInfoLabel}>Created</Text>
+                          <Text style={styles.additionalInfoValue}>
+                            {selectedContact?.createdAt ? 
+                              new Date(selectedContact.createdAt).toLocaleString('en-US', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              }) : 'January 14, 2024 at 10:30 AM'
+                            }
+                          </Text>
+                        </View>
+                      </View>
+                      
+                      <View style={styles.additionalInfoItem}>
+                        <View style={styles.additionalInfoIcon}>
+                          <User size={18} color="#8E8E93" />
+                        </View>
+                        <View style={styles.additionalInfoContent}>
+                          <Text style={styles.additionalInfoLabel}>Created By</Text>
+                          <Text style={styles.additionalInfoValue}>{selectedContact?.createdBy || 'User'}</Text>
+                        </View>
+                      </View>
                     </View>
                   </View>
+                  
+                  {/* Custom Fields Section */}
+                  {selectedContact?.customFields && selectedContact.customFields.length > 0 && (
+                    <View style={styles.customFieldsSection}>
+                      <Text style={styles.sectionTitle}>Custom Fields</Text>
+                      <View style={styles.customFieldsCard}>
+                        {selectedContact.customFields.map((field: any) => (
+                          <View key={field.id} style={styles.customFieldItem}>
+                            <Text style={styles.customFieldLabel}>{field.label}</Text>
+                            <Text style={styles.customFieldValue}>{field.value}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+                  
+                  {/* Related Business Section */}
+                  <View style={styles.businessSection}>
+                    <View style={styles.businessHeader}>
+                      <Text style={styles.sectionTitle}>Related Businesses</Text>
+                      <TouchableOpacity style={styles.addBusinessButton}>
+                        <Plus size={16} color="#007AFF" />
+                        <Text style={styles.addBusinessText}>Add Business</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <View style={styles.businessCard}>
+                      <View style={styles.businessItem}>
+                        <View style={styles.businessInfo}>
+                          <Text style={styles.businessName}>{selectedContact?.company || 'No business associated'}</Text>
+                          <Text style={styles.businessIndustry}>Technology</Text>
+                          <Text style={styles.businessContact}>{selectedContact?.email}</Text>
+                          <Text style={styles.businessPhone}>{selectedContact?.phone}</Text>
+                        </View>
+                        <TouchableOpacity style={styles.businessActions}>
+                          <MoreHorizontal size={16} color="#6B7280" />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+                  
+                </View>
+              )}
+
+              {activeTab === 'Addresses' && (
+                <View style={styles.tabSection}>
+                  <Text style={styles.sectionTitle}>Job Addresses</Text>
+                  
+                  {selectedContact?.addresses && selectedContact.addresses.length > 0 ? (
+                    <View style={styles.addressesList}>
+                      {selectedContact.addresses.map((address: any, index: number) => (
+                        <View key={address.id} style={styles.addressCard}>
+                          <View style={styles.addressHeader}>
+                            <View style={styles.addressInfo}>
+                              <Text style={styles.addressType}>{address.type}</Text>
+                              {address.isPrimary && (
+                                <View style={styles.primaryBadge}>
+                                  <Text style={styles.primaryBadgeText}>Primary</Text>
+                                </View>
+                              )}
+                            </View>
+                            <TouchableOpacity style={styles.addressActions}>
+                              <MoreHorizontal size={20} color="#8E8E93" />
+                            </TouchableOpacity>
+                          </View>
+                          <Text style={styles.addressText}>{address.address}</Text>
+                          <View style={styles.addressActions}>
+                            <TouchableOpacity style={styles.addressActionButton}>
+                              <MapPin size={16} color="#007AFF" />
+                              <Text style={styles.addressActionText}>Navigate</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.addressActionButton}>
+                              <Edit size={16} color="#8E8E93" />
+                              <Text style={styles.addressActionText}>Edit</Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  ) : (
+                    <View style={styles.emptyState}>
+                      <MapPin size={48} color="#D1D5DB" />
+                      <Text style={styles.emptyStateText}>No addresses found</Text>
+                      <Text style={styles.emptyStateSubtext}>Add a job address to get started</Text>
+                    </View>
+                  )}
+                  
+                  <TouchableOpacity style={styles.addAddressButton}>
+                    <Plus size={20} color="#007AFF" />
+                    <Text style={styles.addAddressText}>Add Job Address</Text>
+                  </TouchableOpacity>
                 </View>
               )}
 
@@ -635,32 +1095,214 @@ export default function Contacts() {
               )}
             </View>
 
-            {/* Related Business Section */}
-            <View style={styles.businessSection}>
-              <View style={styles.businessHeader}>
-                <Text style={styles.sectionTitle}>Related Businesses</Text>
-                <TouchableOpacity style={styles.addBusinessButton}>
-                  <Plus size={16} color="#6366F1" />
-                  <Text style={styles.addBusinessText}>Add Business</Text>
-                </TouchableOpacity>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Edit Contact Modal */}
+      {showEditModal && (
+        <Modal
+          visible={showEditModal}
+          animationType="slide"
+          presentationStyle="fullScreen"
+          onRequestClose={() => setShowEditModal(false)}
+        >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity 
+              style={styles.closeButton}
+              onPress={() => setShowEditModal(false)}
+            >
+              <X size={24} color="#6B7280" />
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Edit Contact</Text>
+            <TouchableOpacity 
+              style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
+              onPress={handleSaveContact}
+              disabled={isSaving}
+            >
+              <Text style={styles.saveButtonText}>
+                {isSaving ? 'Saving...' : 'Save'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+            <View style={styles.editForm}>
+              <Text style={styles.formSectionTitle}>Basic Information</Text>
+              
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Full Name *</Text>
+                  <TextInput 
+                    style={[styles.formInput, formErrors.name && styles.formInputError]}
+                    value={editFormData.name}
+                    onChangeText={(text) => setEditFormData(prev => ({ ...prev, name: text }))}
+                    placeholder="Enter full name"
+                  />
+                  {formErrors.name && <Text style={styles.errorText}>{formErrors.name}</Text>}
+                </View>
+              
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Title</Text>
+                <TextInput 
+                  style={styles.formInput}
+                  value={editFormData.title}
+                  onChangeText={(text) => setEditFormData(prev => ({ ...prev, title: text }))}
+                  placeholder="Enter job title"
+                />
               </View>
-              <View style={styles.businessCard}>
-                <View style={styles.businessItem}>
-                  <View style={styles.businessInfo}>
-                    <Text style={styles.businessName}>{selectedContact?.company || 'No business associated'}</Text>
-                    <Text style={styles.businessIndustry}>Technology</Text>
-                    <Text style={styles.businessContact}>{selectedContact?.email}</Text>
-                    <Text style={styles.businessPhone}>{selectedContact?.phone}</Text>
+              
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Company</Text>
+                <TextInput 
+                  style={styles.formInput}
+                  value={editFormData.company}
+                  onChangeText={(text) => setEditFormData(prev => ({ ...prev, company: text }))}
+                  placeholder="Enter company name"
+                />
+              </View>
+
+              <Text style={styles.formSectionTitle}>Contact Information</Text>
+              
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Primary Email</Text>
+                <TextInput 
+                  style={[styles.formInput, formErrors.email && styles.formInputError]}
+                  value={editFormData.email}
+                  onChangeText={(text) => setEditFormData(prev => ({ ...prev, email: text }))}
+                  placeholder="Enter email address"
+                  keyboardType="email-address"
+                />
+                {formErrors.email && <Text style={styles.errorText}>{formErrors.email}</Text>}
+              </View>
+              
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Primary Phone</Text>
+                <TextInput 
+                  style={styles.formInput}
+                  value={editFormData.phone}
+                  onChangeText={(text) => setEditFormData(prev => ({ ...prev, phone: text }))}
+                  placeholder="Enter phone number"
+                  keyboardType="phone-pad"
+                />
+              </View>
+              
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Secondary Email</Text>
+                <TextInput 
+                  style={[styles.formInput, formErrors.secondaryEmail && styles.formInputError]}
+                  value={editFormData.secondaryEmail}
+                  onChangeText={(text) => setEditFormData(prev => ({ ...prev, secondaryEmail: text }))}
+                  placeholder="Enter secondary email"
+                  keyboardType="email-address"
+                />
+                {formErrors.secondaryEmail && <Text style={styles.errorText}>{formErrors.secondaryEmail}</Text>}
+              </View>
+              
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Secondary Phone</Text>
+                <TextInput 
+                  style={styles.formInput}
+                  value={editFormData.secondaryPhone}
+                  onChangeText={(text) => setEditFormData(prev => ({ ...prev, secondaryPhone: text }))}
+                  placeholder="Enter secondary phone"
+                  keyboardType="phone-pad"
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Primary Address</Text>
+                <TextInput 
+                  style={styles.formInput}
+                  value={editFormData.address}
+                  onChangeText={(text) => setEditFormData(prev => ({ ...prev, address: text }))}
+                  placeholder="Enter primary address"
+                  multiline
+                  numberOfLines={2}
+                />
+              </View>
+
+              <Text style={styles.formSectionTitle}>Additional Information</Text>
+              
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Contact Tag</Text>
+                <TextInput 
+                  style={styles.formInput}
+                  value={editFormData.contactTag}
+                  onChangeText={(text) => setEditFormData(prev => ({ ...prev, contactTag: text }))}
+                  placeholder="Enter contact tag"
+                />
+              </View>
+              
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Original Lead Source</Text>
+                <TextInput 
+                  style={styles.formInput}
+                  value={editFormData.originalLeadSource}
+                  onChangeText={(text) => setEditFormData(prev => ({ ...prev, originalLeadSource: text }))}
+                  placeholder="Enter lead source"
+                />
+              </View>
+              
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Status</Text>
+                <TextInput 
+                  style={styles.formInput}
+                  value={editFormData.status}
+                  onChangeText={(text) => setEditFormData(prev => ({ ...prev, status: text }))}
+                  placeholder="Enter status"
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Created By</Text>
+                <TextInput 
+                  style={styles.formInput}
+                  value={editFormData.createdBy}
+                  onChangeText={(text) => setEditFormData(prev => ({ ...prev, createdBy: text }))}
+                  placeholder="User or API"
+                />
+              </View>
+
+              <Text style={styles.formSectionTitle}>Custom Fields</Text>
+              
+              {editFormData.customFields.map((field, index) => (
+                <View key={field.id} style={styles.customFieldRow}>
+                  <View style={styles.customFieldInputs}>
+                    <TextInput 
+                      style={[styles.formInput, styles.customFieldLabelInput]}
+                      value={field.label}
+                      onChangeText={(text) => updateCustomField(field.id, 'label', text)}
+                      placeholder="Field name"
+                    />
+                    <TextInput 
+                      style={[styles.formInput, styles.customFieldValueInput]}
+                      value={field.value}
+                      onChangeText={(text) => updateCustomField(field.id, 'value', text)}
+                      placeholder="Field value"
+                    />
                   </View>
-                  <TouchableOpacity style={styles.businessActions}>
-                    <MoreHorizontal size={16} color="#6B7280" />
+                  <TouchableOpacity 
+                    style={styles.removeCustomFieldButton}
+                    onPress={() => removeCustomField(field.id)}
+                  >
+                    <X size={16} color="#EF4444" />
                   </TouchableOpacity>
                 </View>
-              </View>
+              ))}
+              
+              <TouchableOpacity 
+                style={styles.addCustomFieldButton}
+                onPress={addCustomField}
+              >
+                <Plus size={16} color="#007AFF" />
+                <Text style={styles.addCustomFieldText}>Add Custom Field</Text>
+              </TouchableOpacity>
             </View>
           </ScrollView>
         </SafeAreaView>
       </Modal>
+      )}
     </SafeAreaView>
   );
 }
@@ -1030,24 +1672,325 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     flex: 1,
   },
+  clickableValue: {
+    flex: 1,
+  },
+  clickableText: {
+    fontSize: 14,
+    color: '#6366F1',
+    fontWeight: '500',
+    textDecorationLine: 'underline',
+  },
+  // Unified Contact Card Styles
+  unifiedContactCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  contactDetailsSection: {
+    padding: 16,
+  },
+  contactDetailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F2F2F7',
+  },
+  contactDetailIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F2F2F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  contactDetailContent: {
+    flex: 1,
+  },
+  contactDetailLabel: {
+    fontSize: 13,
+    color: '#8E8E93',
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  contactDetailValue: {
+    flex: 1,
+  },
+  contactDetailText: {
+    fontSize: 16,
+    color: '#007AFF',
+    fontWeight: '400',
+    textDecorationLine: 'underline',
+  },
+  contactActionButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F2F2F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 12,
+  },
+  contactDivider: {
+    height: 1,
+    backgroundColor: '#F2F2F7',
+    marginHorizontal: 16,
+  },
+  additionalInfoSection: {
+    padding: 16,
+  },
+  additionalInfoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F2F2F7',
+  },
+  additionalInfoIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#F2F2F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  additionalInfoContent: {
+    flex: 1,
+  },
+  additionalInfoLabel: {
+    fontSize: 13,
+    color: '#8E8E93',
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  additionalInfoValue: {
+    fontSize: 15,
+    color: '#1D1D1F',
+    fontWeight: '400',
+  },
   editButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EEF2FF',
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    backgroundColor: '#007AFF',
+    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
     gap: 8,
-    alignSelf: 'flex-start',
+    alignSelf: 'center',
+    marginBottom: 20,
+    shadowColor: '#007AFF',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   editButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  // Addresses Tab Styles
+  addressesList: {
+    marginBottom: 16,
+  },
+  addressCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  addressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  addressInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  addressType: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6366F1',
+    color: '#1D1D1F',
+  },
+  primaryBadge: {
+    backgroundColor: '#34C759',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  primaryBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  addressText: {
+    fontSize: 15,
+    color: '#1D1D1F',
+    marginBottom: 12,
+    lineHeight: 20,
+  },
+  addressActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  addressActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  addressActionText: {
+    fontSize: 14,
+    color: '#007AFF',
+    fontWeight: '500',
+  },
+  addAddressButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F2F2F7',
+    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 8,
+    alignSelf: 'center',
+  },
+  addAddressText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+  // Edit Modal Styles
+  saveButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  editForm: {
+    padding: 20,
+  },
+  formSectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1D1D1F',
+    marginTop: 24,
+    marginBottom: 16,
+  },
+  formGroup: {
+    marginBottom: 20,
+  },
+  formLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1D1D1F',
+    marginBottom: 8,
+  },
+  formInput: {
+    backgroundColor: '#F2F2F7',
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#1D1D1F',
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+  },
+  // Custom Fields Styles
+  customFieldsSection: {
+    marginBottom: 24,
+  },
+  customFieldsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  customFieldItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F2F2F7',
+  },
+  customFieldLabel: {
+    fontSize: 14,
+    color: '#8E8E93',
+    fontWeight: '500',
+    flex: 1,
+  },
+  customFieldValue: {
+    fontSize: 14,
+    color: '#1D1D1F',
+    fontWeight: '400',
+    flex: 1,
+    textAlign: 'right',
+  },
+  // Inline Action Menu Styles
+  inlineActionMenu: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    marginTop: 8,
+    marginBottom: 8,
+    marginHorizontal: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  quickActionsTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 12,
+  },
+  inlineActionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    gap: 12,
+    borderRadius: 8,
+  },
+  inlineActionText: {
+    fontSize: 14,
+    color: '#374151',
+    fontWeight: '500',
   },
   // Tabs
   tabsContainer: {
     marginBottom: 24,
+    marginTop: 0,
   },
   tabsScrollView: {
     flexDirection: 'row',
@@ -1164,5 +2107,62 @@ const styles = StyleSheet.create({
   },
   businessActions: {
     padding: 8,
+  },
+  // Form Validation Styles
+  formInputError: {
+    borderColor: '#EF4444',
+    borderWidth: 2,
+  },
+  errorText: {
+    color: '#EF4444',
+    fontSize: 14,
+    marginTop: 4,
+    marginLeft: 4,
+  },
+  saveButtonDisabled: {
+    backgroundColor: '#9CA3AF',
+    shadowOpacity: 0,
+  },
+  customFieldRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+  },
+  customFieldInputs: {
+    flex: 1,
+    gap: 8,
+  },
+  customFieldLabelInput: {
+    flex: 1,
+  },
+  customFieldValueInput: {
+    flex: 1,
+  },
+  removeCustomFieldButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FEF2F2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  addCustomFieldButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F9FF',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+    borderStyle: 'dashed',
+  },
+  addCustomFieldText: {
+    fontSize: 16,
+    color: '#007AFF',
+    fontWeight: '500',
   },
 });
