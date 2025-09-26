@@ -2,12 +2,14 @@ import DrawerMenu from '@/components/DrawerMenu';
 import FloatingActionMenu from '@/components/FloatingActionMenu';
 import { useTabBar } from '@/contexts/TabBarContext';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Calendar, CheckSquare, ChevronRight, Clock, DollarSign, Edit, FileText, Filter, Mail, MapPin, MessageSquare, MoreHorizontal, Navigation, Paperclip, Phone, Plus, Search, Tag, TrendingUp, User, X } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import { Calendar, CheckSquare, ChevronRight, Clock, Copy, DollarSign, Edit, FileText, Filter, Mail, MapPin, MessageSquare, MoreHorizontal, Navigation, Paperclip, Phone, Plus, Search, Tag, Target, TrendingUp, User, X } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Modal, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function Contacts() {
   const { setIsTransparent } = useTabBar();
+  const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeMenu, setActiveMenu] = useState<number | null>(null);
@@ -17,6 +19,9 @@ export default function Contacts() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [activeTab, setActiveTab] = useState('Information');
   const [expandedActionItem, setExpandedActionItem] = useState<string | null>(null);
+  const [expandedDeal, setExpandedDeal] = useState<number | null>(null);
+  const [showMeetingDetails, setShowMeetingDetails] = useState(false);
+  const [selectedMeeting, setSelectedMeeting] = useState<any>(null);
   const [editFormData, setEditFormData] = useState({
     name: '',
     title: '',
@@ -268,6 +273,35 @@ export default function Contacts() {
 
   const handleContactAction = (actionType: string, value: string) => {
     setExpandedActionItem(expandedActionItem === actionType ? null : actionType);
+  };
+
+  const handleExpandDeal = (dealId: number) => {
+    setExpandedDeal(expandedDeal === dealId ? null : dealId);
+  };
+
+  const handleViewAppointmentDetails = (appointment: any) => {
+    // Close the contact card modal
+    setShowContactCard(false);
+    
+    // Set up the meeting data for the modal
+    const meetingData = {
+      id: appointment.id || 1,
+      name: appointment.customer || 'Mike Stewart',
+      type: appointment.type || 'consultation',
+      address: appointment.address || '123 Main St, Orlando FL 32801',
+      phone: appointment.phone || '(555) 123-4567',
+      status: appointment.status || 'scheduled',
+      assignee: appointment.assignee || 'Tanner Mullen',
+      time: appointment.time || '10:00 AM',
+      duration: 90,
+      color: '#3B82F6',
+      appointmentNotes: appointment.appointmentNotes || 'Initial consultation for kitchen renovation project.',
+      adminNotes: appointment.adminNotes || 'Customer seems very interested and ready to move forward.',
+      photos: []
+    };
+    
+    setSelectedMeeting(meetingData);
+    setShowMeetingDetails(true);
   };
 
   const handleEditContact = () => {
@@ -998,33 +1032,510 @@ export default function Contacts() {
               {activeTab === 'Deals' && (
                 <View style={styles.tabSection}>
                   <Text style={styles.sectionTitle}>Deals</Text>
-                  <View style={styles.emptyState}>
-                    <TrendingUp size={48} color="#D1D5DB" />
-                    <Text style={styles.emptyStateText}>No deals found</Text>
-                    <Text style={styles.emptyStateSubtext}>Create a new deal to get started</Text>
+                  
+                  {/* Example Deal Card - Condensed Style */}
+                  <View style={styles.condensedDealCard}>
+                    <TouchableOpacity 
+                      style={styles.condensedDealContent}
+                      onPress={() => handleExpandDeal(1)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.condensedDealHeader}>
+                        <View style={styles.condensedDealTitleRow}>
+                          <Text style={styles.condensedDealTitle}>Bathroom Renovation Inquiry</Text>
+                          <View style={styles.condensedDealStageBadge}>
+                            <Text style={styles.condensedDealStageText}>Proposal Sent</Text>
+                          </View>
+                        </View>
+                        <View style={styles.condensedDealContactRow}>
+                          <User size={14} color="#6B7280" />
+                          <Text style={styles.condensedDealContact}>Mike Stewart</Text>
+                        </View>
+                      </View>
+                      
+                      <View style={styles.condensedDealMeta}>
+                        <View style={styles.condensedDealMetaItem}>
+                          <Clock size={12} color="#6B7280" />
+                          <Text style={styles.condensedDealMetaText}>2 days</Text>
+                        </View>
+                        <View style={styles.condensedDealMetaItem}>
+                          <Tag size={12} color="#6B7280" />
+                          <Text style={styles.condensedDealMetaText}>Website Form</Text>
+                        </View>
+                        <View style={styles.condensedDealMetaItem}>
+                          <DollarSign size={12} color="#10B981" />
+                          <Text style={[styles.condensedDealMetaText, { color: '#10B981', fontWeight: '600' }]}>
+                            $45,000
+                          </Text>
+                        </View>
+                        <View style={styles.condensedDealDripIndicator}>
+                          <TrendingUp size={14} color="#10B981" />
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                    
+                    <View style={styles.condensedDealExpandIndicator}>
+                      <ChevronRight 
+                        size={16} 
+                        color="#6B7280" 
+                        style={{ 
+                          transform: [{ rotate: expandedDeal === 1 ? '90deg' : '0deg' }] 
+                        }} 
+                      />
+                    </View>
                   </View>
+
+                  {/* Expanded Deal Content */}
+                  {expandedDeal === 1 && (
+                    <View style={styles.expandedDealContent}>
+                      {/* Quick Actions */}
+                      <View style={styles.dealQuickActionsSection}>
+                        <Text style={styles.dealQuickActionsTitle}>Quick Actions</Text>
+                        <View style={styles.dealQuickActions}>
+                          <TouchableOpacity style={[styles.dealQuickActionButton, styles.dealCallButton]}>
+                            <Phone size={18} color="#FFFFFF" />
+                            <Text style={styles.dealQuickActionText}>Call</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity style={[styles.dealQuickActionButton, styles.dealTextButton]}>
+                            <MessageSquare size={18} color="#FFFFFF" />
+                            <Text style={styles.dealQuickActionText}>Text</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity style={[styles.dealQuickActionButton, styles.dealEmailButton]}>
+                            <Mail size={18} color="#FFFFFF" />
+                            <Text style={styles.dealQuickActionText}>Email</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+
+                      {/* Deal Details */}
+                      <View style={styles.dealDetailsSection}>
+                        <View style={styles.dealDetailRow}>
+                          <Clock size={14} color="#6B7280" />
+                          <Text style={styles.dealDetailLabel}>In Stage:</Text>
+                          <Text style={styles.dealDetailValue}>2 days</Text>
+                        </View>
+                        <View style={styles.dealDetailRow}>
+                          <Tag size={14} color="#6B7280" />
+                          <Text style={styles.dealDetailLabel}>Source:</Text>
+                          <Text style={styles.dealDetailValue}>Website Form</Text>
+                        </View>
+                        <View style={styles.dealDetailRow}>
+                          <User size={14} color="#6B7280" />
+                          <Text style={styles.dealDetailLabel}>Assigned:</Text>
+                          <Text style={styles.dealDetailValue}>Tanner Mullen</Text>
+                        </View>
+                        <View style={styles.dealDetailRow}>
+                          <Target size={14} color="#6B7280" />
+                          <Text style={styles.dealDetailLabel}>Last Activity:</Text>
+                          <Text style={styles.dealDetailValue}>Email sent 2 hours ago</Text>
+                        </View>
+                        <View style={styles.dealDetailRow}>
+                          <TrendingUp size={14} color="#10B981" />
+                          <Text style={styles.dealDetailLabel}>Drip Campaign:</Text>
+                          <View style={styles.dealDripStatusBadge}>
+                            <TrendingUp size={12} color="#10B981" />
+                            <Text style={styles.dealDripStatusText}>5 remaining</Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      {/* Labels */}
+                      <View style={styles.dealLabelsSection}>
+                        <View style={styles.dealLabels}>
+                          <View style={[styles.dealLabel, { backgroundColor: '#EF4444' }]}>
+                            <Text style={[styles.dealLabelText, { color: '#FFFFFF' }]}>Hot Lead</Text>
+                          </View>
+                          <View style={[styles.dealLabel, { backgroundColor: '#EF4444' }]}>
+                            <Text style={[styles.dealLabelText, { color: '#FFFFFF' }]}>Urgent</Text>
+                          </View>
+                          <TouchableOpacity style={styles.addDealLabelButton}>
+                            <Plus size={12} color="#6B7280" />
+                            <Text style={styles.addDealLabelText}>Add Label</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+
+                      {/* Other Actions */}
+                      <View style={styles.dealOtherActions}>
+                        <TouchableOpacity style={styles.dealOtherActionButton}>
+                          <Calendar size={16} color="#6366F1" />
+                          <Text style={styles.dealOtherActionText}>Schedule</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[styles.dealOtherActionButton, styles.dealCommandCenterButton]}>
+                          <TrendingUp size={16} color="#FFFFFF" />
+                          <Text style={[styles.dealOtherActionText, { color: '#FFFFFF' }]}>Command Center</Text>
+                        </TouchableOpacity>
+                  </View>
+                    </View>
+                  )}
+                  
+                  <TouchableOpacity style={styles.addDealButton}>
+                    <Plus size={20} color="#007AFF" />
+                    <Text style={styles.addDealText}>Add New Deal</Text>
+                  </TouchableOpacity>
                 </View>
               )}
 
               {activeTab === 'Proposals' && (
                 <View style={styles.tabSection}>
                   <Text style={styles.sectionTitle}>Proposals</Text>
-                  <View style={styles.emptyState}>
-                    <FileText size={48} color="#D1D5DB" />
-                    <Text style={styles.emptyStateText}>No proposals found</Text>
-                    <Text style={styles.emptyStateSubtext}>Create a new proposal to get started</Text>
+                  
+                  {/* Example Proposal Cards */}
+                  <View style={styles.proposalCard}>
+                    <View style={styles.proposalHeader}>
+                      <View style={styles.proposalTitleSection}>
+                        <Text style={styles.proposalTitle}>Kitchen Renovation Proposal</Text>
+                        <View style={[styles.proposalStatusBadge, { backgroundColor: '#10B981' }]}>
+                          <Text style={styles.proposalStatusText}>Active</Text>
                   </View>
+                      </View>
+                      <View style={styles.proposalAmount}>
+                        <Text style={styles.proposalAmountText}>$45,000</Text>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.proposalDetails}>
+                      <View style={styles.proposalDetailRow}>
+                        <View style={styles.proposalDetailIcon}>
+                          <FileText size={16} color="#6B7280" />
+                        </View>
+                        <Text style={styles.proposalDetailLabel}>Deal ID:</Text>
+                        <Text style={styles.proposalDetailValue}>#DEAL-001</Text>
+                      </View>
+                      
+                      <View style={styles.proposalDetailRow}>
+                        <View style={styles.proposalDetailIcon}>
+                          <User size={16} color="#6B7280" />
+                        </View>
+                        <Text style={styles.proposalDetailLabel}>Salesperson:</Text>
+                        <Text style={styles.proposalDetailValue}>Tanner Mullen</Text>
+                      </View>
+                      
+                      <View style={styles.proposalDetailRow}>
+                        <View style={styles.proposalDetailIcon}>
+                          <Calendar size={16} color="#6B7280" />
+                        </View>
+                        <Text style={styles.proposalDetailLabel}>Sent:</Text>
+                        <Text style={styles.proposalDetailValue}>Jan 15, 2024</Text>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.proposalActions}>
+                      <TouchableOpacity style={styles.proposalActionButton}>
+                        <FileText size={16} color="#6366F1" />
+                        <Text style={styles.proposalActionText}>View Proposal</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.proposalActionButton}>
+                        <Edit size={16} color="#6366F1" />
+                        <Text style={styles.proposalActionText}>Edit</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  <View style={styles.proposalCard}>
+                    <View style={styles.proposalHeader}>
+                      <View style={styles.proposalTitleSection}>
+                        <Text style={styles.proposalTitle}>Bathroom Remodel Proposal</Text>
+                        <View style={[styles.proposalStatusBadge, { backgroundColor: '#F59E0B' }]}>
+                          <Text style={styles.proposalStatusText}>Pending</Text>
+                        </View>
+                      </View>
+                      <View style={styles.proposalAmount}>
+                        <Text style={styles.proposalAmountText}>$28,500</Text>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.proposalDetails}>
+                      <View style={styles.proposalDetailRow}>
+                        <View style={styles.proposalDetailIcon}>
+                          <FileText size={16} color="#6B7280" />
+                        </View>
+                        <Text style={styles.proposalDetailLabel}>Deal ID:</Text>
+                        <Text style={styles.proposalDetailValue}>#DEAL-002</Text>
+                      </View>
+                      
+                      <View style={styles.proposalDetailRow}>
+                        <View style={styles.proposalDetailIcon}>
+                          <User size={16} color="#6B7280" />
+                        </View>
+                        <Text style={styles.proposalDetailLabel}>Salesperson:</Text>
+                        <Text style={styles.proposalDetailValue}>Sarah Johnson</Text>
+                      </View>
+                      
+                      <View style={styles.proposalDetailRow}>
+                        <View style={styles.proposalDetailIcon}>
+                          <Calendar size={16} color="#6B7280" />
+                        </View>
+                        <Text style={styles.proposalDetailLabel}>Sent:</Text>
+                        <Text style={styles.proposalDetailValue}>Jan 20, 2024</Text>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.proposalActions}>
+                      <TouchableOpacity style={styles.proposalActionButton}>
+                        <FileText size={16} color="#6366F1" />
+                        <Text style={styles.proposalActionText}>View Proposal</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.proposalActionButton}>
+                        <Edit size={16} color="#6366F1" />
+                        <Text style={styles.proposalActionText}>Edit</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  <View style={styles.proposalCard}>
+                    <View style={styles.proposalHeader}>
+                      <View style={styles.proposalTitleSection}>
+                        <Text style={styles.proposalTitle}>Office Renovation Proposal</Text>
+                        <View style={[styles.proposalStatusBadge, { backgroundColor: '#EF4444' }]}>
+                          <Text style={styles.proposalStatusText}>Expired</Text>
+                        </View>
+                      </View>
+                      <View style={styles.proposalAmount}>
+                        <Text style={styles.proposalAmountText}>$75,000</Text>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.proposalDetails}>
+                      <View style={styles.proposalDetailRow}>
+                        <View style={styles.proposalDetailIcon}>
+                          <FileText size={16} color="#6B7280" />
+                        </View>
+                        <Text style={styles.proposalDetailLabel}>Deal ID:</Text>
+                        <Text style={styles.proposalDetailValue}>#DEAL-003</Text>
+                      </View>
+                      
+                      <View style={styles.proposalDetailRow}>
+                        <View style={styles.proposalDetailIcon}>
+                          <User size={16} color="#6B7280" />
+                        </View>
+                        <Text style={styles.proposalDetailLabel}>Salesperson:</Text>
+                        <Text style={styles.proposalDetailValue}>Mike Chen</Text>
+                      </View>
+                      
+                      <View style={styles.proposalDetailRow}>
+                        <View style={styles.proposalDetailIcon}>
+                          <Calendar size={16} color="#6B7280" />
+                        </View>
+                        <Text style={styles.proposalDetailLabel}>Sent:</Text>
+                        <Text style={styles.proposalDetailValue}>Dec 10, 2023</Text>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.proposalActions}>
+                      <TouchableOpacity style={styles.proposalActionButton}>
+                        <FileText size={16} color="#6366F1" />
+                        <Text style={styles.proposalActionText}>View Proposal</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.proposalActionButton}>
+                        <Edit size={16} color="#6366F1" />
+                        <Text style={styles.proposalActionText}>Edit</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                  
+                  <TouchableOpacity style={styles.addProposalButton}>
+                    <Plus size={20} color="#007AFF" />
+                    <Text style={styles.addProposalText}>Add New Proposal</Text>
+                  </TouchableOpacity>
                 </View>
               )}
 
               {activeTab === 'Appointments' && (
                 <View style={styles.tabSection}>
                   <Text style={styles.sectionTitle}>Appointments</Text>
-                  <View style={styles.emptyState}>
-                    <Calendar size={48} color="#D1D5DB" />
-                    <Text style={styles.emptyStateText}>No appointments found</Text>
-                    <Text style={styles.emptyStateSubtext}>Schedule an appointment to get started</Text>
+                  
+                  {/* Example Appointment Cards */}
+                  <View style={styles.appointmentCard}>
+                    <View style={styles.appointmentHeader}>
+                      <View style={styles.appointmentTitleSection}>
+                        <Text style={styles.appointmentTitle}>Kitchen Renovation Consultation</Text>
+                        <View style={[styles.appointmentStatusBadge, { backgroundColor: '#3B82F6' }]}>
+                          <Text style={styles.appointmentStatusText}>Scheduled</Text>
                   </View>
+                      </View>
+                      <View style={styles.appointmentDateTime}>
+                        <Text style={styles.appointmentDate}>Jan 25, 2024</Text>
+                        <Text style={styles.appointmentTime}>10:00 AM - 11:30 AM</Text>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.appointmentDetails}>
+                      <View style={styles.appointmentDetailRow}>
+                        <View style={styles.appointmentDetailIcon}>
+                          <MapPin size={16} color="#6B7280" />
+                        </View>
+                        <Text style={styles.appointmentDetailLabel}>Address:</Text>
+                        <Text style={styles.appointmentDetailValue}>123 Main St, Orlando FL 32801</Text>
+                      </View>
+                      
+                      <View style={styles.appointmentDetailRow}>
+                        <View style={styles.appointmentDetailIcon}>
+                          <User size={16} color="#6B7280" />
+                        </View>
+                        <Text style={styles.appointmentDetailLabel}>Assigned:</Text>
+                        <Text style={styles.appointmentDetailValue}>Tanner Mullen</Text>
+                      </View>
+                      
+                      <View style={styles.appointmentDetailRow}>
+                        <View style={styles.appointmentDetailIcon}>
+                          <User size={16} color="#6B7280" />
+                        </View>
+                        <Text style={styles.appointmentDetailLabel}>Co-host:</Text>
+                        <Text style={styles.appointmentDetailValue}>Sarah Johnson</Text>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.appointmentActions}>
+                      <TouchableOpacity 
+                        style={styles.appointmentViewButton}
+                        onPress={() => handleViewAppointmentDetails({
+                          id: 1,
+                          customer: 'Mike Stewart',
+                          type: 'consultation',
+                          address: '123 Main St, Orlando FL 32801',
+                          phone: '(555) 123-4567',
+                          status: 'scheduled',
+                          assignee: 'Tanner Mullen',
+                          time: '10:00 AM',
+                          appointmentNotes: 'Customer mentioned they have a budget of $50,000 and prefer modern design.',
+                          adminNotes: 'Customer seems very interested and ready to move forward.'
+                        })}
+                      >
+                        <Calendar size={16} color="#6366F1" />
+                        <Text style={styles.appointmentViewText}>View Details</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  <View style={styles.appointmentCard}>
+                    <View style={styles.appointmentHeader}>
+                      <View style={styles.appointmentTitleSection}>
+                        <Text style={styles.appointmentTitle}>Bathroom Remodel Estimate</Text>
+                        <View style={[styles.appointmentStatusBadge, { backgroundColor: '#10B981' }]}>
+                          <Text style={styles.appointmentStatusText}>Complete</Text>
+                        </View>
+                      </View>
+                      <View style={styles.appointmentDateTime}>
+                        <Text style={styles.appointmentDate}>Jan 20, 2024</Text>
+                        <Text style={styles.appointmentTime}>2:00 PM - 3:00 PM</Text>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.appointmentDetails}>
+                      <View style={styles.appointmentDetailRow}>
+                        <View style={styles.appointmentDetailIcon}>
+                          <MapPin size={16} color="#6B7280" />
+                        </View>
+                        <Text style={styles.appointmentDetailLabel}>Address:</Text>
+                        <Text style={styles.appointmentDetailValue}>456 Oak Ave, Tampa FL 33602</Text>
+                      </View>
+                      
+                      <View style={styles.appointmentDetailRow}>
+                        <View style={styles.appointmentDetailIcon}>
+                          <User size={16} color="#6B7280" />
+                        </View>
+                        <Text style={styles.appointmentDetailLabel}>Assigned:</Text>
+                        <Text style={styles.appointmentDetailValue}>Mike Chen</Text>
+                      </View>
+                      
+                      <View style={styles.appointmentDetailRow}>
+                        <View style={styles.appointmentDetailIcon}>
+                          <User size={16} color="#6B7280" />
+                        </View>
+                        <Text style={styles.appointmentDetailLabel}>Co-host:</Text>
+                        <Text style={styles.appointmentDetailValue}>Emily Rodriguez</Text>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.appointmentActions}>
+                      <TouchableOpacity 
+                        style={styles.appointmentViewButton}
+                        onPress={() => handleViewAppointmentDetails({
+                          id: 2,
+                          customer: 'Jennifer Davis',
+                          type: 'estimate',
+                          address: '456 Oak Ave, Tampa FL 33602',
+                          phone: '(555) 987-6543',
+                          status: 'completed',
+                          assignee: 'Mike Chen',
+                          time: '2:00 PM',
+                          appointmentNotes: 'Customer wants a walk-in shower and double vanity. Budget is flexible.',
+                          adminNotes: 'Customer is very responsive and has been planning this remodel for months.'
+                        })}
+                      >
+                        <Calendar size={16} color="#6366F1" />
+                        <Text style={styles.appointmentViewText}>View Details</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  <View style={styles.appointmentCard}>
+                    <View style={styles.appointmentHeader}>
+                      <View style={styles.appointmentTitleSection}>
+                        <Text style={styles.appointmentTitle}>Office Renovation Site Visit</Text>
+                        <View style={[styles.appointmentStatusBadge, { backgroundColor: '#EF4444' }]}>
+                          <Text style={styles.appointmentStatusText}>Cancelled</Text>
+                        </View>
+                      </View>
+                      <View style={styles.appointmentDateTime}>
+                        <Text style={styles.appointmentDate}>Jan 18, 2024</Text>
+                        <Text style={styles.appointmentTime}>9:00 AM - 10:00 AM</Text>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.appointmentDetails}>
+                      <View style={styles.appointmentDetailRow}>
+                        <View style={styles.appointmentDetailIcon}>
+                          <MapPin size={16} color="#6B7280" />
+                        </View>
+                        <Text style={styles.appointmentDetailLabel}>Address:</Text>
+                        <Text style={styles.appointmentDetailValue}>789 Business Blvd, Miami FL 33101</Text>
+                      </View>
+                      
+                      <View style={styles.appointmentDetailRow}>
+                        <View style={styles.appointmentDetailIcon}>
+                          <User size={16} color="#6B7280" />
+                        </View>
+                        <Text style={styles.appointmentDetailLabel}>Assigned:</Text>
+                        <Text style={styles.appointmentDetailValue}>David Kim</Text>
+                      </View>
+                      
+                      <View style={styles.appointmentDetailRow}>
+                        <View style={styles.appointmentDetailIcon}>
+                          <User size={16} color="#6B7280" />
+                        </View>
+                        <Text style={styles.appointmentDetailLabel}>Co-host:</Text>
+                        <Text style={styles.appointmentDetailValue}>Lisa Thompson</Text>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.appointmentActions}>
+                      <TouchableOpacity 
+                        style={styles.appointmentViewButton}
+                        onPress={() => handleViewAppointmentDetails({
+                          id: 3,
+                          customer: 'Robert Chang',
+                          type: 'site-visit',
+                          address: '789 Business Blvd, Miami FL 33101',
+                          phone: '(555) 456-7890',
+                          status: 'cancelled',
+                          assignee: 'David Kim',
+                          time: '9:00 AM',
+                          appointmentNotes: 'Client needs to reschedule for next week.',
+                          adminNotes: 'Follow up with client to reschedule.'
+                        })}
+                      >
+                        <Calendar size={16} color="#6366F1" />
+                        <Text style={styles.appointmentViewText}>View Details</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                  
+                  <TouchableOpacity style={styles.addAppointmentButton}>
+                    <Plus size={20} color="#007AFF" />
+                    <Text style={styles.addAppointmentText}>Add New Appointment</Text>
+                  </TouchableOpacity>
                 </View>
               )}
 
@@ -1303,6 +1814,125 @@ export default function Contacts() {
         </SafeAreaView>
       </Modal>
       )}
+
+      {/* Meeting Details Modal */}
+      <Modal
+        visible={showMeetingDetails}
+        transparent
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowMeetingDetails(false)}
+      >
+        <SafeAreaView style={styles.meetingModalContainer}>
+          <View style={styles.meetingModalHeader}>
+            <TouchableOpacity 
+              style={styles.meetingCloseButton}
+              onPress={() => setShowMeetingDetails(false)}
+            >
+              <X size={24} color="#6B7280" />
+            </TouchableOpacity>
+            <Text style={styles.meetingModalTitle}>Appointment Details</Text>
+            <View style={styles.meetingStatusBadge}>
+              <Text style={styles.meetingStatusText}>
+                {selectedMeeting?.status === 'scheduled' ? 'Scheduled' :
+                 selectedMeeting?.status === 'completed' ? 'Completed' :
+                 selectedMeeting?.status === 'cancelled' ? 'Cancelled' :
+                 selectedMeeting?.status === 'no-show' ? 'No Show' : 'Scheduled'}
+              </Text>
+            </View>
+          </View>
+
+          <ScrollView style={styles.meetingModalContent} showsVerticalScrollIndicator={false}>
+            {selectedMeeting && (
+              <>
+                {/* Location Section */}
+                <View style={styles.meetingLocationSection}>
+                  <View style={styles.meetingLocationHeader}>
+                    <MapPin size={20} color="#EF4444" />
+                    <Text style={styles.meetingLocationLabel}>Location</Text>
+                  </View>
+                  <Text style={styles.meetingAddress}>{selectedMeeting.address}</Text>
+                  <View style={styles.meetingAddressActions}>
+                    <TouchableOpacity style={styles.meetingNavigateButton}>
+                      <Navigation size={16} color="#FFFFFF" />
+                      <Text style={styles.meetingNavigateText}>Navigate</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.meetingCopyButton}>
+                      <Copy size={16} color="#6B7280" />
+                      <Text style={styles.meetingCopyText}>Copy</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* View Deal Button */}
+                <TouchableOpacity style={styles.meetingViewDealButton}>
+                  <Text style={styles.meetingViewDealText}>View Deal</Text>
+                </TouchableOpacity>
+
+                {/* Action Buttons */}
+                <View style={styles.meetingActionButtons}>
+                  <TouchableOpacity style={styles.meetingCallButton}>
+                    <Phone size={20} color="#FFFFFF" />
+                    <Text style={styles.meetingActionText}>Call</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.meetingTextButton}>
+                    <MessageSquare size={20} color="#FFFFFF" />
+                    <Text style={styles.meetingActionText}>Text</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.meetingEmailButton}>
+                    <Mail size={20} color="#FFFFFF" />
+                    <Text style={styles.meetingActionText}>Email</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Appointment Information Card */}
+                <View style={styles.meetingInfoCard}>
+                  <View style={styles.meetingInfoHeader}>
+                    <Calendar size={20} color="#6366F1" />
+                    <Text style={styles.meetingInfoTitle}>Appointment Details</Text>
+                  </View>
+                  
+                  <View style={styles.meetingInfoGrid}>
+                    <View style={styles.meetingInfoItem}>
+                      <Text style={styles.meetingInfoLabel}>Customer</Text>
+                      <TouchableOpacity style={styles.meetingCustomerRow}>
+                        <Text style={styles.meetingCustomerText}>{selectedMeeting.name}</Text>
+                        <User size={16} color="#6366F1" />
+                      </TouchableOpacity>
+                    </View>
+                    <View style={styles.meetingInfoItem}>
+                      <Text style={styles.meetingInfoLabel}>Type</Text>
+                      <Text style={styles.meetingInfoValue}>{selectedMeeting.type}</Text>
+                    </View>
+                    <View style={styles.meetingInfoItem}>
+                      <Text style={styles.meetingInfoLabel}>Date</Text>
+                      <Text style={styles.meetingInfoValue}>September 3, 2025</Text>
+                    </View>
+                    <View style={styles.meetingInfoItem}>
+                      <Text style={styles.meetingInfoLabel}>Start Time</Text>
+                      <Text style={styles.meetingInfoValue}>9:00AM</Text>
+                    </View>
+                    <View style={styles.meetingInfoItem}>
+                      <Text style={styles.meetingInfoLabel}>End Time</Text>
+                      <Text style={styles.meetingInfoValue}>10:00AM</Text>
+                    </View>
+                    <View style={styles.meetingInfoItem}>
+                      <Text style={styles.meetingInfoLabel}>Assignee</Text>
+                      <Text style={styles.meetingInfoValue}>{selectedMeeting.assignee}</Text>
+                    </View>
+                    <View style={styles.meetingInfoItem}>
+                      <Text style={styles.meetingInfoLabel}>Phone</Text>
+                      <Text style={styles.meetingInfoValue}>{selectedMeeting.phone}</Text>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.meetingBottomSpacing} />
+              </>
+            )}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -2164,5 +2794,706 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#007AFF',
     fontWeight: '500',
+  },
+  // Condensed Deal Card Styles
+  condensedDealCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+    overflow: 'hidden',
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+  },
+  condensedDealContent: {
+    flex: 1,
+    marginRight: 12,
+  },
+  condensedDealHeader: {
+    marginBottom: 8,
+  },
+  condensedDealTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  condensedDealTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    flex: 1,
+    marginRight: 8,
+  },
+  condensedDealStageBadge: {
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  condensedDealStageText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  condensedDealContactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  condensedDealContact: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginLeft: 6,
+    flex: 1,
+  },
+  condensedDealMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  condensedDealMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  condensedDealMetaText: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  condensedDealDripIndicator: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#10B98120',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  condensedDealExpandIndicator: {
+    padding: 4,
+  },
+  // Expanded Deal Content Styles
+  expandedDealContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  dealQuickActionsSection: {
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  dealQuickActionsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  dealQuickActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  dealQuickActionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 6,
+  },
+  dealCallButton: {
+    backgroundColor: '#10B981', // Green for call
+  },
+  dealTextButton: {
+    backgroundColor: '#3B82F6', // Blue for text
+  },
+  dealEmailButton: {
+    backgroundColor: '#8B5CF6', // Purple for email
+  },
+  dealQuickActionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  dealDetailsSection: {
+    marginBottom: 16,
+  },
+  dealDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
+  dealDetailLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
+    marginLeft: 8,
+    marginRight: 8,
+    minWidth: 80,
+  },
+  dealDetailValue: {
+    fontSize: 14,
+    color: '#1F2937',
+    flex: 1,
+  },
+  dealDripStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#10B98120',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  dealDripStatusText: {
+    fontSize: 12,
+    color: '#10B981',
+    fontWeight: '600',
+  },
+  dealLabelsSection: {
+    marginBottom: 16,
+  },
+  dealLabels: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  dealLabel: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  dealLabelText: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  addDealLabelButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  addDealLabelText: {
+    fontSize: 11,
+    color: '#6B7280',
+  },
+  dealOtherActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  dealOtherActionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+    gap: 6,
+  },
+  dealOtherActionText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6366F1',
+  },
+  dealCommandCenterButton: {
+    backgroundColor: '#6366F1',
+  },
+  addDealButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F9FF',
+    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+    borderStyle: 'dashed',
+    alignSelf: 'center',
+  },
+  addDealText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+  // Proposal Card Styles
+  proposalCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  proposalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  proposalTitleSection: {
+    flex: 1,
+    marginRight: 12,
+  },
+  proposalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 8,
+    lineHeight: 24,
+  },
+  proposalStatusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    alignSelf: 'flex-start',
+  },
+  proposalStatusText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  proposalAmount: {
+    alignItems: 'flex-end',
+  },
+  proposalAmountText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#10B981',
+  },
+  proposalDetails: {
+    marginBottom: 16,
+  },
+  proposalDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+  },
+  proposalDetailIcon: {
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  proposalDetailLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
+    minWidth: 100,
+  },
+  proposalDetailValue: {
+    fontSize: 14,
+    color: '#1F2937',
+    fontWeight: '500',
+    flex: 1,
+  },
+  proposalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  proposalActionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F8FAFC',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    gap: 6,
+  },
+  proposalActionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  addProposalButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F9FF',
+    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+    borderStyle: 'dashed',
+    alignSelf: 'center',
+  },
+  addProposalText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+  // Appointment Card Styles
+  appointmentCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  appointmentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  appointmentTitleSection: {
+    flex: 1,
+    marginRight: 12,
+  },
+  appointmentTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 8,
+    lineHeight: 24,
+  },
+  appointmentStatusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    alignSelf: 'flex-start',
+  },
+  appointmentStatusText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  appointmentDateTime: {
+    alignItems: 'flex-end',
+  },
+  appointmentDate: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 2,
+  },
+  appointmentTime: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  appointmentDetails: {
+    marginBottom: 16,
+  },
+  appointmentDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+  },
+  appointmentDetailIcon: {
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  appointmentDetailLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
+    minWidth: 80,
+  },
+  appointmentDetailValue: {
+    fontSize: 14,
+    color: '#1F2937',
+    fontWeight: '500',
+    flex: 1,
+  },
+  appointmentActions: {
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  appointmentViewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F8FAFC',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    gap: 6,
+  },
+  appointmentViewText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  addAppointmentButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F9FF',
+    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+    borderStyle: 'dashed',
+    alignSelf: 'center',
+  },
+  addAppointmentText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+  // Meeting Details Modal Styles
+  meetingModalContainer: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+  },
+  meetingModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  meetingCloseButton: {
+    padding: 4,
+  },
+  meetingModalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  meetingStatusBadge: {
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  meetingStatusText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  meetingModalContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  // Location Section
+  meetingLocationSection: {
+    backgroundColor: '#FEF2F2',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 20,
+    marginBottom: 16,
+  },
+  meetingLocationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
+  meetingLocationLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  meetingAddress: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 12,
+    lineHeight: 24,
+  },
+  meetingAddressActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  meetingNavigateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 6,
+  },
+  meetingNavigateText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  meetingCopyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    gap: 6,
+  },
+  meetingCopyText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  // View Deal Button
+  meetingViewDealButton: {
+    backgroundColor: '#8B5CF6',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  meetingViewDealText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  // Action Buttons
+  meetingActionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  meetingCallButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#10B981',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 8,
+  },
+  meetingTextButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#3B82F6',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 8,
+  },
+  meetingEmailButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F59E0B',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 8,
+  },
+  meetingActionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  // Info Card
+  meetingInfoCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  meetingInfoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 8,
+  },
+  meetingInfoTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  meetingInfoGrid: {
+    gap: 12,
+  },
+  meetingInfoItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  meetingInfoLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
+    flex: 1,
+  },
+  meetingInfoValue: {
+    fontSize: 14,
+    color: '#1F2937',
+    fontWeight: '500',
+    flex: 1,
+    textAlign: 'right',
+  },
+  meetingCustomerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  meetingCustomerText: {
+    fontSize: 14,
+    color: '#6366F1',
+    fontWeight: '500',
+  },
+  meetingBottomSpacing: {
+    height: 40,
   },
 });
