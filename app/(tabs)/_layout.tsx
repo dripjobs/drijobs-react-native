@@ -1,8 +1,8 @@
-import { Tabs } from 'expo-router';
-import { View, StyleSheet, Text } from 'react-native';
-import { Chrome as Home, Users, Handshake, Phone, MessageCircle, Square } from 'lucide-react-native';
-import { useTabBar } from '@/contexts/TabBarContext';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { useTabBar } from '@/contexts/TabBarContext';
+import { Tabs } from 'expo-router';
+import { Handshake, Chrome as Home, MessageCircle, Users } from 'lucide-react-native';
+import { StyleSheet, View } from 'react-native';
 
 // Custom Dialer Icon Component
 const DialerIcon = ({ size, color }: { size: number; color: string }) => (

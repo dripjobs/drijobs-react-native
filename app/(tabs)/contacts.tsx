@@ -3,9 +3,9 @@ import FloatingActionMenu from '@/components/FloatingActionMenu';
 import { useTabBar } from '@/contexts/TabBarContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { Calendar, CheckSquare, ChevronRight, Clock, Copy, DollarSign, Edit, FileText, Filter, Mail, MapPin, MessageSquare, MoreHorizontal, Navigation, Paperclip, Phone, Plus, Search, Tag, Target, TrendingUp, User, X } from 'lucide-react-native';
+import { Calendar, CheckSquare, ChevronDown, ChevronRight, Clock, Copy, DollarSign, Edit, FileText, Filter, Mail, MapPin, MessageSquare, MoreHorizontal, Navigation, Phone, Plus, Search, Tag, Target, TrendingUp, User, X } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Modal, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function Contacts() {
   const { setIsTransparent } = useTabBar();
@@ -17,24 +17,29 @@ export default function Contacts() {
   const [selectedContact, setSelectedContact] = useState<any>(null);
   const [showContactCard, setShowContactCard] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showMergeModal, setShowMergeModal] = useState(false);
+  const [mergeSearchQuery, setMergeSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('Information');
   const [expandedActionItem, setExpandedActionItem] = useState<string | null>(null);
   const [expandedDeal, setExpandedDeal] = useState<number | null>(null);
   const [showMeetingDetails, setShowMeetingDetails] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState<any>(null);
+  const [showContactMenu, setShowContactMenu] = useState(false);
   const [editFormData, setEditFormData] = useState({
-    name: '',
-    title: '',
-    company: '',
+    firstName: '',
+    lastName: '',
     email: '',
     phone: '',
     secondaryEmail: '',
     secondaryPhone: '',
     address: '',
-    contactTag: '',
     originalLeadSource: '',
     status: '',
     createdBy: '',
+    optOutDrips: false,
+    optOutBlasts: false,
+    optOutJobUpdates: false,
+    optOutAllCommunication: false,
     customFields: [] as Array<{id: string, label: string, value: string}>
   });
   const [formErrors, setFormErrors] = useState<{[key: string]: string}>({});
@@ -304,23 +309,117 @@ export default function Contacts() {
     setShowMeetingDetails(true);
   };
 
+  // Contact menu handlers
+  const handleViewContactPortal = () => {
+    console.log('View Contact Portal for:', selectedContact?.name);
+    setShowContactMenu(false);
+    // Implement contact portal functionality
+  };
+
+  const handleShareContact = () => {
+    console.log('Share Contact:', selectedContact?.name);
+    setShowContactMenu(false);
+    // Implement share contact functionality
+  };
+
+  const handleMergeContact = () => {
+    console.log('Merge Contact:', selectedContact?.name);
+    setShowContactMenu(false);
+    // Implement merge contact functionality
+  };
+
+  const handleArchiveContact = () => {
+    console.log('Archive Contact:', selectedContact?.name);
+    setShowContactMenu(false);
+    // Implement archive contact functionality
+  };
+
+  const handleDeleteContact = () => {
+    console.log('Delete Contact:', selectedContact?.name);
+    setShowContactMenu(false);
+    // Implement delete contact functionality
+  };
+
+  // Contact action handlers for dropdown menu
+  const handleArchiveContactAction = () => {
+    console.log('Archive Contact:', selectedContact?.name);
+    setShowContactMenu(false);
+    setShowContactCard(false);
+    // Implement archive contact functionality
+  };
+
+  const handleDeleteContactAction = () => {
+    setShowContactMenu(false);
+    Alert.alert(
+      'Delete Contact',
+      `Are you sure you want to delete ${selectedContact?.name}? This action cannot be undone.`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            console.log('Deleting contact:', selectedContact?.name);
+            setShowContactCard(false);
+            // Implement delete contact functionality
+          },
+        },
+      ]
+    );
+  };
+
+  const handleShareContactAction = () => {
+    console.log('Share Contact:', selectedContact?.name);
+    setShowContactMenu(false);
+    // Implement share contact functionality
+  };
+
+  const handleCopyContactAction = () => {
+    console.log('Copy Contact:', selectedContact?.name);
+    setShowContactMenu(false);
+    // Implement copy contact functionality
+  };
+
+  const handleViewPortalAction = () => {
+    console.log('View Portal:', selectedContact?.name);
+    setShowContactMenu(false);
+    // Implement view portal functionality
+  };
+
+  const handleMergeContactAction = () => {
+    console.log('Merge Contact:', selectedContact?.name);
+    setShowContactMenu(false);
+    setShowContactCard(false); // Close the contact details modal
+    setShowMergeModal(true); // Open the merge modal
+  };
+
   const handleEditContact = () => {
     console.log('Edit contact button pressed');
     if (selectedContact) {
       console.log('Setting edit form data for:', selectedContact.name);
+      // Split name into first and last name
+      const nameParts = (selectedContact.name || '').split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+      
       setEditFormData({
-        name: selectedContact.name || '',
-        title: selectedContact.title || '',
-        company: selectedContact.company || '',
+        firstName: firstName,
+        lastName: lastName,
         email: selectedContact.email || '',
         phone: selectedContact.phone || '',
         secondaryEmail: selectedContact.secondaryEmail || '',
         secondaryPhone: selectedContact.secondaryPhone || '',
         address: selectedContact.addresses?.find(addr => addr.isPrimary)?.address || selectedContact.address || '',
-        contactTag: selectedContact.contactTag || 'Customer',
         originalLeadSource: selectedContact.originalLeadSource || 'Website',
         status: selectedContact.status || 'Active',
         createdBy: selectedContact.createdBy || 'User',
+        optOutDrips: selectedContact.optOutDrips || false,
+        optOutBlasts: selectedContact.optOutBlasts || false,
+        optOutJobUpdates: selectedContact.optOutJobUpdates || false,
+        optOutAllCommunication: selectedContact.optOutAllCommunication || false,
         customFields: selectedContact.customFields || []
       });
       setFormErrors({});
@@ -338,11 +437,51 @@ export default function Contacts() {
     }
   };
 
+  // Check if any changes have been made
+  const hasChanges = () => {
+    if (!selectedContact) return false;
+    
+    return (
+      editFormData.firstName !== (selectedContact.firstName || '') ||
+      editFormData.lastName !== (selectedContact.lastName || '') ||
+      editFormData.email !== (selectedContact.email || '') ||
+      editFormData.phone !== (selectedContact.phone || '') ||
+      editFormData.secondaryEmail !== (selectedContact.secondaryEmail || '') ||
+      editFormData.secondaryPhone !== (selectedContact.secondaryPhone || '') ||
+      editFormData.address !== (selectedContact.addresses?.find(addr => addr.isPrimary)?.address || selectedContact.address || '') ||
+      editFormData.originalLeadSource !== (selectedContact.originalLeadSource || '') ||
+      editFormData.status !== (selectedContact.status || '') ||
+      editFormData.createdBy !== (selectedContact.createdBy || '') ||
+      editFormData.optOutDrips !== (selectedContact.optOutDrips || false) ||
+      editFormData.optOutBlasts !== (selectedContact.optOutBlasts || false) ||
+      editFormData.optOutJobUpdates !== (selectedContact.optOutJobUpdates || false) ||
+      editFormData.optOutAllCommunication !== (selectedContact.optOutAllCommunication || false)
+    );
+  };
+
+  // Get status for the footer indicator
+  const getStatusInfo = () => {
+    if (!hasChanges()) {
+      return { text: 'No changes', color: '#10B981', bgColor: '#D1FAE5' }; // Green
+    }
+    
+    // Check if required fields are missing
+    if (!editFormData.firstName.trim() || !editFormData.lastName.trim()) {
+      return { text: 'Incomplete', color: '#EF4444', bgColor: '#FEE2E2' }; // Red
+    }
+    
+    return { text: 'Draft', color: '#F59E0B', bgColor: '#FEF3C7' }; // Orange
+  };
+
   const validateForm = () => {
     const errors: {[key: string]: string} = {};
     
-    if (!editFormData.name.trim()) {
-      errors.name = 'Name is required';
+    if (!editFormData.firstName.trim()) {
+      errors.firstName = 'First name is required';
+    }
+    
+    if (!editFormData.lastName.trim()) {
+      errors.lastName = 'Last name is required';
     }
     
     if (editFormData.email && !/\S+@\S+\.\S+/.test(editFormData.email)) {
@@ -376,18 +515,21 @@ export default function Contacts() {
         // Update the selectedContact state with the new data
         setSelectedContact({
           ...selectedContact,
-          name: editFormData.name,
-          title: editFormData.title,
-          company: editFormData.company,
+          name: `${editFormData.firstName} ${editFormData.lastName}`.trim(),
+          firstName: editFormData.firstName,
+          lastName: editFormData.lastName,
           email: editFormData.email,
           phone: editFormData.phone,
           secondaryEmail: editFormData.secondaryEmail,
           secondaryPhone: editFormData.secondaryPhone,
           address: editFormData.address,
-          contactTag: editFormData.contactTag,
           originalLeadSource: editFormData.originalLeadSource,
           status: editFormData.status,
           createdBy: editFormData.createdBy,
+          optOutDrips: editFormData.optOutDrips,
+          optOutBlasts: editFormData.optOutBlasts,
+          optOutJobUpdates: editFormData.optOutJobUpdates,
+          optOutAllCommunication: editFormData.optOutAllCommunication,
           customFields: editFormData.customFields,
           // Update addresses array if needed
           addresses: selectedContact.addresses?.map(addr => 
@@ -649,10 +791,76 @@ export default function Contacts() {
               <X size={24} color="#6B7280" />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Contact Details</Text>
-            <TouchableOpacity style={styles.moreButton}>
+            <TouchableOpacity 
+              style={styles.moreButton}
+              onPress={() => setShowContactMenu(true)}
+            >
               <MoreHorizontal size={24} color="#6B7280" />
             </TouchableOpacity>
           </View>
+
+          {/* Contact Menu Dropdown - Inside Modal */}
+          {showContactMenu && (
+            <>
+              <TouchableOpacity 
+                style={styles.contactMenuBackdrop}
+                onPress={() => setShowContactMenu(false)}
+                activeOpacity={1}
+              />
+              <View style={styles.contactMenuDropdown}>
+                {/* Triangle pointer with border */}
+                <View style={styles.dropdownPointerBorder} />
+                <View style={styles.dropdownPointer} />
+                <TouchableOpacity 
+                  style={styles.contactMenuDropdownItem}
+                  onPress={handleViewPortalAction}
+                >
+                  <User size={18} color="#F59E0B" />
+                  <Text style={styles.contactMenuDropdownText}>View Contact Portal</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.contactMenuDropdownItem}
+                  onPress={handleShareContactAction}
+                >
+                  <MessageSquare size={18} color="#10B981" />
+                  <Text style={styles.contactMenuDropdownText}>Share Contact</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.contactMenuDropdownItem}
+                  onPress={handleCopyContactAction}
+                >
+                  <Copy size={18} color="#6366F1" />
+                  <Text style={styles.contactMenuDropdownText}>Copy Contact</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.contactMenuDropdownItem}
+                  onPress={handleMergeContactAction}
+                >
+                  <Target size={18} color="#8B5CF6" />
+                  <Text style={styles.contactMenuDropdownText}>Merge Contact</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.contactMenuDropdownItem}
+                  onPress={handleArchiveContactAction}
+                >
+                  <FileText size={18} color="#8B5CF6" />
+                  <Text style={styles.contactMenuDropdownText}>Archive Contact</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={[styles.contactMenuDropdownItem, styles.contactMenuDropdownDeleteItem]}
+                  onPress={handleDeleteContactAction}
+                >
+                  <X size={18} color="#EF4444" />
+                  <Text style={[styles.contactMenuDropdownText, styles.contactMenuDropdownDeleteText]}>Delete Contact</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
 
           <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
             {/* Contact Header */}
@@ -667,21 +875,19 @@ export default function Contacts() {
                 {selectedContact?.title && <Text style={styles.contactTitle}>{selectedContact.title}</Text>}
                 {selectedContact?.company && <Text style={styles.contactCompany}>{selectedContact.company}</Text>}
               </View>
+              <TouchableOpacity 
+                style={styles.editContactButton}
+                onPress={handleEditContact}
+              >
+                <Edit size={16} color="#FFFFFF" />
+                <Text style={styles.editContactButtonText}>Edit</Text>
+              </TouchableOpacity>
             </View>
-            
-            {/* Edit Button */}
-            <TouchableOpacity 
-              style={styles.editButton}
-              onPress={handleEditContact}
-            >
-              <Edit size={18} color="#FFFFFF" />
-              <Text style={styles.editButtonText}>Edit Contact Details</Text>
-            </TouchableOpacity>
 
             {/* Tabs */}
             <View style={styles.tabsContainer}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsScrollView}>
-                {['Information', 'Addresses', 'Deals', 'Proposals', 'Appointments', 'Invoices', 'Payments', 'Tasks', 'Notes', 'Attachments', 'Call History'].map((tab) => (
+                {['Information', 'Addresses', 'Deals', 'Proposals', 'Appointments', 'Invoices', 'Tasks', 'Notes', 'Attachments', 'Call History'].map((tab) => (
                   <TouchableOpacity
                     key={tab}
                     style={[styles.tab, activeTab === tab && styles.activeTab]}
@@ -1542,70 +1748,510 @@ export default function Contacts() {
               {activeTab === 'Invoices' && (
                 <View style={styles.tabSection}>
                   <Text style={styles.sectionTitle}>Invoices</Text>
-                  <View style={styles.emptyState}>
-                    <DollarSign size={48} color="#D1D5DB" />
-                    <Text style={styles.emptyStateText}>No invoices found</Text>
-                    <Text style={styles.emptyStateSubtext}>Create a new invoice to get started</Text>
+                  
+                  {/* Invoice Cards - Similar to Proposal Style */}
+                  <View style={styles.proposalCard}>
+                    <View style={styles.proposalHeader}>
+                      <View style={styles.proposalTitleSection}>
+                        <Text style={styles.proposalTitle}>Kitchen Renovation - Phase 1</Text>
+                        <View style={[styles.proposalStatusBadge, { backgroundColor: '#10B981' }]}>
+                          <Text style={styles.proposalStatusText}>Paid</Text>
+                        </View>
+                      </View>
+                      <View style={styles.proposalAmount}>
+                        <Text style={styles.proposalAmountText}>$15,000</Text>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.proposalDetails}>
+                      <View style={styles.proposalDetailRow}>
+                        <View style={styles.proposalDetailIcon}>
+                          <FileText size={16} color="#6B7280" />
+                        </View>
+                        <Text style={styles.proposalDetailLabel}>Invoice #:</Text>
+                        <Text style={styles.proposalDetailValue}>INV-2024-001</Text>
+                      </View>
+                      
+                      <View style={styles.proposalDetailRow}>
+                        <View style={styles.proposalDetailIcon}>
+                          <User size={16} color="#6B7280" />
+                        </View>
+                        <Text style={styles.proposalDetailLabel}>Created by:</Text>
+                        <Text style={styles.proposalDetailValue}>Tanner Mullen</Text>
+                      </View>
+                      
+                      <View style={styles.proposalDetailRow}>
+                        <View style={styles.proposalDetailIcon}>
+                          <Calendar size={16} color="#6B7280" />
+                        </View>
+                        <Text style={styles.proposalDetailLabel}>Date:</Text>
+                        <Text style={styles.proposalDetailValue}>Jan 15, 2024</Text>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.proposalActions}>
+                      <TouchableOpacity style={styles.proposalActionButton}>
+                        <FileText size={16} color="#6366F1" />
+                        <Text style={styles.proposalActionText}>View Invoice</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.proposalActionButton}>
+                        <Edit size={16} color="#6366F1" />
+                        <Text style={styles.proposalActionText}>Edit</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
+
+                  <View style={styles.proposalCard}>
+                    <View style={styles.proposalHeader}>
+                      <View style={styles.proposalTitleSection}>
+                        <Text style={styles.proposalTitle}>Bathroom Remodel - Materials</Text>
+                        <View style={[styles.proposalStatusBadge, { backgroundColor: '#F59E0B' }]}>
+                          <Text style={styles.proposalStatusText}>Pending</Text>
+                        </View>
+                      </View>
+                      <View style={styles.proposalAmount}>
+                        <Text style={styles.proposalAmountText}>$8,500</Text>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.proposalDetails}>
+                      <View style={styles.proposalDetailRow}>
+                        <View style={styles.proposalDetailIcon}>
+                          <FileText size={16} color="#6B7280" />
+                        </View>
+                        <Text style={styles.proposalDetailLabel}>Invoice #:</Text>
+                        <Text style={styles.proposalDetailValue}>INV-2024-002</Text>
+                      </View>
+                      
+                      <View style={styles.proposalDetailRow}>
+                        <View style={styles.proposalDetailIcon}>
+                          <User size={16} color="#6B7280" />
+                        </View>
+                        <Text style={styles.proposalDetailLabel}>Created by:</Text>
+                        <Text style={styles.proposalDetailValue}>Sarah Johnson</Text>
+                      </View>
+                      
+                      <View style={styles.proposalDetailRow}>
+                        <View style={styles.proposalDetailIcon}>
+                          <Calendar size={16} color="#6B7280" />
+                        </View>
+                        <Text style={styles.proposalDetailLabel}>Date:</Text>
+                        <Text style={styles.proposalDetailValue}>Jan 25, 2024</Text>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.proposalActions}>
+                      <TouchableOpacity style={styles.proposalActionButton}>
+                        <FileText size={16} color="#6366F1" />
+                        <Text style={styles.proposalActionText}>View Invoice</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.proposalActionButton}>
+                        <Edit size={16} color="#6366F1" />
+                        <Text style={styles.proposalActionText}>Edit</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  <View style={styles.proposalCard}>
+                    <View style={styles.proposalHeader}>
+                      <View style={styles.proposalTitleSection}>
+                        <Text style={styles.proposalTitle}>Office Renovation - Labor</Text>
+                        <View style={[styles.proposalStatusBadge, { backgroundColor: '#EF4444' }]}>
+                          <Text style={styles.proposalStatusText}>Overdue</Text>
+                        </View>
+                      </View>
+                      <View style={styles.proposalAmount}>
+                        <Text style={styles.proposalAmountText}>$12,000</Text>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.proposalDetails}>
+                      <View style={styles.proposalDetailRow}>
+                        <View style={styles.proposalDetailIcon}>
+                          <FileText size={16} color="#6B7280" />
+                        </View>
+                        <Text style={styles.proposalDetailLabel}>Invoice #:</Text>
+                        <Text style={styles.proposalDetailValue}>INV-2024-003</Text>
+                      </View>
+                      
+                      <View style={styles.proposalDetailRow}>
+                        <View style={styles.proposalDetailIcon}>
+                          <User size={16} color="#6B7280" />
+                        </View>
+                        <Text style={styles.proposalDetailLabel}>Created by:</Text>
+                        <Text style={styles.proposalDetailValue}>Mike Chen</Text>
+                      </View>
+                      
+                      <View style={styles.proposalDetailRow}>
+                        <View style={styles.proposalDetailIcon}>
+                          <Calendar size={16} color="#6B7280" />
+                        </View>
+                        <Text style={styles.proposalDetailLabel}>Date:</Text>
+                        <Text style={styles.proposalDetailValue}>Dec 20, 2023</Text>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.proposalActions}>
+                      <TouchableOpacity style={styles.proposalActionButton}>
+                        <FileText size={16} color="#6366F1" />
+                        <Text style={styles.proposalActionText}>View Invoice</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.proposalActionButton}>
+                        <Edit size={16} color="#6366F1" />
+                        <Text style={styles.proposalActionText}>Edit</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                  
+                  <TouchableOpacity style={styles.addProposalButton}>
+                    <Plus size={20} color="#007AFF" />
+                    <Text style={styles.addProposalText}>Create New Invoice</Text>
+                  </TouchableOpacity>
                 </View>
               )}
 
-              {activeTab === 'Payments' && (
-                <View style={styles.tabSection}>
-                  <Text style={styles.sectionTitle}>Payments</Text>
-                  <View style={styles.emptyState}>
-                    <CheckSquare size={48} color="#D1D5DB" />
-                    <Text style={styles.emptyStateText}>No payments found</Text>
-                    <Text style={styles.emptyStateSubtext}>Record a payment to get started</Text>
-                  </View>
-                </View>
-              )}
 
               {activeTab === 'Tasks' && (
                 <View style={styles.tabSection}>
                   <Text style={styles.sectionTitle}>Tasks</Text>
-                  <View style={styles.emptyState}>
-                    <Clock size={48} color="#D1D5DB" />
-                    <Text style={styles.emptyStateText}>No tasks found</Text>
-                    <Text style={styles.emptyStateSubtext}>Create a new task to get started</Text>
+                  
+                  {/* Task Cards */}
+                  <View style={styles.taskCard}>
+                    <View style={styles.taskHeader}>
+                      <View style={styles.taskIconSection}>
+                        <View style={styles.taskIconContainer}>
+                          <CheckSquare size={20} color="#8B5CF6" />
+                        </View>
+                        <View style={styles.taskHeaderInfo}>
+                          <Text style={styles.taskTime}>Feb 5, 2024</Text>
+                        </View>
+                      </View>
+                      <TouchableOpacity 
+                        style={[styles.taskStatusBadge, { backgroundColor: '#F59E0B' }]}
+                      >
+                        <Text style={styles.taskStatusText}>In Progress</Text>
+                        <ChevronDown size={12} color="#FFFFFF" />
+                      </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.taskContent}>
+                      <Text style={styles.taskTitle}>Follow up on kitchen renovation proposal</Text>
+                      <Text style={styles.taskDescription}>
+                        Call client to discuss proposal details and answer any questions about the kitchen renovation project.
+                      </Text>
+                      
+                      <TouchableOpacity style={styles.taskActionButton}>
+                        <Text style={styles.taskActionText}>View Details</Text>
+                        <ChevronRight size={16} color="#8B5CF6" />
+                      </TouchableOpacity>
+                    </View>
                   </View>
+
+                  <View style={styles.taskCard}>
+                    <View style={styles.taskHeader}>
+                      <View style={styles.taskIconSection}>
+                        <View style={styles.taskIconContainer}>
+                          <CheckSquare size={20} color="#8B5CF6" />
+                        </View>
+                        <View style={styles.taskHeaderInfo}>
+                          <Text style={styles.taskTime}>Feb 8, 2024</Text>
+                        </View>
+                      </View>
+                      <TouchableOpacity 
+                        style={[styles.taskStatusBadge, { backgroundColor: '#6B7280' }]}
+                      >
+                        <Text style={styles.taskStatusText}>Pending</Text>
+                        <ChevronDown size={12} color="#FFFFFF" />
+                      </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.taskContent}>
+                      <Text style={styles.taskTitle}>Schedule bathroom remodel site visit</Text>
+                      <Text style={styles.taskDescription}>
+                        Coordinate with client to schedule site visit for bathroom remodel project. Check availability for next week.
+                      </Text>
+                      
+                      <TouchableOpacity style={styles.taskActionButton}>
+                        <Text style={styles.taskActionText}>View Details</Text>
+                        <ChevronRight size={16} color="#8B5CF6" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  <View style={styles.taskCard}>
+                    <View style={styles.taskHeader}>
+                      <View style={styles.taskIconSection}>
+                        <View style={styles.taskIconContainer}>
+                          <CheckSquare size={20} color="#8B5CF6" />
+                        </View>
+                        <View style={styles.taskHeaderInfo}>
+                          <Text style={styles.taskTime}>Jan 30, 2024</Text>
+                        </View>
+                      </View>
+                      <TouchableOpacity 
+                        style={[styles.taskStatusBadge, { backgroundColor: '#10B981' }]}
+                      >
+                        <Text style={styles.taskStatusText}>Completed</Text>
+                        <ChevronDown size={12} color="#FFFFFF" />
+                      </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.taskContent}>
+                      <Text style={styles.taskTitle}>Send office renovation contract</Text>
+                      <Text style={styles.taskDescription}>
+                        Send finalized contract for office renovation project to client for review and signature.
+                      </Text>
+                      
+                      <TouchableOpacity style={styles.taskActionButton}>
+                        <Text style={styles.taskActionText}>View Details</Text>
+                        <ChevronRight size={16} color="#8B5CF6" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                  
+                  <TouchableOpacity style={styles.addTaskButton}>
+                    <Plus size={20} color="#007AFF" />
+                    <Text style={styles.addTaskText}>Create New Task</Text>
+                  </TouchableOpacity>
                 </View>
               )}
 
               {activeTab === 'Notes' && (
                 <View style={styles.tabSection}>
                   <Text style={styles.sectionTitle}>Notes</Text>
-                  <View style={styles.emptyState}>
-                    <FileText size={48} color="#D1D5DB" />
-                    <Text style={styles.emptyStateText}>No notes found</Text>
-                    <Text style={styles.emptyStateSubtext}>Add a note to get started</Text>
+                  
+                  {/* Note Cards */}
+                  <View style={styles.noteCard}>
+                    <View style={styles.noteHeader}>
+                      <View style={styles.noteAuthorInfo}>
+                        <View style={styles.noteAuthorAvatar}>
+                          <Text style={styles.noteAuthorInitial}>TM</Text>
+                        </View>
+                        <View style={styles.noteAuthorDetails}>
+                          <Text style={styles.noteAuthorName}>Tanner Mullen</Text>
+                          <Text style={styles.noteTimestamp}>Jan 28, 2024 at 11:30 AM</Text>
+                        </View>
+                      </View>
+                      <TouchableOpacity style={styles.noteMenuButton}>
+                        <MoreHorizontal size={16} color="#6B7280" />
+                      </TouchableOpacity>
+                    </View>
+                    <Text style={styles.noteContent}>
+                      Discussed contract terms with client. They're comfortable with the payment schedule and timeline. Client asked about warranty coverage and we provided details. They're ready to sign the contract and start the project. Very positive interaction.
+                    </Text>
                   </View>
+
+                  <View style={styles.noteCard}>
+                    <View style={styles.noteHeader}>
+                      <View style={styles.noteAuthorInfo}>
+                        <View style={styles.noteAuthorAvatar}>
+                          <Text style={styles.noteAuthorInitial}>MC</Text>
+                        </View>
+                        <View style={styles.noteAuthorDetails}>
+                          <Text style={styles.noteAuthorName}>Mike Chen</Text>
+                          <Text style={styles.noteTimestamp}>Jan 25, 2024 at 3:45 PM</Text>
+                        </View>
+                      </View>
+                      <TouchableOpacity style={styles.noteMenuButton}>
+                        <MoreHorizontal size={16} color="#6B7280" />
+                      </TouchableOpacity>
+                    </View>
+                    <Text style={styles.noteContent}>
+                      Conducted site visit for bathroom remodel. Current bathroom is in good condition but needs updating. Client wants walk-in shower and double vanity. Space is adequate for the requested features. Client is very organized and has clear vision for the project. They're ready to proceed with the renovation.
+                    </Text>
+                  </View>
+
+                  <View style={styles.noteCard}>
+                    <View style={styles.noteHeader}>
+                      <View style={styles.noteAuthorInfo}>
+                        <View style={styles.noteAuthorAvatar}>
+                          <Text style={styles.noteAuthorInitial}>SJ</Text>
+                        </View>
+                        <View style={styles.noteAuthorDetails}>
+                          <Text style={styles.noteAuthorName}>Sarah Johnson</Text>
+                          <Text style={styles.noteTimestamp}>Jan 20, 2024 at 10:15 AM</Text>
+                        </View>
+                      </View>
+                      <TouchableOpacity style={styles.noteMenuButton}>
+                        <MoreHorizontal size={16} color="#6B7280" />
+                      </TouchableOpacity>
+                    </View>
+                    <Text style={styles.noteContent}>
+                      Called client to discuss proposal. They had questions about the timeline and material options. Client is very satisfied with the proposal and wants to move forward. They requested a site visit next week to finalize details. Client is very responsive and professional.
+                    </Text>
+                  </View>
+
+                  <View style={styles.noteCard}>
+                    <View style={styles.noteHeader}>
+                      <View style={styles.noteAuthorInfo}>
+                        <View style={styles.noteAuthorAvatar}>
+                          <Text style={styles.noteAuthorInitial}>TM</Text>
+                        </View>
+                        <View style={styles.noteAuthorDetails}>
+                          <Text style={styles.noteAuthorName}>Tanner Mullen</Text>
+                          <Text style={styles.noteTimestamp}>Jan 15, 2024 at 2:30 PM</Text>
+                        </View>
+                      </View>
+                      <TouchableOpacity style={styles.noteMenuButton}>
+                        <MoreHorizontal size={16} color="#6B7280" />
+                      </TouchableOpacity>
+                    </View>
+                    <Text style={styles.noteContent}>
+                      Client is very interested in kitchen renovation. Budget is around $50,000. They want modern design with quartz countertops and stainless steel appliances. Client mentioned they have two young children so durability is important. They're looking to start the project in March 2024.
+                    </Text>
+                  </View>
+                  
+                  <TouchableOpacity style={styles.addNoteButton}>
+                    <Plus size={20} color="#007AFF" />
+                    <Text style={styles.addNoteText}>Add New Note</Text>
+                  </TouchableOpacity>
                 </View>
               )}
 
               {activeTab === 'Attachments' && (
                 <View style={styles.tabSection}>
                   <Text style={styles.sectionTitle}>Attachments</Text>
-                  <View style={styles.emptyState}>
-                    <Paperclip size={48} color="#D1D5DB" />
-                    <Text style={styles.emptyStateText}>No attachments found</Text>
-                    <Text style={styles.emptyStateSubtext}>Upload a file to get started</Text>
+                  
+                  {/* Attachment Items */}
+                  <View style={styles.attachmentItem}>
+                    <View style={styles.attachmentIcon}>
+                      <FileText size={20} color="#6366F1" />
+                    </View>
+                    <View style={styles.attachmentContent}>
+                      <Text style={styles.attachmentName}>Kitchen Renovation Proposal.pdf</Text>
+                      <Text style={styles.attachmentMeta}>2.4 MB • Jan 15, 2024 • Tanner Mullen</Text>
+                    </View>
+                    <TouchableOpacity style={styles.attachmentAction}>
+                      <MoreHorizontal size={16} color="#6B7280" />
+                    </TouchableOpacity>
                   </View>
+
+                  <View style={styles.attachmentItem}>
+                    <View style={styles.attachmentIcon}>
+                      <FileText size={20} color="#10B981" />
+                    </View>
+                    <View style={styles.attachmentContent}>
+                      <Text style={styles.attachmentName}>Bathroom Remodel Contract.docx</Text>
+                      <Text style={styles.attachmentMeta}>1.8 MB • Jan 20, 2024 • Sarah Johnson</Text>
+                    </View>
+                    <TouchableOpacity style={styles.attachmentAction}>
+                      <MoreHorizontal size={16} color="#6B7280" />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.attachmentItem}>
+                    <View style={styles.attachmentIcon}>
+                      <FileText size={20} color="#F59E0B" />
+                    </View>
+                    <View style={styles.attachmentContent}>
+                      <Text style={styles.attachmentName}>Site Visit Photos.zip</Text>
+                      <Text style={styles.attachmentMeta}>15.2 MB • Jan 25, 2024 • Mike Chen</Text>
+                    </View>
+                    <TouchableOpacity style={styles.attachmentAction}>
+                      <MoreHorizontal size={16} color="#6B7280" />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.attachmentItem}>
+                    <View style={styles.attachmentIcon}>
+                      <FileText size={20} color="#8B5CF6" />
+                    </View>
+                    <View style={styles.attachmentContent}>
+                      <Text style={styles.attachmentName}>Material Specifications.xlsx</Text>
+                      <Text style={styles.attachmentMeta}>856 KB • Jan 28, 2024 • Tanner Mullen</Text>
+                    </View>
+                    <TouchableOpacity style={styles.attachmentAction}>
+                      <MoreHorizontal size={16} color="#6B7280" />
+                    </TouchableOpacity>
+                  </View>
+                  
+                  <TouchableOpacity style={styles.addAttachmentButton}>
+                    <Plus size={20} color="#007AFF" />
+                    <Text style={styles.addAttachmentText}>Upload New File</Text>
+                  </TouchableOpacity>
                 </View>
               )}
 
               {activeTab === 'Call History' && (
                 <View style={styles.tabSection}>
                   <Text style={styles.sectionTitle}>Call History</Text>
-                  <View style={styles.emptyState}>
-                    <Phone size={48} color="#D1D5DB" />
-                    <Text style={styles.emptyStateText}>No call history found</Text>
-                    <Text style={styles.emptyStateSubtext}>Make a call to get started</Text>
+                  
+                  {/* Call History Items */}
+                  <View style={styles.callItem}>
+                    <View style={styles.callIcon}>
+                      <Phone size={18} color="#10B981" />
+                    </View>
+                    <View style={styles.callContent}>
+                      <View style={styles.callHeader}>
+                        <Text style={styles.callType}>Outgoing Call</Text>
+                        <Text style={styles.callDuration}>12:34</Text>
+                      </View>
+                      <Text style={styles.callTime}>Jan 28, 2024 at 2:15 PM</Text>
+                      <Text style={styles.callOutcome}>Successful - Contract Discussion</Text>
+                    </View>
+                    <TouchableOpacity style={styles.callAction}>
+                      <Phone size={16} color="#10B981" />
+                    </TouchableOpacity>
                   </View>
+
+                  <View style={styles.callItem}>
+                    <View style={styles.callIcon}>
+                      <Phone size={18} color="#3B82F6" />
+                    </View>
+                    <View style={styles.callContent}>
+                      <View style={styles.callHeader}>
+                        <Text style={styles.callType}>Incoming Call</Text>
+                        <Text style={styles.callDuration}>8:45</Text>
+                      </View>
+                      <Text style={styles.callTime}>Jan 25, 2024 at 10:30 AM</Text>
+                      <Text style={styles.callOutcome}>Successful - Site Visit Scheduling</Text>
+                    </View>
+                    <TouchableOpacity style={styles.callAction}>
+                      <Phone size={16} color="#10B981" />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.callItem}>
+                    <View style={styles.callIcon}>
+                      <Phone size={18} color="#EF4444" />
+                    </View>
+                    <View style={styles.callContent}>
+                      <View style={styles.callHeader}>
+                        <Text style={styles.callType}>Missed Call</Text>
+                        <Text style={styles.callDuration}>0:00</Text>
+                      </View>
+                      <Text style={styles.callTime}>Jan 22, 2024 at 3:45 PM</Text>
+                      <Text style={styles.callOutcome}>Missed - No voicemail</Text>
+                    </View>
+                    <TouchableOpacity style={styles.callAction}>
+                      <Phone size={16} color="#10B981" />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.callItem}>
+                    <View style={styles.callIcon}>
+                      <Phone size={18} color="#10B981" />
+                    </View>
+                    <View style={styles.callContent}>
+                      <View style={styles.callHeader}>
+                        <Text style={styles.callType}>Outgoing Call</Text>
+                        <Text style={styles.callDuration}>15:22</Text>
+                      </View>
+                      <Text style={styles.callTime}>Jan 20, 2024 at 11:15 AM</Text>
+                      <Text style={styles.callOutcome}>Successful - Proposal Discussion</Text>
+                    </View>
+                    <TouchableOpacity style={styles.callAction}>
+                      <Phone size={16} color="#10B981" />
+                    </TouchableOpacity>
+                  </View>
+                  
+                  <TouchableOpacity style={styles.addCallButton}>
+                    <Plus size={20} color="#007AFF" />
+                    <Text style={styles.addCallText}>Log New Call</Text>
+                  </TouchableOpacity>
                 </View>
               )}
             </View>
-
           </ScrollView>
         </SafeAreaView>
       </Modal>
@@ -1626,7 +2272,14 @@ export default function Contacts() {
             >
               <X size={24} color="#6B7280" />
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>Edit Contact</Text>
+            <View style={styles.modalTitleContainer}>
+              <Text style={styles.modalTitle}>Edit Contact</Text>
+              <View style={[styles.statusBadge, { backgroundColor: getStatusInfo().bgColor }]}>
+                <Text style={[styles.statusText, { color: getStatusInfo().color }]}>
+                  {getStatusInfo().text}
+                </Text>
+              </View>
+            </View>
             <TouchableOpacity 
               style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
               onPress={handleSaveContact}
@@ -1640,40 +2293,29 @@ export default function Contacts() {
 
           <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
             <View style={styles.editForm}>
-              <Text style={styles.formSectionTitle}>Basic Information</Text>
-              
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Full Name *</Text>
-                  <TextInput 
-                    style={[styles.formInput, formErrors.name && styles.formInputError]}
-                    value={editFormData.name}
-                    onChangeText={(text) => setEditFormData(prev => ({ ...prev, name: text }))}
-                    placeholder="Enter full name"
-                  />
-                  {formErrors.name && <Text style={styles.errorText}>{formErrors.name}</Text>}
-                </View>
-              
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Title</Text>
-                <TextInput 
-                  style={styles.formInput}
-                  value={editFormData.title}
-                  onChangeText={(text) => setEditFormData(prev => ({ ...prev, title: text }))}
-                  placeholder="Enter job title"
-                />
-              </View>
-              
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Company</Text>
-                <TextInput 
-                  style={styles.formInput}
-                  value={editFormData.company}
-                  onChangeText={(text) => setEditFormData(prev => ({ ...prev, company: text }))}
-                  placeholder="Enter company name"
-                />
-              </View>
-
               <Text style={styles.formSectionTitle}>Contact Information</Text>
+              
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>First Name *</Text>
+                <TextInput 
+                  style={[styles.formInput, formErrors.firstName && styles.formInputError]}
+                  value={editFormData.firstName}
+                  onChangeText={(text) => setEditFormData(prev => ({ ...prev, firstName: text }))}
+                  placeholder="Enter first name"
+                />
+                {formErrors.firstName && <Text style={styles.errorText}>{formErrors.firstName}</Text>}
+              </View>
+              
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Last Name *</Text>
+                <TextInput 
+                  style={[styles.formInput, formErrors.lastName && styles.formInputError]}
+                  value={editFormData.lastName}
+                  onChangeText={(text) => setEditFormData(prev => ({ ...prev, lastName: text }))}
+                  placeholder="Enter last name"
+                />
+                {formErrors.lastName && <Text style={styles.errorText}>{formErrors.lastName}</Text>}
+              </View>
               
               <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>Primary Email</Text>
@@ -1736,23 +2378,15 @@ export default function Contacts() {
               <Text style={styles.formSectionTitle}>Additional Information</Text>
               
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Contact Tag</Text>
-                <TextInput 
-                  style={styles.formInput}
-                  value={editFormData.contactTag}
-                  onChangeText={(text) => setEditFormData(prev => ({ ...prev, contactTag: text }))}
-                  placeholder="Enter contact tag"
-                />
-              </View>
-              
-              <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>Original Lead Source</Text>
-                <TextInput 
-                  style={styles.formInput}
-                  value={editFormData.originalLeadSource}
-                  onChangeText={(text) => setEditFormData(prev => ({ ...prev, originalLeadSource: text }))}
-                  placeholder="Enter lead source"
-                />
+                <View style={styles.dropdownContainer}>
+                  <TouchableOpacity style={styles.dropdownButton}>
+                    <Text style={styles.dropdownText}>
+                      {editFormData.originalLeadSource || 'Select lead source'}
+                    </Text>
+                    <ChevronDown size={20} color="#6B7280" />
+                  </TouchableOpacity>
+                </View>
               </View>
               
               <View style={styles.formGroup}>
@@ -1773,6 +2407,50 @@ export default function Contacts() {
                   onChangeText={(text) => setEditFormData(prev => ({ ...prev, createdBy: text }))}
                   placeholder="User or API"
                 />
+              </View>
+
+              <Text style={styles.formSectionTitle}>Opt-Out Rules</Text>
+              
+              <View style={styles.optOutSection}>
+                <TouchableOpacity 
+                  style={styles.optOutItem}
+                  onPress={() => setEditFormData(prev => ({ ...prev, optOutDrips: !prev.optOutDrips }))}
+                >
+                  <View style={[styles.checkbox, editFormData.optOutDrips && styles.checkboxChecked]}>
+                    {editFormData.optOutDrips && <CheckSquare size={16} color="#FFFFFF" />}
+                  </View>
+                  <Text style={styles.optOutLabel}>Opt out of drips</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.optOutItem}
+                  onPress={() => setEditFormData(prev => ({ ...prev, optOutBlasts: !prev.optOutBlasts }))}
+                >
+                  <View style={[styles.checkbox, editFormData.optOutBlasts && styles.checkboxChecked]}>
+                    {editFormData.optOutBlasts && <CheckSquare size={16} color="#FFFFFF" />}
+                  </View>
+                  <Text style={styles.optOutLabel}>Opt out of blasts</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.optOutItem}
+                  onPress={() => setEditFormData(prev => ({ ...prev, optOutJobUpdates: !prev.optOutJobUpdates }))}
+                >
+                  <View style={[styles.checkbox, editFormData.optOutJobUpdates && styles.checkboxChecked]}>
+                    {editFormData.optOutJobUpdates && <CheckSquare size={16} color="#FFFFFF" />}
+                  </View>
+                  <Text style={styles.optOutLabel}>Opt out of job related updates</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.optOutItem}
+                  onPress={() => setEditFormData(prev => ({ ...prev, optOutAllCommunication: !prev.optOutAllCommunication }))}
+                >
+                  <View style={[styles.checkbox, editFormData.optOutAllCommunication && styles.checkboxChecked]}>
+                    {editFormData.optOutAllCommunication && <CheckSquare size={16} color="#FFFFFF" />}
+                  </View>
+                  <Text style={styles.optOutLabel}>Opt out of all communication</Text>
+                </TouchableOpacity>
               </View>
 
               <Text style={styles.formSectionTitle}>Custom Fields</Text>
@@ -1933,6 +2611,128 @@ export default function Contacts() {
           </ScrollView>
         </SafeAreaView>
       </Modal>
+
+      {/* Merge Contact Modal */}
+      <Modal
+        visible={showMergeModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowMergeModal(false)}
+      >
+        <SafeAreaView style={styles.mergeModalContainer}>
+          <View style={styles.mergeModalHeader}>
+            <Text style={styles.mergeModalTitle}>Merge Contacts</Text>
+            <TouchableOpacity 
+              style={styles.mergeCloseButton}
+              onPress={() => setShowMergeModal(false)}
+            >
+              <X size={24} color="#6B7280" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.mergeModalContent}>
+            <Text style={styles.mergeDescription}>
+              Choose a destination contact to merge this contact into. This contact will be deleted after it's merged into the destination contact.
+            </Text>
+
+            <View style={styles.mergeSearchContainer}>
+              <Search size={20} color="#6B7280" />
+              <TextInput
+                style={styles.mergeSearchInput}
+                placeholder="Search contacts..."
+                value={mergeSearchQuery}
+                onChangeText={setMergeSearchQuery}
+                placeholderTextColor="#9CA3AF"
+              />
+            </View>
+
+            <ScrollView style={styles.mergeContactsList} showsVerticalScrollIndicator={false}>
+              {/* Demo merge contacts with best match highlighting */}
+              <View style={[styles.mergeContactItem, styles.bestMatchItem]}>
+                <View style={styles.mergeContactInfo}>
+                  <View style={styles.mergeContactNameContainer}>
+                    <Text style={styles.mergeContactName}>John Smith</Text>
+                    <View style={styles.bestMatchBadge}>
+                      <Text style={styles.bestMatchText}>BEST MATCH</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.mergeContactStatus}>Customer</Text>
+                </View>
+                <Text style={styles.mergeContactDetails}>john.smith@email.com • (555) 123-4567</Text>
+                <Text style={styles.mergeContactPerson}>Construction Manager at ABC Construction</Text>
+                <TouchableOpacity style={[styles.mergeIntoButton, styles.bestMatchButton]}>
+                  <Text style={styles.mergeIntoButtonText}>Merge into this contact</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.mergeContactItem}>
+                <View style={styles.mergeContactInfo}>
+                  <View style={styles.mergeContactNameContainer}>
+                    <Text style={styles.mergeContactName}>John Smith</Text>
+                    <View style={styles.partialMatchBadge}>
+                      <Text style={styles.partialMatchText}>PARTIAL MATCH</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.mergeContactStatus}>Lead</Text>
+                </View>
+                <Text style={styles.mergeContactDetails}>j.smith@company.com • (555) 987-6543</Text>
+                <Text style={styles.mergeContactPerson}>Project Manager at Metro Construction</Text>
+                <TouchableOpacity style={styles.mergeIntoButton}>
+                  <Text style={styles.mergeIntoButtonText}>Merge into this contact</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.mergeContactItem}>
+                <View style={styles.mergeContactInfo}>
+                  <Text style={styles.mergeContactName}>John A. Smith</Text>
+                  <Text style={styles.mergeContactStatus}>Prospect</Text>
+                </View>
+                <Text style={styles.mergeContactDetails}>johnsmith@gmail.com • (555) 456-7890</Text>
+                <Text style={styles.mergeContactPerson}>Owner at Smith Construction LLC</Text>
+                <TouchableOpacity style={styles.mergeIntoButton}>
+                  <Text style={styles.mergeIntoButtonText}>Merge into this contact</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.mergeContactItem}>
+                <View style={styles.mergeContactInfo}>
+                  <Text style={styles.mergeContactName}>J. Smith Construction</Text>
+                  <Text style={styles.mergeContactStatus}>Customer</Text>
+                </View>
+                <Text style={styles.mergeContactDetails}>info@jsmithconstruction.com • (555) 321-9876</Text>
+                <Text style={styles.mergeContactPerson}>Business Contact</Text>
+                <TouchableOpacity style={styles.mergeIntoButton}>
+                  <Text style={styles.mergeIntoButtonText}>Merge into this contact</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.mergeContactItem}>
+                <View style={styles.mergeContactInfo}>
+                  <Text style={styles.mergeContactName}>Smith & Associates</Text>
+                  <Text style={styles.mergeContactStatus}>Lead</Text>
+                </View>
+                <Text style={styles.mergeContactDetails}>contact@smithassoc.com • (555) 654-3210</Text>
+                <Text style={styles.mergeContactPerson}>John Smith - Principal</Text>
+                <TouchableOpacity style={styles.mergeIntoButton}>
+                  <Text style={styles.mergeIntoButtonText}>Merge into this contact</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+
+            <Text style={styles.mergeConflictPolicy}>
+              If conflicts exist in the contact name, description, status, or a custom field, we will keep the data from the destination contact and discard that data from the current contact.
+            </Text>
+
+            <TouchableOpacity 
+              style={styles.mergeCancelButton}
+              onPress={() => setShowMergeModal(false)}
+            >
+              <Text style={styles.mergeCancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
+
     </SafeAreaView>
   );
 }
@@ -2405,27 +3205,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#1D1D1F',
     fontWeight: '400',
-  },
-  editButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#007AFF',
-    borderRadius: 10,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    gap: 8,
-    alignSelf: 'center',
-    marginBottom: 20,
-    shadowColor: '#007AFF',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  editButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
   },
   // Addresses Tab Styles
   addressesList: {
@@ -3495,5 +4274,635 @@ const styles = StyleSheet.create({
   },
   meetingBottomSpacing: {
     height: 40,
+  },
+  // Task Card Styles
+  taskCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  taskHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  taskIconSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  taskIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  taskHeaderInfo: {
+    flex: 1,
+  },
+  taskTime: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  taskStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 4,
+  },
+  taskStatusText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  taskContent: {
+    marginTop: 8,
+  },
+  taskTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 8,
+    lineHeight: 22,
+  },
+  taskDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  taskActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+  },
+  taskActionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#8B5CF6',
+  },
+  addTaskButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F9FF',
+    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+    borderStyle: 'dashed',
+    alignSelf: 'center',
+  },
+  addTaskText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+  // Note Card Styles
+  noteCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  noteHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  noteAuthorInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  noteAuthorAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#6366F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  noteAuthorInitial: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  noteAuthorDetails: {
+    flex: 1,
+  },
+  noteAuthorName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 2,
+  },
+  noteTimestamp: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  noteMenuButton: {
+    padding: 4,
+  },
+  noteContent: {
+    fontSize: 14,
+    color: '#374151',
+    lineHeight: 20,
+  },
+  addNoteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F9FF',
+    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+    borderStyle: 'dashed',
+    alignSelf: 'center',
+  },
+  addNoteText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+  // Attachment Styles
+  attachmentItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  attachmentIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  attachmentContent: {
+    flex: 1,
+  },
+  attachmentName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  attachmentMeta: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  attachmentAction: {
+    padding: 8,
+  },
+  addAttachmentButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F9FF',
+    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+    borderStyle: 'dashed',
+    alignSelf: 'center',
+  },
+  addAttachmentText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+  // Call History Styles
+  callItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  callIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  callContent: {
+    flex: 1,
+  },
+  callHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  callType: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  callDuration: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  callTime: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  callOutcome: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  callAction: {
+    padding: 8,
+  },
+  addCallButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F9FF',
+    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+    borderStyle: 'dashed',
+    alignSelf: 'center',
+  },
+  addCallText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+  // Edit Contact Modal Styles
+  modalTitleContainer: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 4,
+  },
+  // Dropdown Styles
+  dropdownContainer: {
+    position: 'relative',
+  },
+  dropdownButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F2F2F7',
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+  },
+  dropdownText: {
+    fontSize: 16,
+    color: '#1D1D1F',
+    flex: 1,
+  },
+  // Opt-Out Rules Styles
+  optOutSection: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  optOutItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#D1D5DB',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  checkboxChecked: {
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
+  },
+  optOutLabel: {
+    fontSize: 16,
+    color: '#374151',
+    fontWeight: '500',
+    flex: 1,
+  },
+  // Contact Menu Dropdown Styles
+  contactMenuBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    zIndex: 1000,
+  },
+  contactMenuDropdown: {
+    position: 'absolute',
+    top: 70,
+    right: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingVertical: 8,
+    minWidth: 200,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 20,
+    zIndex: 1001,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    // Add a small triangle/pointer to connect to the button
+    transform: [{ translateY: -4 }],
+  },
+  contactMenuDropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  contactMenuDropdownText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+    flex: 1,
+  },
+  contactMenuDropdownDeleteItem: {
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  contactMenuDropdownDeleteText: {
+    color: '#EF4444',
+  },
+  dropdownPointer: {
+    position: 'absolute',
+    top: -8,
+    right: 20,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 8,
+    borderRightWidth: 8,
+    borderBottomWidth: 8,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: '#FFFFFF',
+    zIndex: 1002,
+  },
+  dropdownPointerBorder: {
+    position: 'absolute',
+    top: -9,
+    right: 19,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 9,
+    borderRightWidth: 9,
+    borderBottomWidth: 9,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: '#E5E7EB',
+    zIndex: 1001,
+  },
+  // Merge Contact Modal Styles
+  mergeModalContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  mergeModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  mergeModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  mergeCloseButton: {
+    padding: 8,
+  },
+  mergeModalContent: {
+    flex: 1,
+    padding: 20,
+  },
+  mergeDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  mergeSearchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  mergeSearchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#1F2937',
+    marginLeft: 8,
+  },
+  mergeContactsList: {
+    flex: 1,
+    marginBottom: 20,
+  },
+  mergeContactItem: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  mergeContactInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  mergeContactNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 12,
+  },
+  mergeContactName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginRight: 8,
+  },
+  mergeContactStatus: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  mergeContactDetails: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  mergeContactPerson: {
+    fontSize: 14,
+    color: '#374151',
+    marginBottom: 12,
+  },
+  // Best Match Highlighting
+  bestMatchItem: {
+    borderColor: '#10B981',
+    borderWidth: 2,
+    backgroundColor: '#F0FDF4',
+  },
+  bestMatchBadge: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  bestMatchText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  partialMatchBadge: {
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  partialMatchText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  bestMatchButton: {
+    backgroundColor: '#10B981',
+  },
+  mergeIntoButton: {
+    backgroundColor: '#3B82F6',
+    borderRadius: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignSelf: 'flex-end',
+  },
+  mergeIntoButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  mergeConflictPolicy: {
+    fontSize: 12,
+    color: '#6B7280',
+    lineHeight: 16,
+    marginBottom: 20,
+    fontStyle: 'italic',
+  },
+  mergeCancelButton: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    alignSelf: 'flex-end',
+  },
+  mergeCancelButtonText: {
+    color: '#374151',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  // Compact Edit Button
+  editContactButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    gap: 4,
+  },
+  editContactButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });

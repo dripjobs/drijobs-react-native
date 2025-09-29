@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, SafeAreaView, Animated, Dimensions, ScrollView } from 'react-native';
-import { PanGestureHandler } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { X, CircleUser, Settings, TrendingUp, CircleHelp as HelpCircle, LogOut, Home, Users, Calendar, Clock, BarChart3, Mic, MessageSquare, Mail, FileText, FileCheck, Activity, CheckSquare, Settings2, MessageCircle, Calendar as CalendarIcon, Star, Bell, Droplets, RotateCcw, Wrench } from 'lucide-react-native';
+import { Activity, BarChart3, Bell, Calendar, Calendar as CalendarIcon, CheckSquare, CircleUser, Clock, Droplets, FileCheck, FileText, Home, Mail, MessageCircle, MessageSquare, Mic, RotateCcw, Settings2, Star, Users, Wrench, X } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import { Animated, Dimensions, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { PanGestureHandler } from 'react-native-gesture-handler';
 
 interface DrawerMenuProps {
   isOpen: boolean;
@@ -29,7 +29,7 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
       items: [
         { icon: Mic, label: 'Voice', action: () => router.push('/(tabs)/phone') },
         { icon: MessageSquare, label: 'Chat', action: () => router.push('/(tabs)/chat') },
-        { icon: Mail, label: 'Email', action: () => console.log('Email') },
+        { icon: Mail, label: 'Email', action: () => router.push('/email') },
         { icon: MessageCircle, label: 'Team Chat', action: () => console.log('Team Chat') },
       ]
     },
