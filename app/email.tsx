@@ -38,7 +38,6 @@ import {
     Building,
     Calendar,
     Check,
-    ChevronDown,
     Copy,
     Download,
     Filter,
@@ -93,6 +92,7 @@ export default function Email() {
   const [activeFolder, setActiveFolder] = useState('Inbox');
   const [replyText, setReplyText] = useState('');
   const [showReplyBox, setShowReplyBox] = useState(false);
+  const [isReplyAll, setIsReplyAll] = useState(false);
   const [showTagModal, setShowTagModal] = useState(false);
   const [taggedUsers, setTaggedUsers] = useState<string[]>([]);
   const [showUserSelection, setShowUserSelection] = useState(false);
@@ -114,6 +114,85 @@ export default function Email() {
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('success');
   const toastAnimation = useRef(new Animated.Value(0)).current;
+  
+  // Filter System State
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    dripReplies: false,
+    unreadOnly: false,
+    activeDeal: false,
+    hasAttachments: false,
+    priority: 'all',
+    dateRange: 'all',
+    assignedTo: 'all',
+    customerType: 'all',
+    selectedTeamMembers: [] as string[],
+  });
+  const [showTeamDropdown, setShowTeamDropdown] = useState(false);
+  
+  // Compose Email State
+  const [showCompose, setShowCompose] = useState(false);
+  const [composeTo, setComposeTo] = useState<string[]>([]);
+  const [composeCc, setComposeCc] = useState<string[]>([]);
+  const [composeBcc, setComposeBcc] = useState<string[]>([]);
+  const [composeSubject, setComposeSubject] = useState('');
+  const [composeBody, setComposeBody] = useState('');
+  const [showCc, setShowCc] = useState(false);
+  const [showBcc, setShowBcc] = useState(false);
+  const [contactSearch, setContactSearch] = useState('');
+  const [showContactSearch, setShowContactSearch] = useState(false);
+  const [searchField, setSearchField] = useState<'to' | 'cc' | 'bcc'>('to');
+  const [isBoldCompose, setIsBoldCompose] = useState(false);
+  const [isItalicCompose, setIsItalicCompose] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [sendEmailProgress, setSendEmailProgress] = useState(0);
+  const [sendEmailTimeout, setSendEmailTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [isEditingDraft, setIsEditingDraft] = useState(false);
+  const [draftContent, setDraftContent] = useState('');
+  const [draftSubject, setDraftSubject] = useState('');
+  const [draftTo, setDraftTo] = useState('');
+  const [showForwardBox, setShowForwardBox] = useState(false);
+  const [forwardTo, setForwardTo] = useState<string[]>([]);
+  const [forwardSearchQuery, setForwardSearchQuery] = useState('');
+  const [showForwardSearchResults, setShowForwardSearchResults] = useState(false);
+  const [forwardMessage, setForwardMessage] = useState('');
+  const [isForwarding, setIsForwarding] = useState(false);
+  const [forwardProgress, setForwardProgress] = useState(0);
+  const [forwardTimeout, setForwardTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [showForwardSuccess, setShowForwardSuccess] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [emailTemplates, setEmailTemplates] = useState<Array<{id: number, name: string, subject: string, body: string}>>([]);
+  const [showTemplateEditor, setShowTemplateEditor] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<{id: number, name: string, subject: string, body: string} | null>(null);
+  const [templateName, setTemplateName] = useState('');
+  const [templateSubject, setTemplateSubject] = useState('');
+  const [templateBody, setTemplateBody] = useState('');
+  const [showFieldDropdown, setShowFieldDropdown] = useState(false);
+  const [templateBodyCursorPosition, setTemplateBodyCursorPosition] = useState(0);
+  const [emailSignature, setEmailSignature] = useState('');
+  const [signatureName, setSignatureName] = useState('');
+  const [signatureTitle, setSignatureTitle] = useState('');
+  const [signaturePhone, setSignaturePhone] = useState('');
+  const [signatureEmail, setSignatureEmail] = useState('');
+  
+  // Mock contacts for search
+  const allContacts = [
+    { id: '1', name: 'David Wilson', email: 'david.wilson@techstartup.com' },
+    { id: '2', name: 'Sarah Johnson', email: 'sarah.johnson@company.com' },
+    { id: '3', name: 'Mike Chen', email: 'mike@company.com' },
+    { id: '4', name: 'Lisa Davis', email: 'lisa@company.com' },
+    { id: '5', name: 'Tom Wilson', email: 'tom@company.com' },
+    { id: '6', name: 'John Smith', email: 'john@company.com' },
+  ];
+  
+  // Mock team members data
+  const teamMembers = [
+    { id: '1', name: 'John Smith', email: 'john@company.com' },
+    { id: '2', name: 'Sarah Johnson', email: 'sarah@company.com' },
+    { id: '3', name: 'Mike Chen', email: 'mike@company.com' },
+    { id: '4', name: 'Lisa Davis', email: 'lisa@company.com' },
+    { id: '5', name: 'Tom Wilson', email: 'tom@company.com' },
+  ];
 
   const emails = [
     { 
@@ -129,6 +208,10 @@ export default function Email() {
       tagColor: '#8B5CF6',
       date: 'Jan 18, 2024, 04:00 AM',
       to: 'John Smith',
+      isSent: false,
+      isDraft: false,
+      isArchived: false,
+      isImportant: false,
       thread: [
         {
           id: 1,
@@ -191,6 +274,10 @@ David`,
       tagColor: null,
       date: 'Jan 18, 2024, 03:45 AM',
       to: 'John Smith',
+      isSent: false,
+      isDraft: false,
+      isArchived: false,
+      isImportant: false,
       thread: [
         {
           id: 1,
@@ -235,6 +322,10 @@ Lisa`,
       tagColor: null,
       date: 'Jan 17, 2024, 02:30 PM',
       to: 'John Smith',
+      isSent: false,
+      isDraft: false,
+      isArchived: false,
+      isImportant: false,
       thread: [
         {
           id: 1,
@@ -265,17 +356,177 @@ Sarah`,
         access: '1 member',
         avatar: 'SJ'
       }
+    },
+    { 
+      id: 4, 
+      from: 'You', 
+      email: 'you@company.com',
+      subject: 'Project proposal and timeline', 
+      snippet: 'Hi Michael, I wanted to share our proposal for the upcoming project. Please review and let me know your thoughts.',
+      time: '2d ago', 
+      unread: false,
+      starred: false,
+      tag: 'Sent',
+      tagColor: '#10B981',
+      date: 'Jan 28, 2024, 10:00 AM',
+      to: 'Michael Brown',
+      isSent: true,
+      isDraft: false,
+      isArchived: false,
+      thread: [
+        {
+          id: 1,
+          from: 'You',
+          to: 'Michael Brown',
+          subject: 'Project proposal and timeline',
+          content: `Hi Michael,
+
+I wanted to share our proposal for the upcoming project. Please review and let me know your thoughts.
+
+I've attached the timeline and budget breakdown for your review.
+
+Looking forward to your feedback.
+
+Best regards,
+You`,
+          date: 'Jan 28, 2024, 10:00 AM',
+          time: '2d ago',
+          isCurrentUser: true
+        }
+      ],
+      contact: {
+        name: 'Michael Brown',
+        company: 'Tech Solutions Inc',
+        role: 'CTO',
+        phone: '(555) 234-5678',
+        email: 'michael@techsolutions.com',
+        address: '321 Tech Blvd, San Francisco, CA 94102',
+        lastContact: '2d ago',
+        creator: 'Tanner Mullen You',
+        access: '1 member',
+        avatar: 'MB'
+      }
+    },
+    { 
+      id: 5, 
+      from: 'You', 
+      email: 'you@company.com',
+      subject: 'Draft: Marketing campaign ideas', 
+      snippet: 'Here are some initial ideas for the Q2 marketing campaign...',
+      time: '1h ago', 
+      unread: false,
+      starred: true,
+      tag: 'Draft',
+      tagColor: '#F59E0B',
+      date: 'Jan 30, 2024, 09:00 AM',
+      to: 'Marketing Team',
+      isSent: false,
+      isDraft: true,
+      isArchived: false,
+      thread: [
+        {
+          id: 1,
+          from: 'You',
+          to: 'Marketing Team',
+          subject: 'Draft: Marketing campaign ideas',
+          content: `Hi Team,
+
+Here are some initial ideas for the Q2 marketing campaign. Still working on this, but wanted to capture my thoughts.
+
+- Social media push
+- Email newsletters
+- Partnership opportunities
+
+(Draft in progress...)
+
+Best,
+You`,
+          date: 'Jan 30, 2024, 09:00 AM',
+          time: '1h ago',
+          isCurrentUser: true
+        }
+      ],
+      contact: {
+        name: 'Marketing Team',
+        company: 'Your Company',
+        role: 'Team',
+        phone: '(555) 000-0000',
+        email: 'marketing@company.com',
+        address: '123 Company St, City, State',
+        lastContact: '1h ago',
+        creator: 'Tanner Mullen You',
+        access: '5 members',
+        avatar: 'MT'
+      }
+    },
+    { 
+      id: 6, 
+      from: 'Old Client', 
+      email: 'oldclient@example.com',
+      subject: 'Re: Past project discussion', 
+      snippet: 'Thanks for all your help on the previous project. It was a great success!',
+      time: '30d ago', 
+      unread: false,
+      starred: false,
+      tag: 'Archived',
+      tagColor: '#6B7280',
+      date: 'Dec 31, 2023, 03:00 PM',
+      to: 'John Smith',
+      isSent: false,
+      isDraft: false,
+      isArchived: true,
+      thread: [
+        {
+          id: 1,
+          from: 'Old Client',
+          to: 'John Smith',
+          subject: 'Re: Past project discussion',
+          content: `Hi John,
+
+Thanks for all your help on the previous project. It was a great success!
+
+We'll definitely reach out for future opportunities.
+
+Best regards,
+Old Client`,
+          date: 'Dec 31, 2023, 03:00 PM',
+          time: '30d ago'
+        }
+      ],
+      contact: {
+        name: 'Old Client',
+        company: 'Past Company',
+        role: 'Former Customer',
+        phone: '(555) 111-2222',
+        email: 'oldclient@example.com',
+        address: '999 Past Ln, Old City, State',
+        lastContact: '30d ago',
+        creator: 'Tanner Mullen You',
+        access: '1 member',
+        avatar: 'OC'
+      }
     }
   ];
 
-  const folders = [
-    { name: 'Inbox', count: 1, active: true },
-    { name: 'Sent', count: 0, active: false },
-    { name: 'Drafts', count: 0, active: false },
-    { name: 'Templates', count: 2, active: false }
-  ];
-
   const [emailList, setEmailList] = useState(emails);
+
+  // Calculate folder counts dynamically
+  const getFolderCounts = () => {
+    return {
+      Inbox: emailList.filter(e => !e.isSent && !e.isDraft && !e.isArchived).length,
+      Sent: emailList.filter(e => e.isSent).length,
+      Drafts: emailList.filter(e => e.isDraft).length,
+      Archived: emailList.filter(e => e.isArchived).length,
+    };
+  };
+
+  const folderCounts = getFolderCounts();
+  const folders = [
+    { name: 'Inbox', count: folderCounts.Inbox },
+    { name: 'Sent', count: folderCounts.Sent },
+    { name: 'Drafts', count: folderCounts.Drafts },
+    { name: 'Archived', count: folderCounts.Archived }
+  ];
 
   // Mock users for tagging
   const systemUsers = [
@@ -293,6 +544,16 @@ Sarah`,
     setShowEmailViewer(true);
     setShowReplyBox(false);
     setShowDetailsPanel(false);
+    
+    // If it's a draft, set up editing mode
+    if (email.isDraft) {
+      setIsEditingDraft(true);
+      setDraftContent(email.thread[0]?.content || '');
+      setDraftSubject(email.subject);
+      setDraftTo(email.to);
+    } else {
+      setIsEditingDraft(false);
+    }
     
     // Mark email as read when opened
     if (email.unread) {
@@ -352,30 +613,279 @@ Sarah`,
   };
 
   const handleReply = () => {
+    // Close other boxes
+    setShowForwardBox(false);
     setShowReplyBox(true);
+    setIsReplyAll(false);
     setReplyText('');
     console.log('Reply to email');
   };
 
   const handleReplyAll = () => {
+    // Close other boxes
+    setShowForwardBox(false);
     setShowReplyBox(true);
+    setIsReplyAll(true);
     setReplyText('');
     console.log('Reply all to email');
   };
 
+  const getReplyToText = () => {
+    if (!selectedEmailData) return '';
+    
+    if (!isReplyAll) {
+      return selectedEmailData.from;
+    }
+    
+    // For Reply All, get all recipients
+    const recipients = [];
+    
+    // Add the original sender
+    recipients.push(selectedEmailData.from);
+    
+    // If there's a 'to' field with multiple recipients, add them
+    if (selectedEmailData.to && selectedEmailData.to !== 'John Smith') {
+      const toRecipients = selectedEmailData.to.split(',').map((r: string) => r.trim());
+      recipients.push(...toRecipients);
+    }
+    
+    // Format the recipients list
+    if (recipients.length === 1) {
+      return recipients[0];
+    } else if (recipients.length === 2) {
+      return `${recipients[0]} and ${recipients[1]}`;
+    } else {
+      // For 3+ recipients, show first two and count
+      const remaining = recipients.length - 2;
+      return `${recipients[0]}, ${recipients[1]} and ${remaining} other${remaining > 1 ? 's' : ''}`;
+    }
+  };
+
   const handleForward = () => {
+    // Close other boxes
+    setShowReplyBox(false);
+    setShowForwardBox(true);
+    setForwardTo([]);
+    setForwardSearchQuery('');
+    setShowForwardSearchResults(false);
+    // Set empty message initially so user can add their own text
+    setForwardMessage('');
+    console.log('Forward box opened');
+  };
+
+  const handleAddForwardRecipient = (email: string, name?: string) => {
+    const recipient = name ? `${name} <${email}>` : email;
+    if (!forwardTo.includes(recipient)) {
+      setForwardTo([...forwardTo, recipient]);
+    }
+    setForwardSearchQuery('');
+    setShowForwardSearchResults(false);
+  };
+
+  const handleRemoveForwardRecipient = (recipient: string) => {
+    setForwardTo(forwardTo.filter(r => r !== recipient));
+  };
+
+  const handleForwardSearchChange = (text: string) => {
+    setForwardSearchQuery(text);
+    setShowForwardSearchResults(text.length > 0);
+  };
+
+  const getForwardSearchResults = () => {
+    if (!forwardSearchQuery) return [];
+    
+    const query = forwardSearchQuery.toLowerCase();
+    const results: any[] = [];
+    
+    // Search system users (team members)
+    const matchingUsers = systemUsers.filter(user => 
+      user.name.toLowerCase().includes(query) ||
+      user.email.toLowerCase().includes(query)
+    );
+    results.push(...matchingUsers.map(u => ({ ...u, type: 'Team Member' })));
+    
+    // Search contacts from email list
+    const uniqueContacts = new Map();
+    emailList.forEach(email => {
+      if (email.contact && 
+          (email.contact.name.toLowerCase().includes(query) ||
+           email.contact.email.toLowerCase().includes(query))) {
+        uniqueContacts.set(email.contact.email, {
+          name: email.contact.name,
+          email: email.contact.email,
+          type: 'Contact'
+        });
+      }
+    });
+    results.push(...Array.from(uniqueContacts.values()));
+    
+    return results;
+  };
+
+  const handleSendForward = () => {
+    if (forwardTo.length === 0 && !forwardSearchQuery.trim()) {
+      showToast('Please add at least one recipient', 'error');
+      return;
+    }
+    
+    setIsForwarding(true);
+    setForwardProgress(0);
+    
+    // Simulate sending progress over 3 seconds
+    const progressInterval = setInterval(() => {
+      setForwardProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(progressInterval);
+          return 100;
+        }
+        return prev + 2;
+      });
+    }, 60);
+    
+    // Set timeout for actual sending
+    const timeout = setTimeout(() => {
+      clearInterval(progressInterval);
+      
+      const recipientCount = forwardTo.length + (forwardSearchQuery.includes('@') ? 1 : 0);
+      
+      setIsForwarding(false);
+      setShowForwardSuccess(true);
+      showToast(`Email forwarded to ${recipientCount} recipient(s)`, 'success');
+      
+      // Close forward box after showing success
+      setTimeout(() => {
+        setShowForwardSuccess(false);
+        setShowForwardBox(false);
+        setForwardTo([]);
+        setForwardSearchQuery('');
+        setForwardMessage('');
+      }, 2000);
+    }, 3000);
+    
+    setForwardTimeout(timeout);
+  };
+
+  const handleCancelForward = () => {
+    if (forwardTimeout) {
+      clearTimeout(forwardTimeout);
+      setForwardTimeout(null);
+    }
+    setIsForwarding(false);
+    setForwardProgress(0);
+    showToast('Forward cancelled', 'info');
+  };
+
+  // Template Management Functions
+  const handleCreateTemplate = () => {
+    setShowSettings(false); // Close settings modal first
+    setTimeout(() => {
+      setEditingTemplate(null);
+      setTemplateName('');
+      setTemplateSubject('');
+      setTemplateBody('');
+      setShowTemplateEditor(true);
+    }, 300); // Wait for settings modal to close
+  };
+
+  const handleEditTemplate = (template: any) => {
+    setShowSettings(false); // Close settings modal first
+    setTimeout(() => {
+      setEditingTemplate(template);
+      setTemplateName(template.name);
+      setTemplateSubject(template.subject);
+      setTemplateBody(template.body);
+      setShowTemplateEditor(true);
+    }, 300); // Wait for settings modal to close
+  };
+
+  const handleSaveTemplate = () => {
+    if (!templateName.trim() || !templateBody.trim()) {
+      showToast('Please provide template name and body', 'error');
+      return;
+    }
+
+    if (editingTemplate) {
+      // Update existing template
+      setEmailTemplates(prev => prev.map(t => 
+        t.id === editingTemplate.id 
+          ? { ...t, name: templateName, subject: templateSubject, body: templateBody }
+          : t
+      ));
+      showToast('Template updated successfully', 'success');
+    } else {
+      // Create new template
+      const newTemplate = {
+        id: Date.now(),
+        name: templateName,
+        subject: templateSubject,
+        body: templateBody
+      };
+      setEmailTemplates(prev => [...prev, newTemplate]);
+      showToast('Template created successfully', 'success');
+    }
+
+    // Close template editor
+    setShowTemplateEditor(false);
+    setTemplateName('');
+    setTemplateSubject('');
+    setTemplateBody('');
+    setEditingTemplate(null);
+    
+    // Reopen settings modal after a delay
+    setTimeout(() => {
+      setShowSettings(true);
+    }, 300);
+  };
+
+  const handleDeleteTemplate = (templateId: number) => {
+    setEmailTemplates(prev => prev.filter(t => t.id !== templateId));
+    showToast('Template deleted', 'success');
+  };
+
+  const handleUseTemplate = (template: any) => {
+    setReplyText(template.body);
+    setShowSettings(false);
     setShowReplyBox(true);
-    setReplyText(`\n\n--- Forwarded message ---\nFrom: ${selectedEmailData?.from}\nSubject: ${selectedEmailData?.subject}\n\n${selectedEmailData?.thread?.[0]?.content || ''}`);
-    console.log('Forward email');
+    showToast('Template loaded', 'success');
+  };
+
+  // Dynamic field options for template editor
+  const dynamicFields = [
+    { tag: '{first-name}', label: 'First Name', description: 'Contact\'s first name' },
+    { tag: '{last-name}', label: 'Last Name', description: 'Contact\'s last name' },
+    { tag: '{full-name}', label: 'Full Name', description: 'Contact\'s full name' },
+    { tag: '{email}', label: 'Email', description: 'Contact\'s email address' },
+    { tag: '{company}', label: 'Company', description: 'Contact\'s company name' },
+    { tag: '{phone}', label: 'Phone', description: 'Contact\'s phone number' },
+    { tag: '{job-title}', label: 'Job Title', description: 'Contact\'s job title' },
+    { tag: '{deal-value}', label: 'Deal Value', description: 'Deal amount/value' },
+    { tag: '{deal-stage}', label: 'Deal Stage', description: 'Current deal stage' },
+    { tag: '{assigned-to}', label: 'Assigned To', description: 'Team member assigned' },
+    { tag: '{today}', label: 'Today\'s Date', description: 'Current date' },
+    { tag: '{time}', label: 'Current Time', description: 'Current time' },
+  ];
+
+  const handleInsertField = (field: { tag: string, label: string, description: string }) => {
+    const beforeCursor = templateBody.substring(0, templateBodyCursorPosition);
+    const afterCursor = templateBody.substring(templateBodyCursorPosition);
+    const newBody = beforeCursor + field.tag + afterCursor;
+    setTemplateBody(newBody);
+    setTemplateBodyCursorPosition(templateBodyCursorPosition + field.tag.length);
+    setShowFieldDropdown(false);
+    showToast(`${field.label} field inserted`, 'success');
   };
 
   const handleAIReply = () => {
+    // Close other boxes
+    setShowForwardBox(false);
+    
     const aiReply = `Thank you for your email. I appreciate your interest and will get back to you shortly with more details. 
 
 Best regards,
 John Smith`;
     setReplyText(aiReply);
     setShowReplyBox(true);
+    setIsReplyAll(false);
     console.log('AI Reply generated');
   };
 
@@ -521,6 +1031,264 @@ John Smith`;
     console.log('Email marked as unread:', emailId);
   };
 
+  const handleMarkImportant = (emailId: number) => {
+    setEmailList(prevList => prevList.map(email => {
+      if (email.id === emailId) {
+        const isImportant = !email.isImportant;
+        return { ...email, isImportant };
+      }
+      return email;
+    }));
+    
+    // Show toast based on action
+    const email = emailList.find(e => e.id === emailId);
+    if (email?.isImportant) {
+      showToast('Marked as not important', 'info');
+    } else {
+      showToast('Marked as important', 'success');
+    }
+  };
+
+  // Filter System Functions
+  const toggleFilters = () => {
+    setShowFilters(!showFilters);
+  };
+
+  const updateFilter = (key: string, value: any) => {
+    if (key === 'assignedTo') {
+      if (value === 'team') {
+        setShowTeamDropdown(true);
+      } else {
+        setShowTeamDropdown(false);
+        setFilters(prev => ({
+          ...prev,
+          selectedTeamMembers: []
+        }));
+      }
+    }
+    setFilters(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+  
+  const toggleTeamMember = (memberId: string) => {
+    setFilters(prev => {
+      const isSelected = prev.selectedTeamMembers.includes(memberId);
+      return {
+        ...prev,
+        selectedTeamMembers: isSelected
+          ? prev.selectedTeamMembers.filter(id => id !== memberId)
+          : [...prev.selectedTeamMembers, memberId]
+      };
+    });
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      dripReplies: false,
+      unreadOnly: false,
+      activeDeal: false,
+      hasAttachments: false,
+      priority: 'all',
+      dateRange: 'all',
+      assignedTo: 'all',
+      customerType: 'all',
+      selectedTeamMembers: [],
+    });
+    setShowTeamDropdown(false);
+  };
+  
+  // Compose Email Functions
+  const openCompose = () => {
+    setShowCompose(true);
+  };
+  
+  const closeCompose = () => {
+    setShowCompose(false);
+    // Reset compose fields
+    setComposeTo([]);
+    setComposeCc([]);
+    setComposeBcc([]);
+    setComposeSubject('');
+    setComposeBody('');
+    setShowCc(false);
+    setShowBcc(false);
+    setContactSearch('');
+    setShowContactSearch(false);
+  };
+  
+  const addRecipient = (contact: any, field: 'to' | 'cc' | 'bcc') => {
+    const email = contact.email;
+    if (field === 'to' && !composeTo.includes(email)) {
+      setComposeTo([...composeTo, email]);
+    } else if (field === 'cc' && !composeCc.includes(email)) {
+      setComposeCc([...composeCc, email]);
+    } else if (field === 'bcc' && !composeBcc.includes(email)) {
+      setComposeBcc([...composeBcc, email]);
+    }
+    setContactSearch('');
+    setShowContactSearch(false);
+  };
+  
+  const removeRecipient = (email: string, field: 'to' | 'cc' | 'bcc') => {
+    if (field === 'to') {
+      setComposeTo(composeTo.filter(e => e !== email));
+    } else if (field === 'cc') {
+      setComposeCc(composeCc.filter(e => e !== email));
+    } else if (field === 'bcc') {
+      setComposeBcc(composeBcc.filter(e => e !== email));
+    }
+  };
+  
+  const handleSendEmail = () => {
+    if (composeTo.length === 0 || !composeSubject || !composeBody) {
+      showToast('Please fill in all required fields', 'error');
+      return;
+    }
+    
+    setIsSendingEmail(true);
+    setSendEmailProgress(0);
+    
+    // Simulate sending progress
+    const progressInterval = setInterval(() => {
+      setSendEmailProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(progressInterval);
+          return 100;
+        }
+        return prev + 10;
+      });
+    }, 300);
+    
+    // Set timeout for 3 seconds
+    const timeout = setTimeout(() => {
+      clearInterval(progressInterval);
+      
+      // Create new sent email
+      const newEmail = {
+        id: Date.now(),
+        from: 'You',
+        email: 'you@company.com',
+        to: composeTo.join(', '),
+        subject: composeSubject,
+        snippet: composeBody.substring(0, 100) + (composeBody.length > 100 ? '...' : ''),
+        time: 'Just now',
+        unread: false,
+        starred: false,
+        tag: 'Sent',
+        tagColor: '#10B981',
+        date: new Date().toLocaleString(),
+        thread: [{
+          id: 1,
+          from: 'You',
+          to: composeTo.join(', '),
+          subject: composeSubject,
+          content: composeBody,
+          timestamp: new Date().toLocaleTimeString(),
+          isCurrentUser: true,
+        }],
+        isSent: true,
+      };
+      
+      // Add to email list
+      setEmailList(prev => [newEmail, ...prev]);
+      
+      setIsSendingEmail(false);
+      showToast('Email sent successfully', 'success');
+      closeCompose();
+    }, 3000);
+    
+    setSendEmailTimeout(timeout);
+  };
+  
+  const handleCancelSendEmail = () => {
+    if (sendEmailTimeout) {
+      clearTimeout(sendEmailTimeout);
+      setSendEmailTimeout(null);
+    }
+    setIsSendingEmail(false);
+    setSendEmailProgress(0);
+    showToast('Email send cancelled', 'info');
+  };
+
+  const handleEditDraft = () => {
+    setIsEditingDraft(true);
+    setShowReplyBox(true);
+    setReplyText(draftContent);
+  };
+
+  const handleSendDraft = () => {
+    if (!selectedEmailData) return;
+    
+    setIsSending(true);
+    setSendProgress(0);
+    
+    const progressInterval = setInterval(() => {
+      setSendProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(progressInterval);
+          return 100;
+        }
+        return prev + 10;
+      });
+    }, 300);
+    
+    const timeout = setTimeout(() => {
+      clearInterval(progressInterval);
+      
+      // Convert draft to sent email
+      const sentEmail = {
+        ...selectedEmailData,
+        isDraft: false,
+        isSent: true,
+        tag: 'Sent',
+        tagColor: '#10B981',
+        time: 'Just now',
+        thread: [{
+          ...selectedEmailData.thread[0],
+          content: draftContent,
+          date: new Date().toLocaleString(),
+          timestamp: new Date().toLocaleTimeString(),
+        }]
+      };
+      
+      // Remove draft and add as sent
+      setEmailList(prev => [
+        sentEmail,
+        ...prev.filter(e => e.id !== selectedEmailData.id)
+      ]);
+      
+      setIsSending(false);
+      setShowSendSuccess(true);
+      showToast('Email sent successfully', 'success');
+      
+      setTimeout(() => {
+        setShowSendSuccess(false);
+        setShowEmailViewer(false);
+        setIsEditingDraft(false);
+      }, 2000);
+    }, 3000);
+    
+    setSendTimeout(timeout);
+  };
+
+  const handleDeleteDraft = () => {
+    if (!selectedEmailData) return;
+    
+    setEmailList(prev => prev.filter(e => e.id !== selectedEmailData.id));
+    setShowEmailViewer(false);
+    setIsEditingDraft(false);
+    showToast('Draft deleted', 'success');
+  };
+  
+  const filteredContacts = contactSearch
+    ? allContacts.filter(contact =>
+        contact.name.toLowerCase().includes(contactSearch.toLowerCase()) ||
+        contact.email.toLowerCase().includes(contactSearch.toLowerCase())
+      )
+    : allContacts;
+
   const renderLeftActions = (email: any) => (
     <View style={styles.leftActionContainer}>
       <TouchableOpacity 
@@ -536,15 +1304,22 @@ John Smith`;
   const renderRightActions = (email: any, swipeableRef: any) => (
     <View style={styles.rightActionContainer}>
       <TouchableOpacity 
-        style={styles.unreadAction}
+        style={styles.importantAction}
         onPress={() => {
-          handleMarkAsUnread(email.id);
-          // Close the swipeable immediately
+          handleMarkImportant(email.id);
           swipeableRef.close();
         }}
       >
-        <Mail size={20} color="#6B7280" />
-        <Text style={styles.unreadActionText}>Mark Unread</Text>
+        <Star size={24} color="#F59E0B" fill={email.isImportant ? "#F59E0B" : "none"} />
+      </TouchableOpacity>
+      <TouchableOpacity 
+        style={styles.unreadAction}
+        onPress={() => {
+          handleMarkAsUnread(email.id);
+          swipeableRef.close();
+        }}
+      >
+        <Mail size={24} color="#6B7280" />
       </TouchableOpacity>
     </View>
   );
@@ -647,13 +1422,13 @@ John Smith`;
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Email</Text>
           <View style={styles.headerActions}>
-            <TouchableOpacity style={styles.headerButton}>
-              <User size={24} color="#FFFFFF" />
+            <TouchableOpacity style={styles.headerButton} onPress={toggleFilters}>
+              <Filter size={24} color="#FFFFFF" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.headerButton}>
+            <TouchableOpacity style={styles.headerButton} onPress={() => setShowSettings(true)}>
               <Settings size={24} color="#FFFFFF" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.composeButton}>
+            <TouchableOpacity style={styles.composeButton} onPress={openCompose}>
               <Plus size={20} color="#FFFFFF" />
               <Text style={styles.composeText}>Compose</Text>
             </TouchableOpacity>
@@ -673,21 +1448,6 @@ John Smith`;
           </View>
         </View>
 
-        <View style={styles.filtersContainer}>
-          <View style={styles.filterRow}>
-            <TouchableOpacity style={styles.filterButton}>
-              <Text style={styles.filterText}>{activeFilter}</Text>
-              <ChevronDown size={16} color="#FFFFFF" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.filterButton}>
-              <Text style={styles.filterText}>{activeUser}</Text>
-              <ChevronDown size={16} color="#FFFFFF" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.filterButton}>
-              <Filter size={16} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-        </View>
 
         <ScrollView 
           horizontal 
@@ -700,16 +1460,17 @@ John Smith`;
               key={index}
               style={[
                 styles.folderButton,
-                folder.active && styles.activeFolderButton
+                activeFolder === folder.name && styles.activeFolderButton
               ]}
+              onPress={() => setActiveFolder(folder.name)}
             >
               <Text style={[
                 styles.folderText,
-                folder.active && styles.activeFolderText
+                activeFolder === folder.name && styles.activeFolderText
               ]}>
                 {folder.name}
               </Text>
-              {folder.count > 0 && (
+              {folder.count > 0 && folder.name !== 'Sent' && folder.name !== 'Archived' && (
                 <View style={styles.folderBadge}>
                   <Text style={styles.folderBadgeText}>{folder.count}</Text>
                 </View>
@@ -725,7 +1486,16 @@ John Smith`;
         contentContainerStyle={styles.contentContainer}
       >
         <View style={styles.emailsList}>
-          {emailList.map((email) => (
+          {emailList
+            .filter(email => {
+              // Filter by folder
+              if (activeFolder === 'Inbox') return !email.isSent && !email.isDraft && !email.isArchived;
+              if (activeFolder === 'Sent') return email.isSent;
+              if (activeFolder === 'Drafts') return email.isDraft;
+              if (activeFolder === 'Archived') return email.isArchived;
+              return true;
+            })
+            .map((email) => (
         <Swipeable
           key={email.id}
           renderLeftActions={() => renderLeftActions(email)}
@@ -750,12 +1520,22 @@ John Smith`;
                   
                   <View style={styles.emailInfo}>
                     <View style={styles.emailHeader}>
-                      <Text style={[
-                        styles.emailFrom,
-                        email.unread && styles.unreadText
-                      ]}>
-                        {email.from}
-                      </Text>
+                      <View style={styles.emailHeaderLeft}>
+                        <Text style={[
+                          styles.emailFrom,
+                          email.unread && styles.unreadText
+                        ]}>
+                          {email.from}
+                        </Text>
+                        {email.starred && (
+                          <Star size={14} color="#F59E0B" fill="#F59E0B" style={styles.starIconInline} />
+                        )}
+                        {email.isImportant && (
+                          <View style={styles.importantBadge}>
+                            <Text style={styles.importantBadgeText}>!</Text>
+                          </View>
+                        )}
+                      </View>
                       <Text style={styles.emailTime}>{email.time}</Text>
                     </View>
                     
@@ -775,10 +1555,6 @@ John Smith`;
                     <Text style={styles.emailSnippet} numberOfLines={2}>
                       {email.snippet}
                     </Text>
-                    
-                    {email.starred && (
-                      <Star size={16} color="#F59E0B" style={styles.starIcon} />
-                    )}
                   </View>
                 </View>
               </TouchableOpacity>
@@ -824,30 +1600,81 @@ John Smith`;
               </View>
 
               {/* Email Actions Bar */}
-              <View style={styles.emailActionsBar}>
-                <TouchableOpacity style={styles.actionButton} onPress={handleReply}>
-                  <Reply size={18} color="#6366F1" />
-                  <Text style={styles.actionButtonText}>Reply</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.actionButton} onPress={handleReplyAll}>
-                  <Text style={styles.actionButtonText}>Reply All</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.actionButton, styles.aiActionButton]} onPress={handleAIReply}>
-                  <Text style={[styles.actionButtonText, styles.aiActionButtonText]}>AI Reply</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.actionButton} onPress={handleForward}>
-                  <Text style={styles.actionButtonText}>Forward</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.actionButton} onPress={handleArchive}>
-                  <Text style={styles.actionButtonText}>Archive</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.actionButton} onPress={handleTagUser}>
-                  <Tag size={18} color="#6366F1" />
-                  <Text style={styles.actionButtonText}>Tag</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.actionButton} onPress={handleDelete}>
-                  <Text style={styles.actionButtonText}>Delete</Text>
-                </TouchableOpacity>
+              <View style={styles.emailActionsBarContainer}>
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.emailActionsBar}
+                >
+                  {selectedEmailData?.isDraft ? (
+                    /* Draft Actions */
+                    <View style={styles.actionsRow}>
+                      <TouchableOpacity 
+                        style={[styles.actionButton, styles.primaryActionButton]} 
+                        onPress={handleEditDraft}
+                      >
+                        <Text style={[styles.actionButtonText, styles.primaryActionButtonText]}>Edit Draft</Text>
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity 
+                        style={[styles.actionButton, styles.sendActionButton]} 
+                        onPress={handleSendDraft}
+                      >
+                        <Text style={[styles.actionButtonText, styles.sendActionButtonText]}>Send</Text>
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity 
+                        style={[styles.actionButton, styles.deleteActionButton]} 
+                        onPress={handleDeleteDraft}
+                      >
+                        <Text style={[styles.actionButtonText, styles.deleteActionButtonText]}>Delete Draft</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    /* Regular Email Actions */
+                    <View style={styles.actionsRow}>
+                      <TouchableOpacity style={styles.actionButton} onPress={handleReply}>
+                        <Reply size={18} color="#6366F1" />
+                        <Text style={styles.actionButtonText}>Reply</Text>
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity style={styles.actionButton} onPress={handleReplyAll}>
+                        <Text style={styles.actionButtonText}>Reply All</Text>
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity 
+                        style={styles.actionButton} 
+                        onPress={handleAIReply}
+                      >
+                        <LinearGradient
+                          colors={['#EC4899', '#A855F7']}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={styles.aiGradientButton}
+                        >
+                          <Text style={styles.aiActionButtonText}>AI Reply</Text>
+                        </LinearGradient>
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity style={styles.actionButton} onPress={handleForward}>
+                        <Text style={styles.actionButtonText}>Forward</Text>
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity style={styles.actionButton} onPress={handleArchive}>
+                        <Text style={styles.actionButtonText}>Archive</Text>
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity style={styles.actionButton} onPress={handleTagUser}>
+                        <Tag size={18} color="#6366F1" />
+                        <Text style={styles.actionButtonText}>Tag</Text>
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity style={styles.actionButton} onPress={handleDelete}>
+                        <Text style={styles.actionButtonText}>Delete</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </ScrollView>
               </View>
 
               {/* Tagged Users Display */}
@@ -917,11 +1744,142 @@ John Smith`;
                 </View>
               </ScrollView>
 
+              {/* Forward Box */}
+              {showForwardBox && (
+                <View style={styles.replyBox}>
+                  <View style={styles.replyHeader}>
+                    <Text style={styles.replyTitle}>Forward Email</Text>
+                    <TouchableOpacity onPress={() => setShowForwardBox(false)}>
+                      <X size={20} color="#6B7280" />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Selected Recipients */}
+                  {forwardTo.length > 0 && (
+                    <View style={styles.forwardRecipientsList}>
+                      {forwardTo.map((recipient, index) => (
+                        <View key={index} style={styles.forwardRecipientChip}>
+                          <Text style={styles.forwardRecipientText}>{recipient}</Text>
+                          <TouchableOpacity onPress={() => handleRemoveForwardRecipient(recipient)}>
+                            <X size={14} color="#FFFFFF" />
+                          </TouchableOpacity>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  {/* Search Input */}
+                  <TextInput
+                    style={styles.forwardSearchInput}
+                    placeholder="Search team members, contacts, or enter email..."
+                    value={forwardSearchQuery}
+                    onChangeText={handleForwardSearchChange}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+
+                  {/* Search Results */}
+                  {showForwardSearchResults && forwardSearchQuery.length > 0 && (
+                    <View style={styles.forwardSearchResults}>
+                      {getForwardSearchResults().length > 0 ? (
+                        <ScrollView style={styles.forwardSearchScroll}>
+                          {getForwardSearchResults().map((result, index) => (
+                            <TouchableOpacity
+                              key={index}
+                              style={styles.forwardSearchResultItem}
+                              onPress={() => handleAddForwardRecipient(result.email, result.name)}
+                              activeOpacity={0.7}
+                            >
+                              <View style={styles.forwardResultAvatar}>
+                                <Text style={styles.forwardResultAvatarText}>
+                                  {result.name.charAt(0)}
+                                </Text>
+                              </View>
+                              <View style={styles.forwardResultInfo}>
+                                <Text style={styles.forwardResultName}>{result.name}</Text>
+                                <Text style={styles.forwardResultEmail}>{result.email}</Text>
+                                <Text style={styles.forwardResultType}>{result.type}</Text>
+                              </View>
+                            </TouchableOpacity>
+                          ))}
+                        </ScrollView>
+                      ) : (
+                        // Show option to add custom email
+                        forwardSearchQuery.includes('@') && (
+                          <TouchableOpacity
+                            style={styles.forwardSearchResultItem}
+                            onPress={() => handleAddForwardRecipient(forwardSearchQuery)}
+                            activeOpacity={0.7}
+                          >
+                            <View style={[styles.forwardResultAvatar, styles.customEmailAvatar]}>
+                              <Mail size={16} color="#FFFFFF" />
+                            </View>
+                            <View style={styles.forwardResultInfo}>
+                              <Text style={styles.forwardResultName}>Add custom email</Text>
+                              <Text style={styles.forwardResultEmail}>{forwardSearchQuery}</Text>
+                            </View>
+                          </TouchableOpacity>
+                        )
+                      )}
+                    </View>
+                  )}
+
+                  <View style={styles.forwardMessageContainer}>
+                    <Text style={styles.forwardMessageLabel}>Your message (optional):</Text>
+                    <TextInput
+                      style={styles.forwardMessageInput}
+                      placeholder="Add a message to include with the forwarded email..."
+                      value={forwardMessage}
+                      onChangeText={setForwardMessage}
+                      multiline
+                      numberOfLines={4}
+                      textAlignVertical="top"
+                    />
+                    <Text style={styles.forwardNoteText}>
+                      The original email will be included below your message.
+                    </Text>
+                  </View>
+
+                  <View style={styles.replyActions}>
+                    {isForwarding ? (
+                      <View style={styles.sendingContainer}>
+                        <View style={styles.sendingInfo}>
+                          <Text style={styles.sendingText}>Forwarding email...</Text>
+                          <View style={styles.progressBar}>
+                            <View style={[styles.progressFill, { width: `${forwardProgress}%` }]} />
+                          </View>
+                          <Text style={styles.progressText}>{forwardProgress}%</Text>
+                        </View>
+                        <TouchableOpacity 
+                          style={styles.cancelButton}
+                          onPress={handleCancelForward}
+                        >
+                          <Text style={styles.cancelButtonText}>Cancel</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : showForwardSuccess ? (
+                      <View style={styles.successContainer}>
+                        <Check size={20} color="#10B981" />
+                        <Text style={styles.successText}>Email forwarded successfully!</Text>
+                      </View>
+                    ) : (
+                      <TouchableOpacity 
+                        style={[styles.sendButton, forwardTo.length === 0 && !forwardSearchQuery.includes('@') && styles.sendButtonDisabled]}
+                        onPress={handleSendForward}
+                        disabled={forwardTo.length === 0 && !forwardSearchQuery.includes('@')}
+                      >
+                        <Text style={styles.sendButtonText}>Forward</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              )}
+
               {/* Reply Box */}
               {showReplyBox && (
                 <View style={styles.replyBox}>
                   <View style={styles.replyHeader}>
-                    <Text style={styles.replyTitle}>Reply to {selectedEmailData?.from}</Text>
+                    <Text style={styles.replyTitle}>Reply to {getReplyToText()}</Text>
                     <TouchableOpacity onPress={() => setShowReplyBox(false)}>
                       <X size={20} color="#6B7280" />
                     </TouchableOpacity>
@@ -1287,6 +2245,684 @@ John Smith`;
         </View>
       </Modal>
 
+      {/* Bottom Filter Modal */}
+      <Modal
+        visible={showFilters}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={toggleFilters}
+      >
+        <SafeAreaView style={styles.filterModal}>
+          <View style={styles.filterHeader}>
+            <TouchableOpacity onPress={toggleFilters}>
+              <X size={24} color="#6B7280" />
+            </TouchableOpacity>
+            <Text style={styles.filterTitle}>Filters</Text>
+            <TouchableOpacity onPress={clearFilters}>
+              <Text style={styles.clearFiltersText}>Clear</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <ScrollView style={styles.filterContent}>
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Quick Filters</Text>
+              
+              <TouchableOpacity 
+                style={styles.filterOption}
+                onPress={() => updateFilter('dripReplies', !filters.dripReplies)}
+              >
+                <View style={styles.filterOptionLeft}>
+                  <Text style={styles.filterOptionText}>Drip Replies</Text>
+                  <Text style={styles.filterOptionSubtext}>Filter messages that are replies to drips</Text>
+                </View>
+                <View style={[styles.checkbox, filters.dripReplies && styles.checkboxChecked]}>
+                  {filters.dripReplies && <Check size={16} color="#FFFFFF" />}
+                </View>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.filterOption}
+                onPress={() => updateFilter('unreadOnly', !filters.unreadOnly)}
+              >
+                <View style={styles.filterOptionLeft}>
+                  <Text style={styles.filterOptionText}>Unread Only</Text>
+                  <Text style={styles.filterOptionSubtext}>Show only unread messages</Text>
+                </View>
+                <View style={[styles.checkbox, filters.unreadOnly && styles.checkboxChecked]}>
+                  {filters.unreadOnly && <Check size={16} color="#FFFFFF" />}
+                </View>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.filterOption}
+                onPress={() => updateFilter('activeDeal', !filters.activeDeal)}
+              >
+                <View style={styles.filterOptionLeft}>
+                  <Text style={styles.filterOptionText}>Active Deal</Text>
+                  <Text style={styles.filterOptionSubtext}>Messages with active deals</Text>
+                </View>
+                <View style={[styles.checkbox, filters.activeDeal && styles.checkboxChecked]}>
+                  {filters.activeDeal && <Check size={16} color="#FFFFFF" />}
+                </View>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.filterOption}
+                onPress={() => updateFilter('hasAttachments', !filters.hasAttachments)}
+              >
+                <View style={styles.filterOptionLeft}>
+                  <Text style={styles.filterOptionText}>Has Attachments</Text>
+                  <Text style={styles.filterOptionSubtext}>Messages with file attachments</Text>
+                </View>
+                <View style={[styles.checkbox, filters.hasAttachments && styles.checkboxChecked]}>
+                  {filters.hasAttachments && <Check size={16} color="#FFFFFF" />}
+                </View>
+              </TouchableOpacity>
+              
+              <View style={styles.filterGroup}>
+                <Text style={styles.filterGroupTitle}>Priority</Text>
+                <View style={styles.filterButtons}>
+                  {['all', 'high', 'medium', 'low'].map(priority => (
+                    <TouchableOpacity
+                      key={priority}
+                      style={[
+                        styles.filterOptionButton,
+                        filters.priority === priority && styles.filterOptionButtonActive
+                      ]}
+                      onPress={() => updateFilter('priority', priority)}
+                    >
+                      <Text style={[
+                        styles.filterOptionButtonText,
+                        filters.priority === priority && styles.filterOptionButtonTextActive
+                      ]}>
+                        {priority.charAt(0).toUpperCase() + priority.slice(1)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+              
+              <View style={styles.filterGroup}>
+                <Text style={styles.filterGroupTitle}>Date Received</Text>
+                <View style={styles.filterButtons}>
+                  {['all', 'today', 'week', 'month'].map(range => (
+                    <TouchableOpacity
+                      key={range}
+                      style={[
+                        styles.filterOptionButton,
+                        filters.dateRange === range && styles.filterOptionButtonActive
+                      ]}
+                      onPress={() => updateFilter('dateRange', range)}
+                    >
+                      <Text style={[
+                        styles.filterOptionButtonText,
+                        filters.dateRange === range && styles.filterOptionButtonTextActive
+                      ]}>
+                        {range.charAt(0).toUpperCase() + range.slice(1)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+              
+              <View style={styles.filterGroup}>
+                <Text style={styles.filterGroupTitle}>Assigned To</Text>
+                <View style={styles.filterButtons}>
+                  {['all', 'me', 'team', 'unassigned'].map(assigned => (
+                    <TouchableOpacity
+                      key={assigned}
+                      style={[
+                        styles.filterOptionButton,
+                        filters.assignedTo === assigned && styles.filterOptionButtonActive
+                      ]}
+                      onPress={() => updateFilter('assignedTo', assigned)}
+                    >
+                      <Text style={[
+                        styles.filterOptionButtonText,
+                        filters.assignedTo === assigned && styles.filterOptionButtonTextActive
+                      ]}>
+                        {assigned.charAt(0).toUpperCase() + assigned.slice(1)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                
+                {showTeamDropdown && (
+                  <View style={styles.teamMembersContainer}>
+                    <Text style={styles.teamMembersTitle}>Select Team Members:</Text>
+                    {teamMembers.map(member => (
+                      <TouchableOpacity
+                        key={member.id}
+                        style={styles.teamMemberOption}
+                        onPress={() => toggleTeamMember(member.id)}
+                      >
+                        <View style={styles.teamMemberInfo}>
+                          <Text style={styles.teamMemberName}>{member.name}</Text>
+                          <Text style={styles.teamMemberEmail}>{member.email}</Text>
+                        </View>
+                        <View style={[
+                          styles.checkbox,
+                          filters.selectedTeamMembers.includes(member.id) && styles.checkboxChecked
+                        ]}>
+                          {filters.selectedTeamMembers.includes(member.id) && <Check size={16} color="#FFFFFF" />}
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
+              
+              <View style={styles.filterGroup}>
+                <Text style={styles.filterGroupTitle}>Customer Type</Text>
+                <View style={styles.filterButtons}>
+                  {['all', 'customers', 'prospects', 'leads'].map(type => (
+                    <TouchableOpacity
+                      key={type}
+                      style={[
+                        styles.filterOptionButton,
+                        filters.customerType === type && styles.filterOptionButtonActive
+                      ]}
+                      onPress={() => updateFilter('customerType', type)}
+                    >
+                      <Text style={[
+                        styles.filterOptionButtonText,
+                        filters.customerType === type && styles.filterOptionButtonTextActive
+                      ]}>
+                        {type.charAt(0).toUpperCase() + type.slice(1)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            </View>
+          </ScrollView>
+          
+          <View style={styles.filterFooter}>
+            <TouchableOpacity 
+              style={styles.applyFiltersButton}
+              onPress={toggleFilters}
+            >
+              <Text style={styles.applyFiltersText}>Apply Filters</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Settings Modal */}
+      <Modal
+        visible={showSettings}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowSettings(false)}
+      >
+        <SafeAreaView style={styles.settingsModal}>
+          <View style={styles.settingsHeader}>
+            <TouchableOpacity onPress={() => setShowSettings(false)}>
+              <X size={24} color="#6B7280" />
+            </TouchableOpacity>
+            <Text style={styles.settingsTitle}>Email Settings</Text>
+            <View style={{ width: 24 }} />
+          </View>
+
+          <ScrollView style={styles.settingsContent}>
+            {/* Signature Settings Section */}
+            <View style={styles.settingsSection}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Email Signature</Text>
+              </View>
+
+              <View style={styles.signatureForm}>
+                <View style={styles.signatureField}>
+                  <Text style={styles.signatureFieldLabel}>Name</Text>
+                  <TextInput
+                    style={styles.signatureInput}
+                    placeholder="Your full name"
+                    value={signatureName}
+                    onChangeText={setSignatureName}
+                  />
+                </View>
+
+                <View style={styles.signatureField}>
+                  <Text style={styles.signatureFieldLabel}>Title</Text>
+                  <TextInput
+                    style={styles.signatureInput}
+                    placeholder="Your job title"
+                    value={signatureTitle}
+                    onChangeText={setSignatureTitle}
+                  />
+                </View>
+
+                <View style={styles.signatureField}>
+                  <Text style={styles.signatureFieldLabel}>Phone</Text>
+                  <TextInput
+                    style={styles.signatureInput}
+                    placeholder="(555) 123-4567"
+                    value={signaturePhone}
+                    onChangeText={setSignaturePhone}
+                    keyboardType="phone-pad"
+                  />
+                </View>
+
+                <View style={styles.signatureField}>
+                  <Text style={styles.signatureFieldLabel}>Email</Text>
+                  <TextInput
+                    style={styles.signatureInput}
+                    placeholder="your@email.com"
+                    value={signatureEmail}
+                    onChangeText={setSignatureEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                </View>
+
+                <View style={styles.signaturePreview}>
+                  <Text style={styles.signaturePreviewLabel}>Preview:</Text>
+                  <View style={styles.signaturePreviewBox}>
+                    {signatureName || signatureTitle || signaturePhone || signatureEmail ? (
+                      <>
+                        {signatureName && <Text style={styles.signaturePreviewName}>{signatureName}</Text>}
+                        {signatureTitle && <Text style={styles.signaturePreviewTitle}>{signatureTitle}</Text>}
+                        {signaturePhone && <Text style={styles.signaturePreviewContact}>📱 {signaturePhone}</Text>}
+                        {signatureEmail && <Text style={styles.signaturePreviewContact}>✉️ {signatureEmail}</Text>}
+                      </>
+                    ) : (
+                      <Text style={styles.signaturePreviewEmpty}>Your signature will appear here</Text>
+                    )}
+                  </View>
+                </View>
+
+                <TouchableOpacity 
+                  style={styles.saveSignatureButton}
+                  onPress={() => showToast('Signature saved successfully', 'success')}
+                >
+                  <Text style={styles.saveSignatureText}>Save Signature</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Divider */}
+            <View style={styles.sectionDivider} />
+
+            {/* Templates Section */}
+            <View style={styles.settingsSection}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Email Templates</Text>
+                <TouchableOpacity 
+                  style={styles.createTemplateButton}
+                  onPress={handleCreateTemplate}
+                >
+                  <Plus size={16} color="#FFFFFF" />
+                  <Text style={styles.createTemplateText}>New Template</Text>
+                </TouchableOpacity>
+              </View>
+
+              {emailTemplates.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyStateText}>No templates yet</Text>
+                  <Text style={styles.emptyStateSubtext}>Create your first email template to save time</Text>
+                </View>
+              ) : (
+                <View style={styles.templatesList}>
+                  {emailTemplates.map((template) => (
+                    <View key={template.id} style={styles.templateCard}>
+                      <View style={styles.templateInfo}>
+                        <Text style={styles.templateName}>{template.name}</Text>
+                        {template.subject && (
+                          <Text style={styles.templateSubject}>Subject: {template.subject}</Text>
+                        )}
+                        <Text style={styles.templatePreview} numberOfLines={2}>{template.body}</Text>
+                      </View>
+                      <View style={styles.templateActions}>
+                        <TouchableOpacity 
+                          style={styles.templateActionButton}
+                          onPress={() => handleUseTemplate(template)}
+                        >
+                          <Text style={styles.useTemplateText}>Use</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                          style={styles.templateActionButton}
+                          onPress={() => handleEditTemplate(template)}
+                        >
+                          <Text style={styles.editTemplateText}>Edit</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                          style={styles.deleteTemplateButton}
+                          onPress={() => handleDeleteTemplate(template.id)}
+                        >
+                          <X size={16} color="#EF4444" />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Template Editor Modal */}
+      <Modal
+        visible={showTemplateEditor}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowTemplateEditor(false)}
+      >
+        <SafeAreaView style={styles.templateEditorModal}>
+          <View style={styles.templateEditorHeader}>
+            <TouchableOpacity onPress={() => setShowTemplateEditor(false)}>
+              <X size={24} color="#6B7280" />
+            </TouchableOpacity>
+            <Text style={styles.templateEditorTitle}>
+              {editingTemplate ? 'Edit Template' : 'New Template'}
+            </Text>
+            <TouchableOpacity 
+              style={styles.saveTemplateButton}
+              onPress={handleSaveTemplate}
+            >
+              <Text style={styles.saveTemplateText}>Save</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.templateEditorContent}>
+            <View style={styles.templateField}>
+              <Text style={styles.templateFieldLabel}>Template Name*</Text>
+              <TextInput
+                style={styles.templateInput}
+                placeholder="e.g., Follow-up Email, Thank You"
+                value={templateName}
+                onChangeText={setTemplateName}
+              />
+            </View>
+
+            <View style={styles.templateField}>
+              <Text style={styles.templateFieldLabel}>Subject (optional)</Text>
+              <TextInput
+                style={styles.templateInput}
+                placeholder="Email subject line"
+                value={templateSubject}
+                onChangeText={setTemplateSubject}
+              />
+            </View>
+
+            <View style={styles.templateField}>
+              <View style={styles.templateBodyHeader}>
+                <Text style={styles.templateFieldLabel}>Email Body*</Text>
+                <TouchableOpacity 
+                  style={styles.insertFieldButton}
+                  onPress={() => setShowFieldDropdown(!showFieldDropdown)}
+                >
+                  <Plus size={16} color="#6366F1" />
+                  <Text style={styles.insertFieldButtonText}>Insert Field</Text>
+                </TouchableOpacity>
+              </View>
+              
+              {showFieldDropdown && (
+                <View style={styles.fieldDropdown}>
+                  <ScrollView style={styles.fieldDropdownScroll} nestedScrollEnabled>
+                    {dynamicFields.map((field, index) => (
+                      <TouchableOpacity
+                        key={index}
+                        style={styles.fieldOption}
+                        onPress={() => handleInsertField(field)}
+                      >
+                        <View style={styles.fieldOptionLeft}>
+                          <Text style={styles.fieldTag}>{field.tag}</Text>
+                          <Text style={styles.fieldLabel}>{field.label}</Text>
+                        </View>
+                        <Text style={styles.fieldDescription}>{field.description}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+
+              <TextInput
+                style={styles.templateBodyInput}
+                placeholder="Write your email template..."
+                value={templateBody}
+                onChangeText={setTemplateBody}
+                onSelectionChange={(event) => {
+                  setTemplateBodyCursorPosition(event.nativeEvent.selection.start);
+                }}
+                multiline
+                numberOfLines={10}
+                textAlignVertical="top"
+              />
+              
+              {/* Preview with highlighted fields */}
+              {templateBody.length > 0 && (
+                <View style={styles.templatePreviewBox}>
+                  <Text style={styles.templatePreviewLabel}>Preview:</Text>
+                  <View style={styles.templatePreviewContent}>
+                    {templateBody.split(/(\{[^}]+\})/g).map((part, index) => {
+                      const isDynamicField = part.match(/^\{[^}]+\}$/);
+                      return (
+                        <Text
+                          key={index}
+                          style={[
+                            styles.templatePreviewText,
+                            isDynamicField && styles.dynamicFieldHighlight
+                          ]}
+                        >
+                          {part}
+                        </Text>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+            </View>
+
+            <Text style={styles.templateNote}>
+              💡 Tip: Click "Insert Field" to add dynamic fields like {'{first-name}'}, {'{company}'}, etc.
+            </Text>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Compose Email Modal */}
+      <Modal
+        visible={showCompose}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={closeCompose}
+      >
+        <SafeAreaView style={styles.composeModal}>
+          <View style={styles.composeHeader}>
+            <TouchableOpacity onPress={closeCompose}>
+              <X size={24} color="#6B7280" />
+            </TouchableOpacity>
+            <Text style={styles.composeTitle}>New Message</Text>
+            <TouchableOpacity onPress={handleSendEmail} style={styles.sendButton} disabled={isSendingEmail}>
+              <Text style={styles.sendButtonText}>{isSendingEmail ? 'Sending...' : 'Send'}</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {/* Sending Progress */}
+          {isSendingEmail && (
+            <View style={styles.sendingProgressContainer}>
+              <View style={styles.sendingProgressBar}>
+                <View style={[styles.sendingProgressFill, { width: `${sendEmailProgress}%` }]} />
+              </View>
+              <TouchableOpacity onPress={handleCancelSendEmail} style={styles.cancelSendButton}>
+                <Text style={styles.cancelSendText}>Cancel Send</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          
+          <ScrollView style={styles.composeContent}>
+            {/* To Field */}
+            <View style={styles.composeField}>
+              <Text style={styles.composeLabel}>To:</Text>
+              <View style={styles.recipientsContainer}>
+                {composeTo.map((email, index) => (
+                  <View key={index} style={styles.recipientChip}>
+                    <Text style={styles.recipientChipText}>{email}</Text>
+                    <TouchableOpacity onPress={() => removeRecipient(email, 'to')}>
+                      <X size={14} color="#6B7280" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                <TextInput
+                  style={styles.recipientInput}
+                  placeholder="Search contacts..."
+                  value={contactSearch}
+                  onChangeText={(text) => {
+                    setContactSearch(text);
+                    setShowContactSearch(text.length > 0);
+                    setSearchField('to');
+                  }}
+                  placeholderTextColor="#9CA3AF"
+                />
+              </View>
+            </View>
+            
+            {/* Contact Search Results */}
+            {showContactSearch && (
+              <View style={styles.contactSearchResults}>
+                <ScrollView>
+                  {filteredContacts.map((contact) => (
+                    <TouchableOpacity
+                      key={contact.id}
+                      style={styles.contactResult}
+                      onPress={() => addRecipient(contact, searchField)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.contactAvatar}>
+                        <Text style={styles.contactAvatarText}>{contact.name.charAt(0)}</Text>
+                      </View>
+                      <View style={styles.contactInfo}>
+                        <Text style={styles.contactName}>{contact.name}</Text>
+                        <Text style={styles.contactEmail}>{contact.email}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+            
+            {/* CC/BCC Buttons */}
+            <View style={styles.ccBccContainer}>
+              {!showCc && (
+                <TouchableOpacity onPress={() => setShowCc(true)}>
+                  <Text style={styles.ccBccButton}>Cc</Text>
+                </TouchableOpacity>
+              )}
+              {!showBcc && (
+                <TouchableOpacity onPress={() => setShowBcc(true)} style={{ marginLeft: 16 }}>
+                  <Text style={styles.ccBccButton}>Bcc</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            
+            {/* CC Field */}
+            {showCc && (
+              <View style={styles.composeField}>
+                <Text style={styles.composeLabel}>Cc:</Text>
+                <View style={styles.recipientsContainer}>
+                  {composeCc.map((email, index) => (
+                    <View key={index} style={styles.recipientChip}>
+                      <Text style={styles.recipientChipText}>{email}</Text>
+                      <TouchableOpacity onPress={() => removeRecipient(email, 'cc')}>
+                        <X size={14} color="#6B7280" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                  <TextInput
+                    style={styles.recipientInput}
+                    placeholder="Search contacts..."
+                    value={contactSearch}
+                    onChangeText={(text) => {
+                      setContactSearch(text);
+                      setShowContactSearch(text.length > 0);
+                      setSearchField('cc');
+                    }}
+                    placeholderTextColor="#9CA3AF"
+                  />
+                </View>
+              </View>
+            )}
+            
+            {/* BCC Field */}
+            {showBcc && (
+              <View style={styles.composeField}>
+                <Text style={styles.composeLabel}>Bcc:</Text>
+                <View style={styles.recipientsContainer}>
+                  {composeBcc.map((email, index) => (
+                    <View key={index} style={styles.recipientChip}>
+                      <Text style={styles.recipientChipText}>{email}</Text>
+                      <TouchableOpacity onPress={() => removeRecipient(email, 'bcc')}>
+                        <X size={14} color="#6B7280" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                  <TextInput
+                    style={styles.recipientInput}
+                    placeholder="Search contacts..."
+                    value={contactSearch}
+                    onChangeText={(text) => {
+                      setContactSearch(text);
+                      setShowContactSearch(text.length > 0);
+                      setSearchField('bcc');
+                    }}
+                    placeholderTextColor="#9CA3AF"
+                  />
+                </View>
+              </View>
+            )}
+            
+            {/* Subject Field */}
+            <View style={styles.composeField}>
+              <Text style={styles.composeLabel}>Subject:</Text>
+              <TextInput
+                style={styles.subjectInput}
+                placeholder="Email subject"
+                value={composeSubject}
+                onChangeText={setComposeSubject}
+                placeholderTextColor="#9CA3AF"
+              />
+            </View>
+            
+            {/* Rich Text Toolbar */}
+            <View style={styles.richTextToolbar}>
+              <TouchableOpacity
+                style={[styles.toolbarButton, isBoldCompose && styles.toolbarButtonActive]}
+                onPress={() => setIsBoldCompose(!isBoldCompose)}
+              >
+                <Bold size={20} color={isBoldCompose ? "#6366F1" : "#6B7280"} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.toolbarButton, isItalicCompose && styles.toolbarButtonActive]}
+                onPress={() => setIsItalicCompose(!isItalicCompose)}
+              >
+                <Italic size={20} color={isItalicCompose ? "#6366F1" : "#6B7280"} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.toolbarButton}>
+                <Link size={20} color="#6B7280" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.toolbarButton}>
+                <Paperclip size={20} color="#6B7280" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.toolbarButton}>
+                <Image size={20} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+            
+            {/* Body Field */}
+            <TextInput
+              style={styles.bodyInput}
+              placeholder="Write your message..."
+              value={composeBody}
+              onChangeText={setComposeBody}
+              multiline
+              textAlignVertical="top"
+              placeholderTextColor="#9CA3AF"
+            />
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
       {/* Toast Notification System */}
       {showArchiveToast && (
         <Animated.View 
@@ -1533,10 +3169,28 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     lineHeight: 18,
   },
-  starIcon: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
+  emailHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  starIconInline: {
+    marginLeft: 4,
+  },
+  importantBadge: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 6,
+  },
+  importantBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
   },
   // Email Viewer Modal Styles
   modalOverlay: {
@@ -1576,14 +3230,18 @@ const styles = StyleSheet.create({
     padding: 4,
     marginLeft: 12,
   },
-  emailActionsBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+  emailActionsBarContainer: {
     backgroundColor: '#F8FAFC',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
+  },
+  emailActionsBar: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
   actionButton: {
@@ -1597,9 +3255,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
-  aiActionButton: {
-    backgroundColor: '#8B5CF6',
-    borderColor: '#8B5CF6',
+  aiGradientButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
   },
   actionButtonText: {
     fontSize: 13,
@@ -1608,6 +3271,29 @@ const styles = StyleSheet.create({
   },
   aiActionButtonText: {
     color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  primaryActionButton: {
+    backgroundColor: '#EEF2FF',
+  },
+  primaryActionButtonText: {
+    color: '#6366F1',
+    fontWeight: '600',
+  },
+  sendActionButton: {
+    backgroundColor: '#10B981',
+  },
+  sendActionButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  deleteActionButton: {
+    backgroundColor: '#FEE2E2',
+  },
+  deleteActionButtonText: {
+    color: '#EF4444',
+    fontWeight: '600',
   },
   emailViewerContent: {
     flex: 1,
@@ -1707,7 +3393,7 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     color: '#000000',
-    minHeight: 100,
+    minHeight: 200,
     textAlignVertical: 'top',
     marginBottom: 12,
   },
@@ -2367,13 +4053,12 @@ const styles = StyleSheet.create({
   unreadAction: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    width: 120,
+    width: 60,
     borderWidth: 1,
     borderColor: '#D1D5DB',
     shadowColor: '#000000',
@@ -2390,6 +4075,30 @@ const styles = StyleSheet.create({
   },
   unreadActionText: {
     color: '#6B7280',
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+  importantAction: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 60,
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+    marginRight: 8,
+  },
+  importantActionText: {
+    color: '#F59E0B',
     fontSize: 13,
     fontWeight: '600',
     letterSpacing: 0.5,
@@ -2448,5 +4157,1009 @@ const styles = StyleSheet.create({
     padding: 4,
     borderRadius: 6,
     backgroundColor: '#F3F4F6',
+  },
+  // Filter Modal Styles
+  filterModal: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  filterHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    backgroundColor: '#F8FAFC',
+  },
+  filterTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  clearFiltersText: {
+    fontSize: 16,
+    color: '#6366F1',
+    fontWeight: '500',
+  },
+  filterContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  filterSection: {
+    marginBottom: 24,
+  },
+  filterSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 16,
+  },
+  filterOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  filterOptionLeft: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  filterOptionText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  filterOptionSubtext: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#D1D5DB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
+  },
+  filterGroup: {
+    marginBottom: 24,
+  },
+  filterGroupTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 12,
+  },
+  filterButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  filterOptionButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    backgroundColor: '#F9FAFB',
+  },
+  filterOptionButtonActive: {
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
+  },
+  filterOptionButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+  },
+  filterOptionButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  filterFooter: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    backgroundColor: '#F8FAFC',
+  },
+  applyFiltersButton: {
+    backgroundColor: '#6366F1',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  applyFiltersText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  // Team Members Dropdown Styles
+  teamMembersContainer: {
+    marginTop: 16,
+    padding: 16,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  teamMembersTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 12,
+  },
+  teamMemberOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  teamMemberInfo: {
+    flex: 1,
+  },
+  teamMemberName: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#1F2937',
+    marginBottom: 2,
+  },
+  teamMemberEmail: {
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  // Compose Modal Styles
+  composeModal: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  composeHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  composeTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  sendButton: {
+    backgroundColor: '#6366F1',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  sendButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  composeContent: {
+    flex: 1,
+    padding: 20,
+  },
+  composeField: {
+    marginBottom: 16,
+  },
+  composeLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  recipientsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    backgroundColor: '#F9FAFB',
+    minHeight: 44,
+  },
+  recipientChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#6366F1',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginRight: 8,
+    marginBottom: 4,
+  },
+  recipientChipText: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    marginRight: 6,
+  },
+  recipientInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#1F2937',
+    minWidth: 120,
+    paddingVertical: 4,
+  },
+  contactSearchResults: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    marginBottom: 16,
+    maxHeight: 200,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+    overflow: 'hidden',
+  },
+  contactResult: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    backgroundColor: '#FFFFFF',
+  },
+  contactAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#6366F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  contactAvatarText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  contactInfo: {
+    flex: 1,
+  },
+  contactName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#1F2937',
+    marginBottom: 2,
+  },
+  contactEmail: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  ccBccContainer: {
+    flexDirection: 'row',
+    marginBottom: 16,
+  },
+  ccBccButton: {
+    fontSize: 16,
+    color: '#6366F1',
+    fontWeight: '500',
+  },
+  subjectInput: {
+    fontSize: 16,
+    color: '#1F2937',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    backgroundColor: '#F9FAFB',
+  },
+  richTextToolbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    marginBottom: 16,
+  },
+  toolbarButton: {
+    padding: 8,
+    marginRight: 12,
+    borderRadius: 6,
+  },
+  toolbarButtonActive: {
+    backgroundColor: '#EEF2FF',
+  },
+  bodyInput: {
+    fontSize: 16,
+    color: '#1F2937',
+    minHeight: 200,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    backgroundColor: '#F9FAFB',
+  },
+  sendingProgressContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: '#F9FAFB',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  sendingProgressBar: {
+    height: 6,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  sendingProgressFill: {
+    height: '100%',
+    backgroundColor: '#6366F1',
+  },
+  cancelSendButton: {
+    alignSelf: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: '#EF4444',
+  },
+  cancelSendText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  // Forward Box Styles
+  forwardRecipientsList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  forwardRecipientChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#6366F1',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    gap: 6,
+  },
+  forwardRecipientText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  forwardSearchInput: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#000000',
+    backgroundColor: '#FFFFFF',
+    marginBottom: 12,
+  },
+  forwardSearchResults: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginBottom: 12,
+    maxHeight: 250,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  forwardSearchScroll: {
+    maxHeight: 250,
+  },
+  forwardSearchResultItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  forwardResultAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#6366F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  customEmailAvatar: {
+    backgroundColor: '#10B981',
+  },
+  forwardResultAvatarText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  forwardResultInfo: {
+    flex: 1,
+  },
+  forwardResultName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#1F2937',
+    marginBottom: 2,
+  },
+  forwardResultEmail: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  forwardResultType: {
+    fontSize: 12,
+    color: '#6366F1',
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  forwardMessageContainer: {
+    marginTop: 16,
+    marginBottom: 12,
+  },
+  forwardMessageLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  forwardMessageInput: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 16,
+    color: '#000000',
+    minHeight: 120,
+    textAlignVertical: 'top',
+    backgroundColor: '#FFFFFF',
+    marginBottom: 8,
+  },
+  forwardNoteText: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontStyle: 'italic',
+    paddingLeft: 4,
+  },
+  // Settings Modal Styles
+  settingsModal: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  settingsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  settingsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  settingsContent: {
+    flex: 1,
+  },
+  settingsSection: {
+    padding: 20,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  createTemplateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#6366F1',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+  },
+  createTemplateText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  emptyStateSubtext: {
+    fontSize: 14,
+    color: '#9CA3AF',
+  },
+  sectionDivider: {
+    height: 8,
+    backgroundColor: '#F3F4F6',
+  },
+  signatureForm: {
+    gap: 16,
+  },
+  signatureField: {
+    gap: 8,
+  },
+  signatureFieldLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  signatureInput: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#1F2937',
+    backgroundColor: '#FFFFFF',
+  },
+  signaturePreview: {
+    marginTop: 8,
+  },
+  signaturePreviewLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  signaturePreviewBox: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    minHeight: 120,
+  },
+  signaturePreviewName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  signaturePreviewTitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  signaturePreviewContact: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  signaturePreviewEmpty: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    paddingVertical: 40,
+  },
+  saveSignatureButton: {
+    backgroundColor: '#6366F1',
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  saveSignatureText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  templatesList: {
+    gap: 12,
+  },
+  templateCard: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  templateInfo: {
+    marginBottom: 12,
+  },
+  templateName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  templateSubject: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  templatePreview: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    lineHeight: 20,
+  },
+  templateActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  templateActionButton: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+  },
+  useTemplateText: {
+    color: '#6366F1',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  editTemplateText: {
+    color: '#6B7280',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  deleteTemplateButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#FEE2E2',
+  },
+  // Template Editor Modal Styles
+  templateEditorModal: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  templateEditorHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  templateEditorTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  saveTemplateButton: {
+    backgroundColor: '#6366F1',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  saveTemplateText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  templateEditorContent: {
+    flex: 1,
+    padding: 20,
+  },
+  templateField: {
+    marginBottom: 20,
+  },
+  templateFieldLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  templateInput: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#1F2937',
+    backgroundColor: '#FFFFFF',
+  },
+  templateBodyInput: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#1F2937',
+    backgroundColor: '#FFFFFF',
+    minHeight: 200,
+    textAlignVertical: 'top',
+  },
+  templateNote: {
+    fontSize: 13,
+    color: '#6B7280',
+    fontStyle: 'italic',
+    backgroundColor: '#F0F9FF',
+    padding: 12,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#3B82F6',
+  },
+  templateBodyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  insertFieldButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    gap: 4,
+  },
+  insertFieldButtonText: {
+    color: '#6366F1',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  fieldDropdown: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 12,
+    marginBottom: 12,
+    maxHeight: 250,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  fieldDropdownScroll: {
+    maxHeight: 250,
+  },
+  fieldOption: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  fieldOptionLeft: {
+    flex: 1,
+  },
+  fieldTag: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+    marginBottom: 4,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
+  fieldLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 2,
+  },
+  fieldDescription: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginLeft: 12,
+    flex: 1,
+    textAlign: 'right',
+  },
+  templatePreviewBox: {
+    marginTop: 16,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  templatePreviewLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  templatePreviewContent: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  templatePreviewText: {
+    fontSize: 14,
+    color: '#1F2937',
+    lineHeight: 22,
+  },
+  dynamicFieldHighlight: {
+    backgroundColor: '#DBEAFE',
+    color: '#1E40AF',
+    fontWeight: '600',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
+  // Old Forward Modal Styles (deprecated - can be removed later)
+  forwardModal: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  forwardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    backgroundColor: '#F8FAFC',
+  },
+  forwardTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  forwardContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  forwardRecipientSection: {
+    marginBottom: 24,
+  },
+  forwardLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 12,
+  },
+  forwardRecipientsList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  forwardRecipientChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#6366F1',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 6,
+  },
+  forwardRecipientText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  forwardSearchInput: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#1F2937',
+    backgroundColor: '#FFFFFF',
+  },
+  forwardSearchResults: {
+    marginTop: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    maxHeight: 300,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  forwardSearchResultItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  forwardResultAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#6366F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  customEmailAvatar: {
+    backgroundColor: '#10B981',
+  },
+  forwardResultAvatarText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  forwardResultInfo: {
+    flex: 1,
+  },
+  forwardResultName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#1F2937',
+    marginBottom: 2,
+  },
+  forwardResultEmail: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  forwardResultType: {
+    fontSize: 12,
+    color: '#6366F1',
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  forwardPreviewSection: {
+    marginTop: 24,
+  },
+  forwardPreviewLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 12,
+  },
+  forwardPreviewBox: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  forwardPreviewText: {
+    fontSize: 14,
+    color: '#4B5563',
+    lineHeight: 20,
   },
 });
