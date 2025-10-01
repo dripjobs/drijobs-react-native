@@ -2,7 +2,7 @@ import DrawerMenu from '@/components/DrawerMenu';
 import FloatingActionMenu from '@/components/FloatingActionMenu';
 import NewAppointmentModal from '@/components/NewAppointmentModal';
 import { useTabBar } from '@/contexts/TabBarContext';
-import { Archive, ArrowRight, Building, Calendar, Check, CheckSquare, ChevronLeft, ChevronRight, Clock, DollarSign, Edit, Eye, FileText, Filter, Mail, MapPin, MessageSquare, MoreVertical, Phone, Plus, Send, Tag, Target, Trash2, TrendingUp, User, X, Zap } from 'lucide-react-native';
+import { Archive, ArrowRight, Building, Calendar, CheckSquare, ChevronLeft, ChevronRight, Clock, DollarSign, Edit, Eye, FileText, Filter, Mail, MapPin, MessageSquare, MoreVertical, Phone, Plus, Send, Tag, Target, Trash2, TrendingUp, User, X, Zap } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Animated, Dimensions, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { PanGestureHandler } from 'react-native-gesture-handler';
@@ -18,8 +18,15 @@ export default function Pipeline() {
   const [activeTab, setActiveTab] = useState('Overview');
   const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set());
   const [expandedActionItem, setExpandedActionItem] = useState<string | null>(null);
+  const [activityFilter, setActivityFilter] = useState<"all" | "customer" | "team" | "automation">("all");
   const [customerDetailsExpanded, setCustomerDetailsExpanded] = useState(false);
   const [showNewAppointment, setShowNewAppointment] = useState(false);
+  const [showAddNoteModal, setShowAddNoteModal] = useState(false);
+  const [noteContent, setNoteContent] = useState('');
+  const [noteTaggedUsers, setNoteTaggedUsers] = useState<string[]>([]);
+  const [noteTag, setNoteTag] = useState('');
+  const [showUserTagDropdown, setShowUserTagDropdown] = useState(false);
+  const [showNoteTagDropdown, setShowNoteTagDropdown] = useState(false);
   const [appointmentStep, setAppointmentStep] = useState(1);
   const [appointmentData, setAppointmentData] = useState({
     eventType: '',
@@ -427,7 +434,8 @@ export default function Pipeline() {
     { id: 'Customer Journey', label: 'Customer Journey', icon: ArrowRight, count: null },
     { id: 'Proposals', label: 'Proposals', icon: FileText, count: 0 },
     { id: 'Activity', label: 'Activity', icon: TrendingUp, count: null },
-    { id: 'Notes & Tasks', label: 'Notes & Tasks', icon: CheckSquare, count: 5 },
+    { id: 'Notes', label: 'Notes', icon: FileText, count: 3 },
+    { id: 'Tasks', label: 'Tasks', icon: CheckSquare, count: 2 },
   ];
 
   const renderTabContent = () => {
@@ -926,47 +934,381 @@ export default function Pipeline() {
             </View>
           </View>
         );
+      case 'Proposals':
+        return (
+          <View style={styles.proposalsSection}>
+            <Text style={styles.sectionTitle}>Proposals</Text>
+            
+            {/* Proposal Card 1 - Basement Finishing */}
+            <View style={styles.proposalCard}>
+              <View style={styles.proposalHeader}>
+                <View style={[styles.proposalIconContainer, { backgroundColor: '#F3E8FF' }]}>
+                  <FileText size={20} color="#9333EA" />
+                </View>
+                <View style={styles.proposalHeaderInfo}>
+                  <Text style={styles.proposalTitle}>Basement Finishing Proposal</Text>
+                  <View style={styles.proposalStatus}>
+                    <View style={[styles.statusBadge, { backgroundColor: '#D1FAE5' }]}>
+                      <Text style={[styles.statusBadgeText, { color: '#065F46' }]}>Approved</Text>
+                    </View>
+                    <Text style={styles.proposalValue}>$35,000.00</Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.proposalMeta}>
+                <View style={styles.proposalMetaRow}>
+                  <Send size={14} color="#9333EA" />
+                  <Text style={styles.proposalMetaText}>Sent: Nov 20, 2023</Text>
+                </View>
+                <View style={styles.proposalMetaRow}>
+                  <User size={14} color="#6B7280" />
+                  <Text style={styles.proposalMetaText}>Salesperson: Tanner Mullen</Text>
+                </View>
+              </View>
+
+              <View style={styles.proposalStats}>
+                <View style={styles.proposalStat}>
+                  <Eye size={16} color="#6B7280" />
+                  <Text style={styles.proposalStatLabel}>Total Views</Text>
+                  <Text style={styles.proposalStatValue}>12</Text>
+                </View>
+                <View style={styles.proposalStat}>
+                  <Clock size={16} color="#6B7280" />
+                  <Text style={styles.proposalStatLabel}>Time Viewed</Text>
+                  <Text style={styles.proposalStatValue}>18 min</Text>
+                </View>
+                <View style={styles.proposalStat}>
+                  <Calendar size={16} color="#6B7280" />
+                  <Text style={styles.proposalStatLabel}>Last Viewed</Text>
+                  <Text style={styles.proposalStatValue}>2 days ago</Text>
+                </View>
+              </View>
+
+              <View style={styles.proposalFooter}>
+                <Text style={styles.proposalDate}>Created: Nov 20, 2023</Text>
+                <TouchableOpacity style={styles.viewProposalButton}>
+                  <Eye size={16} color="#FFFFFF" />
+                  <Text style={styles.viewProposalButtonText}>View Proposal</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Proposal Card 2 - Kitchen Renovation */}
+            <View style={styles.proposalCard}>
+              <View style={styles.proposalHeader}>
+                <View style={[styles.proposalIconContainer, { backgroundColor: '#F3E8FF' }]}>
+                  <FileText size={20} color="#9333EA" />
+                </View>
+                <View style={styles.proposalHeaderInfo}>
+                  <Text style={styles.proposalTitle}>Kitchen Renovation Proposal</Text>
+                  <View style={styles.proposalStatus}>
+                    <View style={[styles.statusBadge, { backgroundColor: '#FEF3C7' }]}>
+                      <Text style={[styles.statusBadgeText, { color: '#92400E' }]}>Pending Review</Text>
+                    </View>
+                    <Text style={styles.proposalValue}>$52,500.00</Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.proposalMeta}>
+                <View style={styles.proposalMetaRow}>
+                  <Send size={14} color="#9333EA" />
+                  <Text style={styles.proposalMetaText}>Sent: Jan 15, 2024</Text>
+                </View>
+                <View style={styles.proposalMetaRow}>
+                  <User size={14} color="#6B7280" />
+                  <Text style={styles.proposalMetaText}>Salesperson: Sarah Johnson</Text>
+                </View>
+              </View>
+
+              <View style={styles.proposalStats}>
+                <View style={styles.proposalStat}>
+                  <Eye size={16} color="#6B7280" />
+                  <Text style={styles.proposalStatLabel}>Total Views</Text>
+                  <Text style={styles.proposalStatValue}>7</Text>
+                </View>
+                <View style={styles.proposalStat}>
+                  <Clock size={16} color="#6B7280" />
+                  <Text style={styles.proposalStatLabel}>Time Viewed</Text>
+                  <Text style={styles.proposalStatValue}>12 min</Text>
+                </View>
+                <View style={styles.proposalStat}>
+                  <Calendar size={16} color="#6B7280" />
+                  <Text style={styles.proposalStatLabel}>Last Viewed</Text>
+                  <Text style={styles.proposalStatValue}>5 hours ago</Text>
+                </View>
+              </View>
+
+              <View style={styles.proposalFooter}>
+                <Text style={styles.proposalDate}>Created: Jan 15, 2024</Text>
+                <TouchableOpacity style={styles.viewProposalButton}>
+                  <Eye size={16} color="#FFFFFF" />
+                  <Text style={styles.viewProposalButtonText}>View Proposal</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Empty State Example (commented out - shown when no proposals) */}
+            {/* <View style={styles.emptyProposalsState}>
+              <View style={styles.emptyStateIcon}>
+                <FileText size={48} color="#D1D5DB" />
+              </View>
+              <Text style={styles.emptyStateTitle}>No Proposals Yet</Text>
+              <Text style={styles.emptyStateDescription}>
+                Proposals will appear here once this deal reaches the proposal stage
+              </Text>
+            </View> */}
+          </View>
+        );
       case 'Activity':
         return (
           <View style={styles.activitySection}>
-            <Text style={styles.sectionTitle}>Recent Activity</Text>
-            <View style={styles.activityList}>
-              <View style={styles.activityItem}>
-                <View style={styles.activityAvatar}>
-                  <Text style={styles.activityAvatarText}>TM</Text>
+            <Text style={styles.sectionTitle}>Activity Timeline</Text>
+            
+            {/* Activity Filter Tabs */}
+            <View style={styles.activityFilterTabs}>
+              <TouchableOpacity 
+                style={[styles.activityFilterTab, activityFilter === 'all' && styles.activityFilterTabActive]}
+                onPress={() => setActivityFilter('all')}
+              >
+                <Text style={[styles.activityFilterTabText, activityFilter === 'all' && styles.activityFilterTabTextActive]}>All</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.activityFilterTab, activityFilter === 'customer' && styles.activityFilterTabActive]}
+                onPress={() => setActivityFilter('customer')}
+              >
+                <Text style={[styles.activityFilterTabText, activityFilter === 'customer' && styles.activityFilterTabTextActive]}>Customer</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.activityFilterTab, activityFilter === 'team' && styles.activityFilterTabActive]}
+                onPress={() => setActivityFilter('team')}
+              >
+                <Text style={[styles.activityFilterTabText, activityFilter === 'team' && styles.activityFilterTabTextActive]}>Team</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.activityFilterTab, activityFilter === 'automation' && styles.activityFilterTabActive]}
+                onPress={() => setActivityFilter('automation')}
+              >
+                <Text style={[styles.activityFilterTabText, activityFilter === 'automation' && styles.activityFilterTabTextActive]}>Automation</Text>
+              </TouchableOpacity>
+            </View>
+
+            {(() => {
+              const activities = [
+              { type: 'customer', icon: Eye, iconColor: '#6366F1', iconBg: '#EEF2FF', badge: 'CUSTOMER', badgeBg: '#EEF2FF', badgeColor: '#6366F1', time: '5 hours ago', timestamp: 'Today, 11:30 AM', title: 'Proposal Viewed', description: 'Customer viewed "Kitchen Renovation Proposal" for 8 minutes' },
+              { type: 'team', icon: Mail, iconColor: '#059669', iconBg: '#F0FDF4', badge: 'TEAM', badgeBg: '#D1FAE5', badgeColor: '#065F46', time: '1 day ago', timestamp: 'Jan 30, 2024, 2:15 PM', user: 'Tanner Mullen', title: 'Follow-up Email Sent', description: 'Sent proposal follow-up email to customer' },
+              { type: 'customer', icon: Phone, iconColor: '#6366F1', iconBg: '#EEF2FF', badge: 'CUSTOMER', badgeBg: '#EEF2FF', badgeColor: '#6366F1', time: '2 days ago', timestamp: 'Jan 29, 2024, 10:45 AM', title: 'Phone Call', description: 'Customer called to discuss timeline - Duration: 12 min' },
+              { type: 'team', icon: ArrowRight, iconColor: '#059669', iconBg: '#F0FDF4', badge: 'TEAM', badgeBg: '#D1FAE5', badgeColor: '#065F46', time: '3 days ago', timestamp: 'Jan 28, 2024, 3:20 PM', user: 'Sarah Johnson', title: 'Moved to Proposal Stage', description: 'Moved deal from Opportunity to Proposal' },
+              { type: 'customer', icon: Mail, iconColor: '#6366F1', iconBg: '#EEF2FF', badge: 'CUSTOMER', badgeBg: '#EEF2FF', badgeColor: '#6366F1', time: '4 days ago', timestamp: 'Jan 27, 2024, 9:05 AM', title: 'Email Reply Received', description: 'Customer replied: "Looks great! When can we start?"' },
+              { type: 'team', icon: Calendar, iconColor: '#059669', iconBg: '#F0FDF4', badge: 'TEAM', badgeBg: '#D1FAE5', badgeColor: '#065F46', time: '5 days ago', timestamp: 'Jan 26, 2024, 1:30 PM', user: 'Tanner Mullen', title: 'Site Visit Scheduled', description: 'Scheduled site visit for Feb 2, 2024 at 10:00 AM' },
+              { type: 'customer', icon: FileText, iconColor: '#6366F1', iconBg: '#EEF2FF', badge: 'CUSTOMER', badgeBg: '#EEF2FF', badgeColor: '#6366F1', time: 'Nov 1, 2023', timestamp: 'Nov 1, 2023, 8:15 AM', title: 'Initial Inquiry Submitted', description: 'Customer submitted website form for basement finishing' },
+              { type: 'automation', icon: Zap, iconColor: '#F59E0B', iconBg: '#FEF3C7', badge: 'AUTOMATION', badgeBg: '#FEF3C7', badgeColor: '#F59E0B', time: '6 hours ago', timestamp: 'Today, 10:15 AM', title: 'Drip Email Sent', description: 'Automated follow-up email: "Still interested in your renovation?"' },
+              { type: 'automation', icon: MessageSquare, iconColor: '#F59E0B', iconBg: '#FEF3C7', badge: 'AUTOMATION', badgeBg: '#FEF3C7', badgeColor: '#F59E0B', time: '2 days ago', timestamp: 'Jan 29, 2024, 3:00 PM', title: 'SMS Reminder Sent', description: 'Automated text: "Your appointment is coming up on Feb 2"' },
+              { type: 'automation', icon: ArrowRight, iconColor: '#F59E0B', iconBg: '#FEF3C7', badge: 'AUTOMATION', badgeBg: '#FEF3C7', badgeColor: '#F59E0B', time: '4 days ago', timestamp: 'Jan 27, 2024, 12:00 AM', title: 'Deal Auto-Advanced', description: 'Deal automatically moved from Lead to Opportunity (30+ day rule)' },
+              { type: 'automation', icon: Mail, iconColor: '#F59E0B', iconBg: '#FEF3C7', badge: 'AUTOMATION', badgeBg: '#FEF3C7', badgeColor: '#F59E0B', time: '6 days ago', timestamp: 'Jan 25, 2024, 9:00 AM', title: 'Welcome Email Sent', description: 'Automated welcome series email #2: "What to expect"' },
+              { type: 'automation', icon: MessageSquare, iconColor: '#F59E0B', iconBg: '#FEF3C7', badge: 'AUTOMATION', badgeBg: '#FEF3C7', badgeColor: '#F59E0B', time: 'Nov 2, 2023', timestamp: 'Nov 2, 2023, 9:30 AM', title: 'Thank You SMS', description: 'Automated text: "Thanks for your inquiry! We will be in touch soon"' },
+
+            ];
+
+            const filteredActivities = activityFilter === 'all' 
+              ? activities 
+              : activities.filter(activity => activity.type === activityFilter);
+
+              return (<ScrollView 
+              style={styles.activityScrollContainer}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.activityList}>
+              {filteredActivities.map((activity, index) => {
+                const IconComponent = activity.icon;
+                return (
+                  <View key={index} style={styles.activityItem}>
+                    <View style={[styles.activityIconContainer, { backgroundColor: activity.iconBg }]}>
+                      <IconComponent size={16} color={activity.iconColor} />
+                    </View>
+                    <View style={styles.activityContent}>
+                      <View style={styles.activityHeader}>
+                        <View style={[styles.activityBadge, { backgroundColor: activity.badgeBg }]}>
+                          <Text style={[styles.activityBadgeText, { color: activity.badgeColor }]}>{activity.badge}</Text>
+                        </View>
+                        <Text style={styles.activityTime}>{activity.time}</Text>
+                      </View>
+                      <Text style={styles.activityTitle}>{activity.title}</Text>
+                      {activity.user && (
+                        <Text style={styles.activityUser}>
+                          <User size={12} color="#6B7280" /> {activity.user}
+                        </Text>
+                      )}
+                      <Text style={styles.activityDescription}>{activity.description}</Text>
+                      <Text style={styles.activityTimestamp}>{activity.timestamp}</Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </ScrollView>
+              );
+            })()}
+          </View>
+        );
+      case 'Notes':
+        return (
+          <View style={styles.notesSection}>
+            <Text style={styles.sectionTitle}>Notes</Text>
+            
+            {/* Add Note Button */}
+            <TouchableOpacity style={styles.addNoteButton} onPress={() => setShowAddNoteModal(true)}>
+              <Plus size={16} color="#6366F1" />
+              <Text style={styles.addNoteButtonText}>Add Note</Text>
+            </TouchableOpacity>
+
+            {/* Notes List */}
+            <View style={styles.notesList}>
+              <View style={styles.noteCard}>
+                <View style={styles.noteHeader}>
+                  <View style={styles.noteAuthor}>
+                    <View style={styles.noteAuthorAvatar}>
+                      <Text style={styles.noteAuthorAvatarText}>TM</Text>
+                    </View>
+                    <View>
+                      <Text style={styles.noteAuthorName}>Tanner Mullen</Text>
+                      <Text style={styles.noteTimestamp}>Jan 30, 2024, 2:30 PM</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity>
+                    <MoreVertical size={20} color="#9CA3AF" />
+                  </TouchableOpacity>
                 </View>
-                <View style={styles.activityInfo}>
-                  <Text style={styles.activityAction}>→ Moved to New Leads</Text>
-                  <Text style={styles.activityUser}>Tanner Mullen</Text>
-                  <Text style={styles.activityDate}>Jan 18, 2024, 9:30 AM</Text>
+                <Text style={styles.noteContent}>
+                  Customer is very interested in eco-friendly materials. Discussed budget range of $30-40k. Follow up next week with green options.
+                </Text>
+                <View style={styles.noteTags}>
+                  <View style={styles.noteTag}>
+                    <Tag size={12} color="#6366F1" />
+                    <Text style={styles.noteTagText}>Follow-up</Text>
+                  </View>
                 </View>
               </View>
-              
-              <View style={styles.activityItem}>
-                <View style={styles.activityAvatar}>
-                  <Text style={styles.activityAvatarText}>TM</Text>
+
+              <View style={styles.noteCard}>
+                <View style={styles.noteHeader}>
+                  <View style={styles.noteAuthor}>
+                    <View style={styles.noteAuthorAvatar}>
+                      <Text style={styles.noteAuthorAvatarText}>SJ</Text>
+                    </View>
+                    <View>
+                      <Text style={styles.noteAuthorName}>Sarah Johnson</Text>
+                      <Text style={styles.noteTimestamp}>Jan 28, 2024, 11:15 AM</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity>
+                    <MoreVertical size={20} color="#9CA3AF" />
+                  </TouchableOpacity>
                 </View>
-                <View style={styles.activityInfo}>
-                  <Text style={styles.activityAction}>Updated card details</Text>
-                  <Text style={styles.activityUser}>Tanner Mullen</Text>
-                  <Text style={styles.activityDate}>Jan 18, 2024, 9:30 AM</Text>
+                <Text style={styles.noteContent}>
+                  Site visit completed. Measured basement - 800 sq ft total. Customer wants open concept with wet bar area.
+                </Text>
+                <View style={styles.noteTags}>
+                  <View style={styles.noteTag}>
+                    <Tag size={12} color="#059669" />
+                    <Text style={styles.noteTagText}>Site Visit</Text>
+                  </View>
                 </View>
               </View>
-              
-              <View style={styles.activityItem}>
-                <View style={styles.activityAvatar}>
-                  <Text style={styles.activityAvatarText}>S</Text>
+
+              <View style={styles.noteCard}>
+                <View style={styles.noteHeader}>
+                  <View style={styles.noteAuthor}>
+                    <View style={styles.noteAuthorAvatar}>
+                      <Text style={styles.noteAuthorAvatarText}>TM</Text>
+                    </View>
+                    <View>
+                      <Text style={styles.noteAuthorName}>Tanner Mullen</Text>
+                      <Text style={styles.noteTimestamp}>Jan 25, 2024, 9:00 AM</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity>
+                    <MoreVertical size={20} color="#9CA3AF" />
+                  </TouchableOpacity>
                 </View>
-                <View style={styles.activityInfo}>
-                  <Text style={styles.activityAction}>+ Card created</Text>
-                  <Text style={styles.activityUser}>System</Text>
-                  <Text style={styles.activityDate}>Jan 10, 2024, 5:00 AM</Text>
+                <Text style={styles.noteContent}>
+                  Initial call went great. Customer referred by previous client (Johnson renovation). Ready to move forward quickly.
+                </Text>
+                <View style={styles.noteTags}>
+                  <View style={styles.noteTag}>
+                    <Tag size={12} color="#8B5CF6" />
+                    <Text style={styles.noteTagText}>Referral</Text>
+                  </View>
                 </View>
               </View>
             </View>
           </View>
         );
-      default:
+      
+      case 'Tasks':
+        return (
+          <View style={styles.tasksSection}>
+            <Text style={styles.sectionTitle}>Tasks</Text>
+            
+            {/* Add Task Button */}
+            <TouchableOpacity style={styles.addTaskButton}>
+              <Plus size={16} color="#6366F1" />
+              <Text style={styles.addTaskButtonText}>Add Task</Text>
+            </TouchableOpacity>
+
+            {/* Tasks List */}
+            <View style={styles.tasksList}>
+              <View style={styles.taskCard}>
+                <View style={styles.taskHeader}>
+                  <TouchableOpacity style={styles.taskCheckbox}>
+                    <View style={styles.taskCheckboxInner} />
+                  </TouchableOpacity>
+                  <View style={styles.taskContent}>
+                    <Text style={styles.taskTitle}>Send updated proposal with eco-friendly options</Text>
+                    <View style={styles.taskMeta}>
+                      <View style={styles.taskDueDate}>
+                        <Calendar size={12} color="#EF4444" />
+                        <Text style={styles.taskDueDateText}>Due: Feb 2, 2024</Text>
+                      </View>
+                      <View style={styles.taskAssignee}>
+                        <User size={12} color="#6B7280" />
+                        <Text style={styles.taskAssigneeText}>Tanner Mullen</Text>
+                      </View>
+                    </View>
+                  </View>
+                  <View style={[styles.taskPriority, { backgroundColor: '#FEE2E2' }]}>
+                    <Text style={[styles.taskPriorityText, { color: '#DC2626' }]}>High</Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.taskCard}>
+                <View style={styles.taskHeader}>
+                  <TouchableOpacity style={styles.taskCheckbox}>
+                    <View style={styles.taskCheckboxInner} />
+                  </TouchableOpacity>
+                  <View style={styles.taskContent}>
+                    <Text style={styles.taskTitle}>Schedule final design meeting</Text>
+                    <View style={styles.taskMeta}>
+                      <View style={styles.taskDueDate}>
+                        <Calendar size={12} color="#F59E0B" />
+                        <Text style={styles.taskDueDateText}>Due: Feb 5, 2024</Text>
+                      </View>
+                      <View style={styles.taskAssignee}>
+                        <User size={12} color="#6B7280" />
+                        <Text style={styles.taskAssigneeText}>Sarah Johnson</Text>
+                      </View>
+                    </View>
+                  </View>
+                  <View style={[styles.taskPriority, { backgroundColor: '#FEF3C7' }]}>
+                    <Text style={[styles.taskPriorityText, { color: '#D97706' }]}>Medium</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+        );
+      
+            default:
         return (
           <View style={styles.emptyTabContent}>
             <Text style={styles.emptyTabText}>Content for {activeTab} coming soon...</Text>
@@ -1389,7 +1731,162 @@ export default function Pipeline() {
       </Modal>
 
       {/* New Appointment Modal */}
-      <NewAppointmentModal 
+
+      {/* Add Note Modal */}
+      <Modal
+        visible={showAddNoteModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowAddNoteModal(false)}
+      >
+        <SafeAreaView style={styles.addNoteModal}>
+          <View style={styles.addNoteHeader}>
+            <TouchableOpacity onPress={() => {
+              setShowAddNoteModal(false);
+              setNoteContent('');
+              setNoteTaggedUsers([]);
+              setNoteTag('');
+            }}>
+              <X size={24} color="#6B7280" />
+            </TouchableOpacity>
+            <Text style={styles.addNoteTitle}>Add Note</Text>
+            <TouchableOpacity 
+              style={styles.saveNoteButton}
+              onPress={() => {
+                // Handle save note
+                console.log('Note saved:', { content: noteContent, taggedUsers: noteTaggedUsers, tag: noteTag });
+                setShowAddNoteModal(false);
+                setNoteContent('');
+                setNoteTaggedUsers([]);
+                setNoteTag('');
+              }}
+            >
+              <Text style={styles.saveNoteButtonText}>Save</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.addNoteContent}>
+            {/* Note Content */}
+            <View style={styles.addNoteField}>
+              <Text style={styles.addNoteLabel}>Note</Text>
+              <TextInput
+                style={styles.addNoteTextArea}
+                placeholder="Write your note here..."
+                value={noteContent}
+                onChangeText={setNoteContent}
+                multiline
+                numberOfLines={6}
+                textAlignVertical="top"
+              />
+            </View>
+
+            {/* Tag Team Members */}
+            <View style={styles.addNoteField}>
+              <Text style={styles.addNoteLabel}>Tag Team Members</Text>
+              <TouchableOpacity 
+                style={styles.addNoteDropdown}
+                onPress={() => setShowUserTagDropdown(!showUserTagDropdown)}
+              >
+                <User size={16} color="#6B7280" />
+                <Text style={styles.addNoteDropdownText}>
+                  {noteTaggedUsers.length > 0 ? `${noteTaggedUsers.length} member(s) tagged` : 'Select team members...'}
+                </Text>
+                <ChevronRight size={16} color="#9CA3AF" />
+              </TouchableOpacity>
+
+              {showUserTagDropdown && (
+                <View style={styles.dropdownOptions}>
+                  {['Tanner Mullen', 'Sarah Johnson', 'Mike Davis', 'Lisa Anderson'].map((user) => (
+                    <TouchableOpacity
+                      key={user}
+                      style={styles.dropdownOption}
+                      onPress={() => {
+                        if (noteTaggedUsers.includes(user)) {
+                          setNoteTaggedUsers(noteTaggedUsers.filter(u => u !== user));
+                        } else {
+                          setNoteTaggedUsers([...noteTaggedUsers, user]);
+                        }
+                      }}
+                    >
+                      <View style={[
+                        styles.dropdownCheckbox,
+                        noteTaggedUsers.includes(user) && styles.dropdownCheckboxChecked
+                      ]}>
+                        {noteTaggedUsers.includes(user) && (
+                          <CheckSquare size={14} color="#FFFFFF" />
+                        )}
+                      </View>
+                      <Text style={styles.dropdownOptionText}>{user}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              {/* Tagged Users Pills */}
+              {noteTaggedUsers.length > 0 && (
+                <View style={styles.taggedUsersPills}>
+                  {noteTaggedUsers.map((user) => (
+                    <View key={user} style={styles.userPill}>
+                      <Text style={styles.userPillText}>{user}</Text>
+                      <TouchableOpacity onPress={() => setNoteTaggedUsers(noteTaggedUsers.filter(u => u !== user))}>
+                        <X size={14} color="#6B7280" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+
+            {/* Note Tag */}
+            <View style={styles.addNoteField}>
+              <Text style={styles.addNoteLabel}>Note Tag</Text>
+              <TouchableOpacity 
+                style={styles.addNoteDropdown}
+                onPress={() => setShowNoteTagDropdown(!showNoteTagDropdown)}
+              >
+                <Tag size={16} color="#6B7280" />
+                <Text style={styles.addNoteDropdownText}>
+                  {noteTag || 'Select a tag...'}
+                </Text>
+                <ChevronRight size={16} color="#9CA3AF" />
+              </TouchableOpacity>
+
+              {showNoteTagDropdown && (
+                <View style={styles.dropdownOptions}>
+                  {['Follow-up', 'Site Visit', 'Referral', 'Budget Discussion', 'Design Meeting', 'Materials', 'Important'].map((tag) => (
+                    <TouchableOpacity
+                      key={tag}
+                      style={styles.dropdownOption}
+                      onPress={() => {
+                        setNoteTag(tag);
+                        setShowNoteTagDropdown(false);
+                      }}
+                    >
+                      <Tag size={14} color="#6366F1" />
+                      <Text style={styles.dropdownOptionText}>{tag}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              {/* Selected Tag */}
+              {noteTag && (
+                <View style={styles.selectedTagContainer}>
+                  <View style={styles.selectedTag}>
+                    <Tag size={12} color="#6366F1" />
+                    <Text style={styles.selectedTagText}>{noteTag}</Text>
+                    <TouchableOpacity onPress={() => setNoteTag('')}>
+                      <X size={14} color="#6B7280" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+            <NewAppointmentModal 
         visible={showNewAppointment}
         onClose={handleAppointmentClose}
       />
@@ -2616,6 +3113,133 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     flex: 1,
   },
+  proposalsSection: {
+    marginBottom: 24,
+  },
+  proposalCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    padding: 16,
+    marginBottom: 16,
+  },
+  proposalHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  proposalIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  proposalHeaderInfo: {
+    flex: 1,
+  },
+  proposalTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  proposalStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  proposalValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#10B981',
+  },
+  proposalMeta: {
+    marginBottom: 16,
+    gap: 8,
+  },
+  proposalMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  proposalMetaText: {
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  proposalStats: {
+    flexDirection: 'row',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    gap: 16,
+  },
+  proposalStat: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  proposalStatLabel: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginTop: 4,
+    marginBottom: 2,
+    textAlign: 'center',
+  },
+  proposalStatValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    textAlign: 'center',
+  },
+  proposalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  proposalDate: {
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
+  viewProposalButton: {
+    backgroundColor: '#6366F1',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 6,
+  },
+  viewProposalButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  emptyProposalsState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyStateIcon: {
+    marginBottom: 16,
+  },
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  emptyStateDescription: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    textAlign: 'center',
+    paddingHorizontal: 40,
+  },
   journeySteps: {
     gap: 16,
   },
@@ -2696,6 +3320,87 @@ const styles = StyleSheet.create({
   activityDate: {
     fontSize: 12,
     color: '#9CA3AF',
+  },
+  // Enhanced Activity Styles
+  activityFilterTabs: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+  },
+  activityFilterTab: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+  },
+  activityFilterTabActive: {
+    backgroundColor: '#6366F1',
+  },
+  activityFilterTabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  activityFilterTabTextActive: {
+    color: '#FFFFFF',
+  },
+  activityIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  activityContent: {
+    flex: 1,
+  },
+  activityHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  activityBadge: {
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  activityBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#6366F1',
+    letterSpacing: 0.5,
+  },
+  activityTime: {
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
+  activityUser: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 2,
+    marginBottom: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },  activityTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 2,
+  },
+  activityDescription: {
+    fontSize: 13,
+    color: '#6B7280',
+    lineHeight: 18,
+  },
+  activityTimestamp: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    marginTop: 4,
+  },  activityScrollContainer: {
+    height: 500,
   },
   // Enhanced Command Center Styles
   headerActions: {
@@ -2798,5 +3503,322 @@ const styles = StyleSheet.create({
   emptyTabText: {
     fontSize: 14,
     color: '#9CA3AF',
+  },
+  // Notes Section Styles
+  notesSection: {
+    marginBottom: 24,
+  },
+  addNoteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EEF2FF',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+    gap: 8,
+  },
+  addNoteButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  notesList: {
+    gap: 12,
+  },
+  noteCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  noteHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  noteAuthor: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  noteAuthorAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#6366F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noteAuthorAvatarText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  noteAuthorName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  noteTimestamp: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 2,
+  },
+  noteContent: {
+    fontSize: 14,
+    color: '#4B5563',
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  noteTags: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  noteTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    gap: 4,
+  },
+  noteTagText: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  // Tasks Section Styles
+  tasksSection: {
+    marginBottom: 24,
+  },
+  addTaskButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EEF2FF',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+    gap: 8,
+  },
+  addTaskButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  tasksList: {
+    gap: 12,
+  },
+  taskCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  taskHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  taskCheckbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#6366F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  taskCheckboxInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 2,
+    backgroundColor: 'transparent',
+  },
+  taskContent: {
+    flex: 1,
+  },
+  taskTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  taskMeta: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  taskDueDate: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  taskDueDateText: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  taskAssignee: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  taskAssigneeText: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  taskPriority: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  taskPriorityText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  // Add Note Modal Styles
+  addNoteModal: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  addNoteHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  addNoteTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  saveNoteButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#6366F1',
+    borderRadius: 8,
+  },
+  saveNoteButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  addNoteContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  addNoteField: {
+    marginBottom: 24,
+  },
+  addNoteLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  addNoteTextArea: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    padding: 12,
+    fontSize: 14,
+    color: '#1F2937',
+    minHeight: 120,
+  },
+  addNoteDropdown: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    padding: 12,
+    gap: 8,
+  },
+  addNoteDropdownText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  dropdownOptions: {
+    marginTop: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    overflow: 'hidden',
+  },
+  dropdownOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  dropdownOptionText: {
+    fontSize: 14,
+    color: '#374151',
+  },
+  dropdownCheckbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#D1D5DB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dropdownCheckboxChecked: {
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
+  },
+  taggedUsersPills: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+  },
+  userPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 6,
+  },
+  userPillText: {
+    fontSize: 13,
+    color: '#6366F1',
+    fontWeight: '500',
+  },
+  selectedTagContainer: {
+    marginTop: 12,
+  },
+  selectedTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 6,
+    alignSelf: 'flex-start',
+  },
+  selectedTagText: {
+    fontSize: 13,
+    color: '#6B7280',
   },
 });

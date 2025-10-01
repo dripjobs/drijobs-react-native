@@ -4,7 +4,7 @@ import NewAppointmentModal from '@/components/NewAppointmentModal';
 import { useTabBar } from '@/contexts/TabBarContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { Bell, Calendar, CheckSquare, ChevronDown, ChevronRight, Clock, Copy, FileText, Handshake, Mail, MapPin, MessageSquare, Navigation, Phone, Search, Target, TrendingUp, X } from 'lucide-react-native';
+import { Bell, Calendar, CheckSquare, ChevronDown, ChevronRight, Clock, Copy, DollarSign, FileText, Handshake, Mail, MapPin, MessageSquare, Navigation, Phone, Search, Target, TrendingUp, X } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Alert, Animated, Dimensions, Linking, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
@@ -17,12 +17,13 @@ export default function Dashboard() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [showNewAppointment, setShowNewAppointment] = useState(false);
   const [showMeetingDetails, setShowMeetingDetails] = useState(false);
-  const [selectedMeeting, setSelectedMeeting] = useState(null);
+  const [selectedMeeting, setSelectedMeeting] = useState<any>(null);
   const [meetingDetailsTranslateY] = useState(new Animated.Value(screenHeight));
-  const [activeMenu, setActiveMenu] = useState('myDay'); // 'myDay' or 'updates'
+  const [activeMenu, setActiveMenu] = useState('myDay'); // 'myDay', 'stats', or 'updates'
   const [showStatusDropdown, setShowStatusDropdown] = useState(null);
   const [showTaskStatusDropdown, setShowTaskStatusDropdown] = useState(null);
-  const [nextItem, setNextItem] = useState(null);
+  const [nextItem, setNextItem] = useState<any>(null);
+  const [currentGreeting, setCurrentGreeting] = useState<string>('');
   const [statusOptions] = useState([
     { value: 'scheduled', label: 'Scheduled', color: '#3B82F6' },
     { value: 'confirmed', label: 'Confirmed', color: '#10B981' },
@@ -37,6 +38,27 @@ export default function Dashboard() {
     { value: 'completed', label: 'Completed', color: '#10B981' },
     { value: 'cancelled', label: 'Cancelled', color: '#EF4444' }
   ]);
+
+  // Dynamic greetings
+  const greetings = [
+    "Welcome back, Tanner",
+    "Good to see you, Tanner",
+    "Hey there, Tanner",
+    "Hello again, Tanner",
+    "Great to have you back, Tanner",
+    "Ready to tackle the day, Tanner?",
+    "Let's make it happen, Tanner",
+    "Time to shine, Tanner"
+  ];
+
+  const getRandomGreeting = () => {
+    const randomIndex = Math.floor(Math.random() * greetings.length);
+    return greetings[randomIndex];
+  };
+
+  useEffect(() => {
+    setCurrentGreeting(getRandomGreeting());
+  }, []);
 
   const handleNewAppointment = () => {
     setShowNewAppointment(true);
@@ -216,7 +238,7 @@ export default function Dashboard() {
     setNextItem(getNextItem());
   }, []);
 
-  const getStatusText = (status) => {
+  const getStatusText = (status: string) => {
     switch(status) {
       case 'confirmed': return 'Confirmed';
       case 'scheduled': return 'Scheduled';
@@ -227,7 +249,7 @@ export default function Dashboard() {
     }
   };
 
-  const handleAppointmentPress = (appointment) => {
+  const handleAppointmentPress = (appointment: any) => {
     setSelectedMeeting(appointment);
     setShowMeetingDetails(true);
     
@@ -260,7 +282,7 @@ export default function Dashboard() {
     { useNativeDriver: true }
   );
 
-  const onMeetingDetailsHandlerStateChange = (event) => {
+  const onMeetingDetailsHandlerStateChange = (event: any) => {
     if (event.nativeEvent.state === State.END) {
       const { translationY, velocityY } = event.nativeEvent;
       
@@ -301,7 +323,7 @@ export default function Dashboard() {
   };
 
   // Phone call functionality
-  const handlePhoneCall = (phoneNumber) => {
+  const handlePhoneCall = (phoneNumber: string) => {
     const cleanNumber = phoneNumber.replace(/[^\d]/g, '');
     const phoneUrl = `tel:${cleanNumber}`;
     Linking.openURL(phoneUrl).catch(err => {
@@ -310,7 +332,7 @@ export default function Dashboard() {
   };
 
   // GPS navigation functionality
-  const handleGPSNavigation = (address) => {
+  const handleGPSNavigation = (address: string) => {
     const encodedAddress = encodeURIComponent(address);
     const mapsUrl = `https://maps.google.com/maps?q=${encodedAddress}`;
     Linking.openURL(mapsUrl).catch(err => {
@@ -319,23 +341,23 @@ export default function Dashboard() {
   };
 
   // Status change functionality
-  const handleStatusChange = (appointmentId, newStatus) => {
+  const handleStatusChange = (appointmentId: any, newStatus: string) => {
     // Update the appointment status
     console.log('Status changed for appointment', appointmentId, 'to', newStatus);
     setShowStatusDropdown(null);
   };
 
-  const handleTaskStatusChange = (taskId, newStatus) => {
+  const handleTaskStatusChange = (taskId: any, newStatus: string) => {
     // Update the task status
     console.log('Task status changed for task', taskId, 'to', newStatus);
     setShowTaskStatusDropdown(null);
   };
 
-  const toggleStatusDropdown = (appointmentId) => {
+  const toggleStatusDropdown = (appointmentId: any) => {
     setShowStatusDropdown(showStatusDropdown === appointmentId ? null : appointmentId);
   };
 
-  const toggleTaskStatusDropdown = (taskId) => {
+  const toggleTaskStatusDropdown = (taskId: any) => {
     setShowTaskStatusDropdown(showTaskStatusDropdown === taskId ? null : taskId);
   };
 
@@ -360,20 +382,20 @@ export default function Dashboard() {
               <ChevronRight size={16} color="#FFFFFF" />
             </View>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Welcome back, Tanner</Text>
           <View style={styles.headerActions}>
             <TouchableOpacity style={styles.headerButton}>
               <Search size={24} color="#FFFFFF" />
             </TouchableOpacity>
             <TouchableOpacity style={styles.headerButton}>
-              <Bell size={24} color="#FFFFFF" />r
+              <Bell size={24} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
         </View>
 
-        <View style={styles.balanceSection}>
-          <Text style={styles.balanceCount}>{getTodaysSchedule().length} Items</Text>
-          </View>
+        {/* Greeting Row */}
+        <View style={styles.greetingRow}>
+          <Text style={styles.greetingText}>{currentGreeting}</Text>
+        </View>
 
         {/* Menu Toggle in Purple Header */}
         <View style={styles.headerMenuToggle}>
@@ -382,6 +404,12 @@ export default function Dashboard() {
             onPress={() => setActiveMenu('myDay')}
           >
             <Text style={[styles.headerMenuButtonText, activeMenu === 'myDay' && styles.headerActiveMenuButtonText]}>My Day</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.headerMenuButton, activeMenu === 'stats' && styles.headerActiveMenuButton]}
+            onPress={() => setActiveMenu('stats')}
+          >
+            <Text style={[styles.headerMenuButtonText, activeMenu === 'stats' && styles.headerActiveMenuButtonText]}>Stats</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.headerMenuButton, activeMenu === 'updates' && styles.headerActiveMenuButton]}
@@ -408,44 +436,61 @@ export default function Dashboard() {
               {nextItem && (
                 <View style={styles.nextItemHighlight}>
                   <View style={styles.nextItemHeader}>
-                    <View style={styles.nextItemIcon}>
-                      <Clock size={20} color="#FFFFFF" />
-                </View>
-                    <Text style={styles.nextItemLabel}>Next Up</Text>
-                  </View>
-                  
-                  <View style={styles.nextItemContent}>
                     <View style={styles.nextItemTimeSection}>
-                      <Text style={styles.nextItemTime}>{nextItem.time}</Text>
-                      {nextItem.itemType === 'appointment' && (
-                        <Text style={styles.nextItemDuration}>({nextItem.duration})</Text>
-                      )}
+                      <View style={styles.nextItemIconContainer}>
+                        {nextItem.itemType === 'appointment' ? (
+                          <Clock size={20} color="#6366F1" />
+                        ) : (
+                          <CheckSquare size={20} color="#8B5CF6" />
+                        )}
+                      </View>
+                      <View style={styles.nextItemTimeInfo}>
+                        <Text style={styles.nextItemTimeText}>{nextItem.time}</Text>
+                      </View>
                     </View>
+                    <View style={styles.nextItemStatusBadge}>
+                      <Text style={styles.nextItemStatusText}>Next Up</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.nextItemContent}>
+                    <Text style={styles.nextItemTitle}>
+                      {nextItem.itemType === 'appointment' ? nextItem.customer : nextItem.title}
+                    </Text>
+                    <Text style={styles.nextItemSubtitle}>
+                      {nextItem.itemType === 'appointment' ? nextItem.type : nextItem.type}
+                    </Text>
                     
-                    <View style={styles.nextItemDetails}>
-                      <Text style={styles.nextItemTitle}>
-                        {nextItem.itemType === 'appointment' ? nextItem.customer : nextItem.title}
-                      </Text>
-                      <Text style={styles.nextItemSubtitle}>
-                        {nextItem.itemType === 'appointment' ? nextItem.type : nextItem.type}
-                  </Text>
-                </View>
-                    
-                    <View style={styles.nextItemActions}>
-                      {nextItem.itemType === 'appointment' ? (
+                    {nextItem.itemType === 'appointment' && (
+                      <View style={styles.nextItemDetails}>
                         <TouchableOpacity 
-                          style={styles.nextItemActionButton}
-                          onPress={() => handleAppointmentPress(nextItem)}
+                          style={styles.nextItemDetailRow}
+                          onPress={() => handleGPSNavigation(nextItem.address)}
                         >
-                          <Text style={styles.nextItemActionText}>View Details</Text>
-                          <ChevronRight size={16} color="#6366F1" />
+                          <View style={styles.nextItemDetailIconContainer}>
+                            <MapPin size={16} color="#EF4444" />
+                          </View>
+                          <Text style={styles.nextItemDetailText} numberOfLines={1}>{nextItem.address}</Text>
                         </TouchableOpacity>
-                      ) : (
-                        <View style={styles.nextItemTaskBadge}>
-                          <Text style={styles.nextItemTaskText}>Task</Text>
-              </View>
-                      )}
-            </View>
+                        <TouchableOpacity 
+                          style={styles.nextItemDetailRow}
+                          onPress={() => handlePhoneCall(nextItem.phone)}
+                        >
+                          <View style={styles.nextItemDetailIconContainer}>
+                            <Phone size={16} color="#10B981" />
+                          </View>
+                          <Text style={styles.nextItemDetailText}>{nextItem.phone}</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                    
+                    <TouchableOpacity 
+                      style={styles.nextItemViewDetailsButton}
+                      onPress={() => nextItem.itemType === 'appointment' ? handleAppointmentPress(nextItem) : null}
+                    >
+                      <Text style={styles.nextItemViewDetailsButtonText}>View Details</Text>
+                      <ChevronRight size={16} color="#FFFFFF" />
+                    </TouchableOpacity>
                   </View>
                 </View>
               )}
@@ -463,20 +508,19 @@ export default function Dashboard() {
                         {item.itemType === 'appointment' ? (
                           <View style={styles.appointmentCard}>
                             <View style={styles.appointmentHeader}>
-                              <View style={styles.timeSection}>
+                              <View style={styles.appointmentTimeSection}>
                                 <View style={styles.appointmentIconContainer}>
                                   <Clock size={20} color="#6366F1" />
                                 </View>
-                                <View style={styles.timeInfo}>
-                                  <Text style={styles.appointmentTime}>{item.startTime} - {item.endTime}</Text>
-                                  <Text style={styles.appointmentDuration}>({item.duration})</Text>
+                                <View style={styles.appointmentTimeInfo}>
+                                  <Text style={styles.appointmentTimeText}>{item.itemType === 'appointment' ? (item as any).startTime : item.time}</Text>
                                 </View>
                               </View>
                               <TouchableOpacity 
-                                style={[styles.statusBadge, { backgroundColor: item.statusColor }]}
+                                style={[styles.appointmentStatusBadge, { backgroundColor: item.statusColor }]}
                                 onPress={() => toggleStatusDropdown(item.id)}
                               >
-                                <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
+                                <Text style={styles.appointmentStatusText}>{getStatusText(item.status)}</Text>
                                 <ChevronDown size={12} color="#FFFFFF" />
                               </TouchableOpacity>
                               
@@ -494,47 +538,51 @@ export default function Dashboard() {
                                   ))}
                                 </View>
                               )}
-        </View>
+                            </View>
 
                             <View style={styles.appointmentContent}>
-                              <Text style={styles.customerName}>{item.customer}</Text>
-                              <Text style={styles.appointmentType}>{item.type}</Text>
+                              <Text style={styles.customerName}>{item.itemType === 'appointment' ? (item as any).customer : (item as any).title}</Text>
+                              <Text style={styles.appointmentType}>{item.itemType === 'appointment' ? item.type : item.type}</Text>
                               
                               <View style={styles.appointmentDetails}>
-                                <TouchableOpacity 
-                                  style={styles.detailRow}
-                                  onPress={() => handleGPSNavigation(item.address)}
-                                >
-                                  <MapPin size={16} color="#EF4444" />
-                                  <Text style={[styles.detailText, styles.clickableText]} numberOfLines={1}>{item.address}</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity 
-                                  style={styles.detailRow}
-                                  onPress={() => handlePhoneCall(item.phone)}
-                                >
-                                  <Phone size={16} color="#10B981" />
-                                  <Text style={[styles.detailText, styles.clickableText]}>{item.phone}</Text>
-                                </TouchableOpacity>
-                </View>
-              </View>
-                            
-                            <TouchableOpacity 
-                              style={styles.viewDetailsButton}
-                              onPress={() => handleAppointmentPress(item)}
-                            >
-                              <Text style={styles.viewDetailsButtonText}>View Details</Text>
-                              <ChevronRight size={16} color="#6366F1" />
-                            </TouchableOpacity>
+                                {item.itemType === 'appointment' && (
+                                  <>
+                                    <TouchableOpacity 
+                                      style={styles.detailRow}
+                                      onPress={() => handleGPSNavigation((item as any).address)}
+                                    >
+                                      <MapPin size={16} color="#EF4444" />
+                                      <Text style={[styles.detailText, styles.clickableText]} numberOfLines={1}>{(item as any).address}</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity 
+                                      style={styles.detailRow}
+                                      onPress={() => handlePhoneCall((item as any).phone)}
+                                    >
+                                      <Phone size={16} color="#10B981" />
+                                      <Text style={[styles.detailText, styles.clickableText]}>{(item as any).phone}</Text>
+                                    </TouchableOpacity>
+                                  </>
+                                )}
+                              </View>
+                              
+                              <TouchableOpacity 
+                                style={styles.viewDetailsButton}
+                                onPress={() => handleAppointmentPress(item)}
+                              >
+                                <Text style={styles.viewDetailsButtonText}>View Details</Text>
+                                <ChevronRight size={16} color="#6366F1" />
+                              </TouchableOpacity>
+                            </View>
                           </View>
                         ) : (
                           <View style={styles.taskCard}>
                             <View style={styles.taskHeader}>
-                              <View style={styles.taskIconSection}>
+                              <View style={styles.taskTimeSection}>
                                 <View style={styles.taskIconContainer}>
                                   <CheckSquare size={20} color="#8B5CF6" />
                                 </View>
-                                <View style={styles.taskHeaderInfo}>
-                                  <Text style={styles.taskTime}>{item.time}</Text>
+                                <View style={styles.taskTimeInfo}>
+                                  <Text style={styles.taskTimeText}>{item.time}</Text>
                                 </View>
                               </View>
                               <TouchableOpacity 
@@ -562,8 +610,8 @@ export default function Dashboard() {
         </View>
 
                             <View style={styles.taskContent}>
-                              <Text style={styles.taskTitle}>{item.title}</Text>
-                              <Text style={styles.taskDescription}>{item.description}</Text>
+                              <Text style={styles.taskTitle}>{item.itemType === 'task' ? (item as any).title : (item as any).customer}</Text>
+                              <Text style={styles.taskDescription}>{item.itemType === 'task' ? (item as any).description : item.type}</Text>
                               
                               
                               <TouchableOpacity style={styles.taskActionButton}>
@@ -578,103 +626,192 @@ export default function Dashboard() {
                 </View>
               )}
             </>
+          ) : activeMenu === 'stats' ? (
+            <View style={styles.statsContent}>
+              {/* Daily Stats Grid */}
+              <View style={styles.statsGrid}>
+                <View style={styles.statCard}>
+                  <View style={[styles.statIconContainer, { backgroundColor: '#ECFDF5' }]}>
+                    <DollarSign size={24} color="#059669" />
+                  </View>
+                  <View style={styles.statInfo}>
+                    <Text style={styles.statValue}>$12,500</Text>
+                    <Text style={styles.statLabel}>Sales Today</Text>
+                    <View style={styles.statTrend}>
+                      <TrendingUp size={14} color="#059669" />
+                      <Text style={styles.statTrendText}>+$2,300 from yesterday</Text>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.statCard}>
+                  <View style={[styles.statIconContainer, { backgroundColor: '#EEF2FF' }]}>
+                    <Target size={24} color="#6366F1" />
+                  </View>
+                  <View style={styles.statInfo}>
+                    <Text style={styles.statValue}>8</Text>
+                    <Text style={styles.statLabel}>New Leads Today</Text>
+                    <View style={styles.statTrend}>
+                      <TrendingUp size={14} color="#6366F1" />
+                      <Text style={styles.statTrendText}>+3 from yesterday</Text>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.statCard}>
+                  <View style={[styles.statIconContainer, { backgroundColor: '#F3E8FF' }]}>
+                    <FileText size={24} color="#8B5CF6" />
+                  </View>
+                  <View style={styles.statInfo}>
+                    <Text style={styles.statValue}>5</Text>
+                    <Text style={styles.statLabel}>Estimates Sent</Text>
+                    <View style={styles.statTrend}>
+                      <TrendingUp size={14} color="#8B5CF6" />
+                      <Text style={styles.statTrendText}>+2 from yesterday</Text>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.statCard}>
+                  <View style={[styles.statIconContainer, { backgroundColor: '#FEF3C7' }]}>
+                    <Calendar size={24} color="#F59E0B" />
+                  </View>
+                  <View style={styles.statInfo}>
+                    <Text style={styles.statValue}>12</Text>
+                    <Text style={styles.statLabel}>Appointments Set</Text>
+                    <View style={styles.statTrend}>
+                      <TrendingUp size={14} color="#F59E0B" />
+                      <Text style={styles.statTrendText}>+4 from yesterday</Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+
+              {/* Performance Metrics */}
+              <View style={styles.performanceCard}>
+                <Text style={styles.performanceTitle}>Performance Breakdown</Text>
+                
+                <View style={styles.metricRow}>
+                  <Text style={styles.metricLabel}>Conversion Rate</Text>
+                  <View style={styles.metricValueContainer}>
+                    <View style={[styles.metricBar, { width: '42%', backgroundColor: '#10B981' }]} />
+                    <Text style={styles.metricValue}>42%</Text>
+                  </View>
+                </View>
+
+                <View style={styles.metricRow}>
+                  <Text style={styles.metricLabel}>Response Time</Text>
+                  <View style={styles.metricValueContainer}>
+                    <View style={[styles.metricBar, { width: '80%', backgroundColor: '#3B82F6' }]} />
+                    <Text style={styles.metricValue}>2.3 hrs</Text>
+                  </View>
+                </View>
+
+                <View style={styles.metricRow}>
+                  <Text style={styles.metricLabel}>Customer Satisfaction</Text>
+                  <View style={styles.metricValueContainer}>
+                    <View style={[styles.metricBar, { width: '95%', backgroundColor: '#F59E0B' }]} />
+                    <Text style={styles.metricValue}>95%</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Pipeline Overview */}
+              <View style={styles.pipelineCard}>
+                <Text style={styles.pipelineTitle}>Pipeline Status</Text>
+                <View style={styles.pipelineStats}>
+                  <View style={styles.pipelineStat}>
+                    <Text style={styles.pipelineValue}>23</Text>
+                    <Text style={styles.pipelineLabel}>Active Deals</Text>
+                  </View>
+                  <View style={styles.pipelineStat}>
+                    <Text style={styles.pipelineValue}>$125k</Text>
+                    <Text style={styles.pipelineLabel}>Total Value</Text>
+                  </View>
+                  <View style={styles.pipelineStat}>
+                    <Text style={styles.pipelineValue}>$5.4k</Text>
+                    <Text style={styles.pipelineLabel}>Avg Deal</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
           ) : (
             <View style={styles.updatesContent}>
-              {/* Today's Overview */}
-              <View style={styles.overviewCard}>
-                <Text style={styles.overviewTitle}>Today's Performance</Text>
-                <View style={styles.overviewGrid}>
-                  <View style={styles.overviewItem}>
-                    <Text style={styles.overviewValue}>5</Text>
-                    <Text style={styles.overviewLabel}>New Leads</Text>
-                    <Text style={styles.overviewChange}>+2 from yesterday</Text>
-                  </View>
-                  <View style={styles.overviewItem}>
-                    <Text style={styles.overviewValue}>$5,000</Text>
-                    <Text style={styles.overviewLabel}>Revenue</Text>
-                    <Text style={styles.overviewChange}>+$1,200 from yesterday</Text>
-                  </View>
-                  <View style={styles.overviewItem}>
-                    <Text style={styles.overviewValue}>2</Text>
-                    <Text style={styles.overviewLabel}>Jobs Sold</Text>
-                    <Text style={styles.overviewChange}>Bathroom & Kitchen</Text>
-                  </View>
-                  <View style={styles.overviewItem}>
-                    <Text style={styles.overviewValue}>40%</Text>
-                    <Text style={styles.overviewLabel}>Conversion</Text>
-                    <Text style={styles.overviewChange}>+5% this week</Text>
-                  </View>
+              <Text style={styles.updatesHeader}>Recent Activity</Text>
+              
+              {/* Update Cards */}
+              <View style={styles.updateCard}>
+                <View style={styles.updateIconContainer}>
+                  <Handshake size={20} color="#10B981" />
+                </View>
+                <View style={styles.updateContent}>
+                  <Text style={styles.updateTitle}>Joe Smith signed proposal #4232</Text>
+                  <Text style={styles.updateValue}>$5,000</Text>
+                  <Text style={styles.updateTime}>5 minutes ago</Text>
+                </View>
+                <View style={styles.updateActions}>
+                  <TouchableOpacity style={styles.updateActionButton}>
+                    <Calendar size={14} color="#6366F1" />
+                    <Text style={styles.updateActionText}>Schedule</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.updateActionButton, styles.updateViewButton]}>
+                    <Text style={styles.updateViewText}>View Deal</Text>
+                    <ChevronRight size={14} color="#6366F1" />
+                  </TouchableOpacity>
                 </View>
               </View>
 
-              {/* Top Lead Source */}
-              <View style={styles.leadSourceCard}>
-                <View style={styles.leadSourceHeader}>
-                  <Text style={styles.leadSourceTitle}>Top Lead Source</Text>
-                  <View style={styles.leadSourceBadge}>
-                    <Text style={styles.leadSourceBadgeText}>Google Ads</Text>
-                  </View>
+              <View style={styles.updateCard}>
+                <View style={[styles.updateIconContainer, { backgroundColor: '#EEF2FF' }]}>
+                  <Target size={20} color="#6366F1" />
                 </View>
-                <View style={styles.leadSourceStats}>
-                  <View style={styles.leadSourceStat}>
-                    <Text style={styles.leadSourceStatValue}>3</Text>
-                    <Text style={styles.leadSourceStatLabel}>leads</Text>
-                  </View>
-                  <View style={styles.leadSourceStat}>
-                    <Text style={styles.leadSourceStatValue}>$2,400</Text>
-                    <Text style={styles.leadSourceStatLabel}>value</Text>
-                  </View>
-                  <View style={styles.leadSourceStat}>
-                    <Text style={styles.leadSourceStatValue}>$800</Text>
-                    <Text style={styles.leadSourceStatLabel}>avg</Text>
-                  </View>
+                <View style={styles.updateContent}>
+                  <Text style={styles.updateTitle}>New lead! Sam Smith from Facebook</Text>
+                  <Text style={styles.updateMeta}>Kitchen Renovation • $35k budget</Text>
+                  <Text style={styles.updateTime}>12 minutes ago</Text>
+                </View>
+                <View style={styles.updateActions}>
+                  <TouchableOpacity style={[styles.updateActionButton, styles.callNowButton]}>
+                    <Phone size={14} color="#FFFFFF" />
+                    <Text style={styles.callNowText}>Call Now</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.updateActionButton, styles.updateViewButton]}>
+                    <Text style={styles.updateViewText}>View Deal</Text>
+                    <ChevronRight size={14} color="#6366F1" />
+                  </TouchableOpacity>
                 </View>
               </View>
 
-              {/* Key Insights */}
-              <View style={styles.insightsCard}>
-                <Text style={styles.insightsTitle}>Key Insights</Text>
-                <View style={styles.insightsList}>
-                  <View style={styles.insightItem}>
-                    <View style={styles.insightIcon}>
-                      <TrendingUp size={16} color="#10B981" />
-                    </View>
-                    <Text style={styles.insightText}>Lead quality up 15% this week</Text>
-                  </View>
-                  <View style={styles.insightItem}>
-                    <View style={styles.insightIcon}>
-                      <Clock size={16} color="#F59E0B" />
-                    </View>
-                    <Text style={styles.insightText}>Avg response time: 2.3 hours</Text>
-                  </View>
-                  <View style={styles.insightItem}>
-                    <View style={styles.insightIcon}>
-                      <Target size={16} color="#3B82F6" />
-                    </View>
-                    <Text style={styles.insightText}>Pipeline value: $45,000</Text>
-                  </View>
+              <View style={styles.updateCard}>
+                <View style={[styles.updateIconContainer, { backgroundColor: '#F3E8FF' }]}>
+                  <FileText size={20} color="#8B5CF6" />
+                </View>
+                <View style={styles.updateContent}>
+                  <Text style={styles.updateTitle}>Estimate viewed by Michael Johnson</Text>
+                  <Text style={styles.updateMeta}>Basement Finishing • Viewed 3 times</Text>
+                  <Text style={styles.updateTime}>1 hour ago</Text>
+                </View>
+                <View style={styles.updateActions}>
+                  <TouchableOpacity style={[styles.updateActionButton, styles.updateViewButton]}>
+                    <Text style={styles.updateViewText}>View Deal</Text>
+                    <ChevronRight size={14} color="#6366F1" />
+                  </TouchableOpacity>
                 </View>
               </View>
 
-              {/* Quick Actions */}
-              <View style={styles.actionsCard}>
-                <Text style={styles.actionsTitle}>Quick Actions</Text>
-                <View style={styles.actionsGrid}>
-                  <TouchableOpacity style={styles.actionButton}>
-                    <Phone size={18} color="#10B981" />
-                    <Text style={styles.actionText}>Call Leads</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.actionButton}>
-                    <Mail size={18} color="#3B82F6" />
-                    <Text style={styles.actionText}>Send Emails</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.actionButton}>
-                    <FileText size={18} color="#8B5CF6" />
-                    <Text style={styles.actionText}>Create Proposals</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.actionButton}>
-                    <Calendar size={18} color="#F59E0B" />
-                    <Text style={styles.actionText}>Schedule</Text>
+              <View style={styles.updateCard}>
+                <View style={[styles.updateIconContainer, { backgroundColor: '#FEF3C7' }]}>
+                  <Mail size={20} color="#F59E0B" />
+                </View>
+                <View style={styles.updateContent}>
+                  <Text style={styles.updateTitle}>Email reply from Lisa Anderson</Text>
+                  <Text style={styles.updateMeta}>"Ready to move forward!"</Text>
+                  <Text style={styles.updateTime}>2 hours ago</Text>
+                </View>
+                <View style={styles.updateActions}>
+                  <TouchableOpacity style={[styles.updateActionButton, styles.updateViewButton]}>
+                    <Text style={styles.updateViewText}>View Thread</Text>
+                    <ChevronRight size={14} color="#6366F1" />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -854,7 +991,7 @@ export default function Dashboard() {
                       <View style={styles.attachmentsSection}>
                         <Text style={styles.attachmentsTitle}>Attached Photos</Text>
                         <View style={styles.photosGrid}>
-                          {selectedMeeting.photos.map((photo) => (
+                          {selectedMeeting.photos.map((photo: any) => (
                             <View key={photo.id} style={styles.photoPlaceholder}>
                               <Text style={styles.photoText}>📷</Text>
                               <Text style={styles.photoCaption}>{photo.caption}</Text>
@@ -889,17 +1026,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 6,
-    paddingBottom: 8,
+    paddingTop: 8,
+    paddingBottom: 12,
   },
   pullOutMenu: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -910,7 +1047,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    marginRight: 8,
+    marginRight: 6,
   },
   pullOutDot: {
     width: 4,
@@ -922,10 +1059,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: {
+  greetingRow: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    alignItems: 'flex-start',
+  },
+  greetingText: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
   headerActions: {
     flexDirection: 'row',
@@ -933,36 +1076,8 @@ const styles = StyleSheet.create({
   },
   headerButton: {
     padding: 8,
-  },
-  balanceSection: {
-    paddingHorizontal: 20,
-    alignItems: 'flex-end',
-    paddingBottom: 4,
-  },
-  balanceLabel: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 4,
-  },
-  balanceAmount: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  balanceCount: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  balanceChange: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  changeText: {
-    fontSize: 12,
-    color: '#FFFFFF',
-    fontWeight: '500',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 10,
   },
   // Header Menu Toggle
   headerMenuToggle: {
@@ -972,29 +1087,29 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   headerMenuButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.08,
     shadowRadius: 4,
     elevation: 2,
   },
   headerActiveMenuButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
-    borderColor: 'rgba(255, 255, 255, 0.6)',
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderColor: 'rgba(255, 255, 255, 0.4)',
     shadowColor: '#FFFFFF',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: 6,
+    elevation: 3,
   },
   headerMenuButtonText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
     color: 'rgba(255, 255, 255, 0.9)',
     textTransform: 'uppercase',
@@ -1006,8 +1121,8 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
-    marginTop: -12,
+    paddingHorizontal: 24,
+    marginTop: -8,
   },
   // Sticky Header
   stickyHeader: {
@@ -1019,7 +1134,8 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   agendaSection: {
-    marginBottom: 100,
+    marginBottom: 120,
+    paddingTop: 8,
   },
   // Menu Toggle
   menuToggle: {
@@ -1087,167 +1203,225 @@ const styles = StyleSheet.create({
   // Next Item Highlight
   nextItemHighlight: {
     backgroundColor: '#6366F1',
-    borderRadius: 16,
-    marginBottom: 16,
-    marginTop: 20,
-    padding: 16,
+    borderRadius: 20,
+    marginBottom: 20,
+    marginTop: 24,
+    padding: 0,
     shadowColor: '#6366F1',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    elevation: 12,
+    overflow: 'hidden',
   },
   nextItemHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 8,
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
   },
-  nextItemIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  nextItemLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  nextItemContent: {
+  nextItemTimeSection: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
   },
-  nextItemTimeSection: {
+  nextItemIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
     alignItems: 'center',
-    minWidth: 80,
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  nextItemTime: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    textAlign: 'center',
+  nextItemTimeInfo: {
+    gap: 4,
   },
-  nextItemDuration: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontWeight: '500',
-    marginTop: 2,
-  },
-  nextItemDetails: {
-    flex: 1,
-  },
-  nextItemTitle: {
+  nextItemTimeText: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 4,
+    fontWeight: '800',
+    color: '#6366F1',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  nextItemSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontWeight: '500',
-  },
-  nextItemActions: {
-    alignItems: 'flex-end',
-  },
-  nextItemActionButton: {
+  nextItemStatusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     gap: 6,
   },
-  nextItemActionText: {
-    fontSize: 12,
-    fontWeight: '600',
+  nextItemStatusText: {
+    fontSize: 13,
+    fontWeight: '700',
     color: '#FFFFFF',
   },
-  nextItemTaskBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  nextItemContent: {
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+  },
+  nextItemTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 6,
+  },
+  nextItemSubtitle: {
+    fontSize: 15,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '700',
+    marginBottom: 16,
+  },
+  nextItemDetails: {
+    gap: 12,
+    marginBottom: 20,
+  },
+  nextItemDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 8,
     borderRadius: 12,
   },
-  nextItemTaskText: {
-    fontSize: 12,
-    fontWeight: '600',
+  nextItemDetailText: {
+    fontSize: 15,
+    color: '#FFFFFF',
+    flex: 1,
+    fontWeight: '500',
+  },
+  nextItemDetailIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  nextItemViewDetailsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  nextItemViewDetailsButtonText: {
+    fontSize: 17,
+    fontWeight: '700',
     color: '#FFFFFF',
   },
   // Simple Schedule List
   scheduleList: {
-    gap: 16,
+    gap: 20,
   },
   scheduleItem: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   appointmentsList: {
     gap: 16,
   },
   appointmentCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 20,
+    padding: 0,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: '#F1F5F9',
+    overflow: 'hidden',
   },
   appointmentHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
+    alignItems: 'flex-start',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
   },
-  timeSection: {
+  appointmentTimeSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 16,
+  },
+  appointmentTimeInfo: {
+    gap: 4,
   },
   appointmentIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#EEF2FF',
     borderWidth: 2,
     borderColor: '#E0E7FF',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  timeInfo: {
-    gap: 2,
+  appointmentTimeText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#6366F1',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#E0E7FF',
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  appointmentTime: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  appointmentDuration: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
-  statusBadge: {
+  appointmentStatusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 24,
+    gap: 6,
   },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
+  appointmentStatusText: {
+    fontSize: 13,
+    fontWeight: '700',
     color: '#FFFFFF',
   },
   // Status Dropdown Styles
@@ -1288,84 +1462,108 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
   appointmentContent: {
-    marginBottom: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
   },
   customerName: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 22,
+    fontWeight: '800',
     color: '#111827',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   appointmentType: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#6366F1',
-    fontWeight: '600',
-    marginBottom: 12,
+    fontWeight: '700',
+    marginBottom: 16,
   },
   appointmentDetails: {
-    gap: 8,
+    gap: 12,
+    marginBottom: 20,
   },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
   },
   detailText: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#6B7280',
     flex: 1,
+    fontWeight: '500',
   },
   viewDetailsButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F3F4F6',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    gap: 8,
+    backgroundColor: '#F8FAFC',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   viewDetailsButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
     color: '#6366F1',
   },
   // World-Class Task Card Design
   taskCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 20,
     padding: 0,
     shadowColor: '#8B5CF6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 5,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#F1F5F9',
     overflow: 'hidden',
     position: 'relative',
   },
   taskHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
-    backgroundColor: '#F8FAFC',
+    alignItems: 'flex-start',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: '#E2E8F0',
   },
-  taskIconSection: {
+  taskTimeSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 16,
+  },
+  taskTimeInfo: {
+    gap: 4,
+  },
+  taskTimeText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#8B5CF6',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#E9D5FF',
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   taskIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#F3E8FF',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
     borderWidth: 2,
     borderColor: '#E9D5FF',
     alignItems: 'center',
@@ -1375,25 +1573,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
-  },
-  taskHeaderInfo: {
-    gap: 4,
-  },
-  taskTime: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#8B5CF6',
-    backgroundColor: '#F3E8FF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E9D5FF',
-    shadowColor: '#8B5CF6',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 1,
   },
   taskType: {
     fontSize: 10,
@@ -1426,14 +1605,14 @@ const styles = StyleSheet.create({
   taskStatusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 24,
+    gap: 6,
   },
   taskStatusText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
     color: '#FFFFFF',
   },
   taskStatusDropdown: {
@@ -1468,23 +1647,23 @@ const styles = StyleSheet.create({
     color: '#374151',
   },
   taskContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    paddingBottom: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    paddingBottom: 24,
   },
   taskTitle: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '800',
     color: '#1F2937',
-    marginBottom: 8,
-    lineHeight: 22,
+    marginBottom: 10,
+    lineHeight: 24,
   },
   taskDescription: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#6B7280',
-    lineHeight: 20,
-    fontWeight: '500',
-    marginBottom: 12,
+    lineHeight: 22,
+    fontWeight: '600',
+    marginBottom: 16,
   },
   taskDetails: {
     backgroundColor: '#F8FAFC',
@@ -1519,19 +1698,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3E8FF',
     borderWidth: 1,
     borderColor: '#E9D5FF',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    gap: 6,
+    borderRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    gap: 8,
     shadowColor: '#8B5CF6',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
   },
   taskActionText: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '800',
     color: '#8B5CF6',
   },
   // Updates Section
@@ -2017,5 +2196,223 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 40,
+  },
+  // Stats Content Styles
+  statsContent: {
+    padding: 24,
+    gap: 20,
+  },
+  statsGrid: {
+    gap: 20,
+  },
+  statCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  statIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statInfo: {
+    flex: 1,
+  },
+  statValue: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: 6,
+  },
+  statLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 10,
+  },
+  statTrend: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  statTrendText: {
+    fontSize: 13,
+    color: '#059669',
+    fontWeight: '600',
+  },
+  performanceCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  performanceTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 24,
+  },
+  metricRow: {
+    marginBottom: 20,
+  },
+  metricLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 10,
+  },
+  metricValueContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  metricBar: {
+    height: 10,
+    borderRadius: 5,
+  },
+  metricValue: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  pipelineCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  pipelineTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 20,
+  },
+  pipelineStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  pipelineStat: {
+    alignItems: 'center',
+  },
+  pipelineValue: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#6366F1',
+    marginBottom: 6,
+  },
+  pipelineLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  // Updates Content Styles
+  updatesHeader: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 20,
+    paddingHorizontal: 24,
+  },
+  updateCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
+    marginHorizontal: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  updateIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#ECFDF5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  updateContent: {
+    marginBottom: 16,
+  },
+  updateTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 6,
+  },
+  updateValue: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#10B981',
+    marginBottom: 6,
+  },
+  updateMeta: {
+    fontSize: 15,
+    color: '#6B7280',
+    marginBottom: 6,
+    fontWeight: '500',
+  },
+  updateTime: {
+    fontSize: 13,
+    color: '#9CA3AF',
+    fontWeight: '500',
+  },
+  updateActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  updateActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  updateActionText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#6366F1',
+  },
+  callNowButton: {
+    backgroundColor: '#10B981',
+  },
+  callNowText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  updateViewButton: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  updateViewText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#6366F1',
   },
 });
