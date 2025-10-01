@@ -33,6 +33,120 @@ export default function Dashboard() {
   const [selectedStatTitle, setSelectedStatTitle] = useState<string>('');
   const [showFAB, setShowFAB] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [appointments, setAppointments] = useState([
+    { 
+      id: 1, 
+      time: '02:30 PM', 
+      startTime: '02:30 PM',
+      endTime: '03:30 PM',
+      duration: '1h',
+      customer: 'Robert Johnson', 
+      type: 'Consultation',
+      address: '4214 SE 11 PL, Ocala FL 34471',
+      phone: '(352) 895-5224',
+      status: 'confirmed',
+      statusColor: '#10B981',
+      assignee: 'Chris Palmer',
+      notes: 'Kitchen renovation consultation. Customer wants modern design with $50k budget.',
+      details: 'Initial consultation for kitchen renovation project. Customer wants to discuss design options and budget.',
+      appointmentNotes: 'Customer mentioned they have a budget of $50,000 and prefer modern design. They have two young children so need durable materials.',
+      adminNotes: 'Customer seems very interested and ready to move forward. Follow up with design portfolio.',
+      dealId: 'deal-001',
+      photos: [
+        { id: 1, url: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400', caption: 'Kitchen before renovation' },
+        { id: 2, url: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400', caption: 'Current layout' }
+      ]
+    },
+    { 
+      id: 2, 
+      time: '09:00 AM', 
+      startTime: '09:00 AM',
+      endTime: '10:30 AM',
+      duration: '1.5h',
+      customer: 'Sherry Williams', 
+      type: 'Estimate',
+      address: '123 Main St, Orlando FL 32801',
+      phone: '(555) 123-4567',
+      status: 'scheduled',
+      statusColor: '#3B82F6',
+      assignee: 'Mike Wilson',
+      notes: 'Bathroom remodel estimate. Customer wants walk-in shower and double vanity.',
+      details: 'On-site estimate for bathroom remodel. Customer wants to modernize master bathroom.',
+      appointmentNotes: 'Customer wants a walk-in shower and double vanity. Budget is flexible but wants high-quality fixtures.',
+      adminNotes: 'Customer is very responsive and has been planning this remodel for months. Good lead.',
+      dealId: 'deal-002',
+      photos: [
+        { id: 3, url: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400', caption: 'Bathroom current state' }
+      ]
+    },
+    { 
+      id: 3, 
+      time: '02:30 PM', 
+      startTime: '02:30 PM',
+      endTime: '04:30 PM',
+      duration: '2h',
+      customer: 'Billy Thompson', 
+      type: 'Site Visit',
+      address: '456 Oak Ave, Tampa FL 33602',
+      phone: '(407) 987-6543',
+      status: 'in-progress',
+      statusColor: '#F59E0B',
+      assignee: 'Sarah Johnson',
+      notes: 'Commercial office renovation site visit. Need to assess condition and take measurements.',
+      details: 'Site visit for commercial office renovation. Need to assess current condition and take measurements.',
+      appointmentNotes: 'Commercial project with tight timeline. Need to coordinate with building management.',
+      adminNotes: 'High-value project. Customer is very professional and organized.',
+      dealId: 'deal-003',
+      photos: [
+        { id: 4, url: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400', caption: 'Office exterior' },
+        { id: 5, url: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400', caption: 'Current layout' }
+      ]
+    }
+  ]);
+  const [tasks, setTasks] = useState([
+    {
+      id: 1,
+      time: '07:30 AM',
+      title: 'Check equipment and materials',
+      description: 'Verify all tools and materials are ready for the day',
+      priority: 'high',
+      status: 'pending',
+      statusColor: '#6B7280',
+      type: 'Follow Up',
+      assignedBy: 'Tanner Mullen',
+      dueDate: 'Today',
+      actionType: 'call',
+      actionLabel: 'Call'
+    },
+    {
+      id: 2,
+      time: '11:30 AM',
+      title: 'Follow up with Johnson project',
+      description: 'Call Robert Johnson to confirm tomorrow\'s appointment details',
+      priority: 'medium',
+      status: 'pending',
+      statusColor: '#6B7280',
+      type: 'Update',
+      assignedBy: 'Chris Palmer',
+      dueDate: 'Today',
+      actionType: 'call',
+      actionLabel: 'Call'
+    },
+    {
+      id: 3,
+      time: '12:00 PM',
+      title: 'Lunch break',
+      description: 'Take lunch break between appointments',
+      priority: 'low',
+      status: 'pending',
+      statusColor: '#6B7280',
+      type: 'Personal',
+      assignedBy: 'Self',
+      dueDate: 'Today',
+      actionType: 'reminder',
+      actionLabel: 'Set Reminder'
+    }
+  ]);
   const [statusOptions] = useState([
     { value: 'scheduled', label: 'Scheduled', color: '#3B82F6' },
     { value: 'confirmed', label: 'Confirmed', color: '#10B981' },
@@ -165,136 +279,9 @@ export default function Dashboard() {
   };
 
   // Today's appointments data
-  const todaysAppointments = [
-    { 
-      id: 1, 
-      time: '08:00 AM', 
-      startTime: '08:00 AM',
-      endTime: '09:00 AM',
-      duration: '1h',
-      customer: 'Robert Johnson', 
-      type: 'Consultation',
-      address: '4214 SE 11 PL, Ocala FL 34471',
-      phone: '(352) 895-5224',
-      status: 'confirmed',
-      statusColor: '#10B981',
-      assignee: 'Chris Palmer',
-      notes: 'Kitchen renovation consultation. Customer wants modern design with $50k budget.',
-      details: 'Initial consultation for kitchen renovation project. Customer wants to discuss design options and budget.',
-      appointmentNotes: 'Customer mentioned they have a budget of $50,000 and prefer modern design. They have two young children so need durable materials.',
-      adminNotes: 'Customer seems very interested and ready to move forward. Follow up with design portfolio.',
-      dealId: 'deal-001',
-      photos: [
-        { id: 1, url: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400', caption: 'Kitchen before renovation' },
-        { id: 2, url: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400', caption: 'Current layout' }
-      ]
-    },
-    { 
-      id: 2, 
-      time: '09:00 AM', 
-      startTime: '09:00 AM',
-      endTime: '10:30 AM',
-      duration: '1.5h',
-      customer: 'Sherry Williams', 
-      type: 'Estimate',
-      address: '123 Main St, Orlando FL 32801',
-      phone: '(555) 123-4567',
-      status: 'scheduled',
-      statusColor: '#3B82F6',
-      assignee: 'Mike Wilson',
-      notes: 'Bathroom remodel estimate. Customer wants walk-in shower and double vanity.',
-      details: 'On-site estimate for bathroom remodel. Customer wants to modernize master bathroom.',
-      appointmentNotes: 'Customer wants a walk-in shower and double vanity. Budget is flexible but wants high-quality fixtures.',
-      adminNotes: 'Customer is very responsive and has been planning this remodel for months. Good lead.',
-      dealId: 'deal-002',
-      photos: [
-        { id: 3, url: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400', caption: 'Bathroom current state' }
-      ]
-    },
-    { 
-      id: 3, 
-      time: '02:30 PM', 
-      startTime: '02:30 PM',
-      endTime: '04:30 PM',
-      duration: '2h',
-      customer: 'Billy Thompson', 
-      type: 'Site Visit',
-      address: '456 Oak Ave, Tampa FL 33602',
-      phone: '(407) 987-6543',
-      status: 'in-progress',
-      statusColor: '#F59E0B',
-      assignee: 'Sarah Johnson',
-      notes: 'Commercial office renovation site visit. Need to assess condition and take measurements.',
-      details: 'Site visit for commercial office renovation. Need to assess current condition and take measurements.',
-      appointmentNotes: 'Commercial project with tight timeline. Need to coordinate with building management.',
-      adminNotes: 'High-value project. Customer is very professional and organized.',
-      dealId: 'deal-003',
-      photos: [
-        { id: 4, url: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400', caption: 'Office exterior' },
-        { id: 5, url: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400', caption: 'Current layout' }
-      ]
-    }
-  ];
-
-  // Today's tasks data
-  const todaysTasks = [
-    {
-      id: 1,
-      time: '07:30 AM',
-      title: 'Check equipment and materials',
-      description: 'Verify all tools and materials are ready for the day',
-      priority: 'high',
-      status: 'pending',
-      statusColor: '#6B7280',
-      type: 'Follow Up',
-      assignedBy: 'Tanner Mullen',
-      dueDate: 'Today',
-      actionType: 'call',
-      actionLabel: 'Call'
-    },
-    {
-      id: 2,
-      time: '11:30 AM',
-      title: 'Follow up with Johnson project',
-      description: 'Call Robert Johnson to confirm tomorrow\'s appointment details',
-      priority: 'medium',
-      status: 'pending',
-      statusColor: '#6B7280',
-      type: 'Update',
-      assignedBy: 'Chris Palmer',
-      dueDate: 'Today',
-      actionType: 'call',
-      actionLabel: 'Call'
-    },
-    {
-      id: 3,
-      time: '12:00 PM',
-      title: 'Lunch break',
-      description: 'Take lunch break between appointments',
-      priority: 'low',
-      status: 'pending',
-      statusColor: '#6B7280',
-      type: 'Follow Up',
-      assignedBy: 'System',
-      dueDate: 'Today',
-      actionType: 'none',
-      actionLabel: ''
-    },
-    {
-      id: 4,
-      time: '05:00 PM',
-      title: 'Update project notes',
-      description: 'Document today\'s site visits and update project files',
-      priority: 'high',
-      status: 'pending',
-      statusColor: '#6B7280',
-      type: 'Update',
-      assignedBy: 'Tanner Mullen',
-      dueDate: 'Today',
-      actionType: 'email',
-      actionLabel: 'Email'
-    }
-  ];
+  // Using appointments and tasks state defined above
+  const todaysAppointments = appointments;
+  const todaysTasks = tasks;
 
   // Combine appointments and tasks in chronological order
   const getTodaysSchedule = () => {
@@ -439,13 +426,41 @@ export default function Dashboard() {
   // Status change functionality
   const handleStatusChange = (appointmentId: any, newStatus: string) => {
     // Update the appointment status
-    console.log('Status changed for appointment', appointmentId, 'to', newStatus);
+    const statusColorMap: { [key: string]: string } = {
+      scheduled: '#3B82F6',
+      confirmed: '#10B981',
+      'in-progress': '#F59E0B',
+      completed: '#059669',
+      cancelled: '#EF4444',
+      'no-show': '#6B7280'
+    };
+    
+    setAppointments(prevAppointments => 
+      prevAppointments.map(apt => 
+        apt.id === appointmentId 
+          ? { ...apt, status: newStatus, statusColor: statusColorMap[newStatus] || '#6B7280' }
+          : apt
+      )
+    );
     setShowStatusDropdown(null);
   };
 
   const handleTaskStatusChange = (taskId: any, newStatus: string) => {
     // Update the task status
-    console.log('Task status changed for task', taskId, 'to', newStatus);
+    const statusColorMap: { [key: string]: string } = {
+      pending: '#6B7280',
+      'in-progress': '#F59E0B',
+      completed: '#10B981',
+      cancelled: '#EF4444'
+    };
+    
+    setTasks(prevTasks => 
+      prevTasks.map(task => 
+        task.id === taskId 
+          ? { ...task, status: newStatus, statusColor: statusColorMap[newStatus] || '#6B7280' }
+          : task
+      )
+    );
     setShowTaskStatusDropdown(null);
   };
 
@@ -612,7 +627,10 @@ export default function Dashboard() {
                   {getTodaysSchedule().map((item, index) => (
                     <View key={`${item.itemType}-${item.id}`} style={styles.scheduleItem}>
                         {item.itemType === 'appointment' ? (
-                          <View style={styles.appointmentCard}>
+                          <View style={[
+                            styles.appointmentCard, 
+                            item.status === 'completed' && styles.completedCard
+                          ]}>
                             <View style={styles.appointmentHeader}>
                               <View style={styles.appointmentTimeSection}>
                                 <View style={styles.appointmentIconContainer}>
@@ -647,8 +665,14 @@ export default function Dashboard() {
                             </View>
 
                             <View style={styles.appointmentContent}>
-                              <Text style={styles.customerName}>{item.itemType === 'appointment' ? (item as any).customer : (item as any).title}</Text>
-                              <Text style={styles.appointmentType}>{item.itemType === 'appointment' ? item.type : item.type}</Text>
+                              <Text style={[
+                                styles.customerName,
+                                item.status === 'completed' && styles.completedText
+                              ]}>{item.itemType === 'appointment' ? (item as any).customer : (item as any).title}</Text>
+                              <Text style={[
+                                styles.appointmentType,
+                                item.status === 'completed' && styles.completedText
+                              ]}>{item.itemType === 'appointment' ? item.type : item.type}</Text>
                               
                               <View style={styles.appointmentDetails}>
                                 {item.itemType === 'appointment' && (
@@ -681,7 +705,10 @@ export default function Dashboard() {
                             </View>
                           </View>
                         ) : (
-                          <View style={styles.taskCard}>
+                          <View style={[
+                            styles.taskCard,
+                            item.status === 'completed' && styles.completedCard
+                          ]}>
                             <View style={styles.taskHeader}>
                               <View style={styles.taskTimeSection}>
                                 <View style={styles.taskIconContainer}>
@@ -716,8 +743,14 @@ export default function Dashboard() {
         </View>
 
                             <View style={styles.taskContent}>
-                              <Text style={styles.taskTitle}>{item.itemType === 'task' ? (item as any).title : (item as any).customer}</Text>
-                              <Text style={styles.taskDescription}>{item.itemType === 'task' ? (item as any).description : item.type}</Text>
+                              <Text style={[
+                                styles.taskTitle,
+                                item.status === 'completed' && styles.completedText
+                              ]}>{item.itemType === 'task' ? (item as any).title : (item as any).customer}</Text>
+                              <Text style={[
+                                styles.taskDescription,
+                                item.status === 'completed' && styles.completedText
+                              ]}>{item.itemType === 'task' ? (item as any).description : item.type}</Text>
                               
                               
                               <TouchableOpacity style={styles.taskActionButton}>
@@ -807,14 +840,14 @@ export default function Dashboard() {
                     onPress={() => handleStatCardPress('estimates', 'Estimates Sent')}
                   />
                   <StatCard
-                    title="Appointments"
+                    title="Bookings"
                     value="12"
                     subtitle="Meetings scheduled"
                     icon={Calendar}
                     iconColor="#F59E0B"
                     backgroundColor="#F59E0B"
                     trend={{ value: "+4", isPositive: true }}
-                    onPress={() => handleStatCardPress('appointments', 'Appointments')}
+                    onPress={() => handleStatCardPress('appointments', 'Bookings')}
                   />
                 </View>
               </View>
@@ -1494,6 +1527,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#F1F5F9',
     overflow: 'hidden',
+  },
+  completedCard: {
+    backgroundColor: '#F9FAFB',
+    opacity: 0.7,
+    borderColor: '#E5E7EB',
+  },
+  completedText: {
+    color: '#9CA3AF',
+    textDecorationLine: 'line-through',
   },
   appointmentHeader: {
     flexDirection: 'row',

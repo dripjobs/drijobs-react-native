@@ -34,14 +34,14 @@ const NotificationBadge = ({ count }: { count: number }) => {
 };
 
 export default function TabLayout() {
-  const { isTransparent } = useTabBar();
+  const { isTransparent, isVisible } = useTabBar();
   const { missedCalls } = useNotifications();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: isTransparent ? styles.transparentTabBar : styles.tabBar,
+        tabBarStyle: !isVisible ? { display: 'none' } : (isTransparent ? styles.transparentTabBar : styles.tabBar),
         tabBarActiveTintColor: '#6366F1',
         tabBarInactiveTintColor: '#9CA3AF',
         tabBarLabelStyle: styles.tabBarLabel,
