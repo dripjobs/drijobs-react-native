@@ -1,7 +1,7 @@
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useTabBar } from '@/contexts/TabBarContext';
 import { Tabs } from 'expo-router';
-import { Handshake, Chrome as Home, MessageCircle, Users } from 'lucide-react-native';
+import { Handshake, House, MessageCircle, Users } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 
 // Custom Dialer Icon Component
@@ -53,7 +53,7 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ size, color }) => (
-            <Home size={24} color={color} strokeWidth={2} />
+            <House size={24} color={color} strokeWidth={2} />
           ),
         }}
       />

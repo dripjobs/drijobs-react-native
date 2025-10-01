@@ -1,15 +1,36 @@
-import React, { useState } from 'react';
-import { View, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Plus, Users, TrendingUp, Handshake, SquareCheck as CheckSquare, Calendar } from 'lucide-react-native';
+import { Calendar, SquareCheck as CheckSquare, Handshake, Plus, TrendingUp, Users } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import { Animated, StyleSheet, TouchableOpacity } from 'react-native';
 
 interface FloatingActionMenuProps {
   onNewAppointment?: () => void;
+  isVisible?: boolean;
 }
 
-export default function FloatingActionMenu({ onNewAppointment }: FloatingActionMenuProps) {
+export default function FloatingActionMenu({ onNewAppointment, isVisible = true }: FloatingActionMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [animation] = useState(new Animated.Value(0));
+  const [visibilityAnimation] = useState(new Animated.Value(1));
+
+  useEffect(() => {
+    Animated.timing(visibilityAnimation, {
+      toValue: isVisible ? 1 : 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+    
+    // Close menu when hiding
+    if (!isVisible && isOpen) {
+      setIsOpen(false);
+      Animated.spring(animation, {
+        toValue: 0,
+        friction: 6,
+        tension: 40,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [isVisible]);
 
   const toggleMenu = () => {
     const toValue = isOpen ? 0 : 1;
@@ -57,8 +78,23 @@ export default function FloatingActionMenu({ onNewAppointment }: FloatingActionM
     { icon: CheckSquare, colors: ['#F59E0B', '#D97706'], action: () => console.log('Add Task') },
   ];
 
+  const containerStyle = {
+    opacity: visibilityAnimation,
+    transform: [
+      {
+        scale: visibilityAnimation,
+      },
+      {
+        translateY: visibilityAnimation.interpolate({
+          inputRange: [0, 1],
+          outputRange: [100, 0],
+        }),
+      },
+    ],
+  };
+
   return (
-    <View style={styles.container}>
+    <Animated.View style={[styles.container, containerStyle]}>
       {menuItems.map((item, index) => (
         <Animated.View key={index} style={[styles.menuItem, getButtonStyle(index)]}>
           <TouchableOpacity
@@ -91,7 +127,7 @@ export default function FloatingActionMenu({ onNewAppointment }: FloatingActionM
           </Animated.View>
         </LinearGradient>
       </TouchableOpacity>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -101,6 +137,8 @@ const styles = StyleSheet.create({
     bottom: 100,
     right: 20,
     alignItems: 'center',
+    zIndex: 999,
+    elevation: 999,
   },
   mainButton: {
     width: 56,

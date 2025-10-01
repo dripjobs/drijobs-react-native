@@ -44,6 +44,8 @@ export default function Contacts() {
   });
   const [formErrors, setFormErrors] = useState<{[key: string]: string}>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [showFAB, setShowFAB] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
 
   const contacts = [
     { 
@@ -697,6 +699,16 @@ export default function Contacts() {
         style={styles.content} 
         showsVerticalScrollIndicator={false} 
         contentContainerStyle={styles.contentContainer}
+        onScroll={(event) => {
+          const currentScrollY = event.nativeEvent.contentOffset.y;
+          if (currentScrollY > 50) {
+            setShowFAB(false);
+          } else {
+            setShowFAB(true);
+          }
+          setLastScrollY(currentScrollY);
+        }}
+        scrollEventThrottle={16}
         onScrollBeginDrag={() => setIsTransparent(true)}
         onScrollEndDrag={() => setIsTransparent(false)}
         onMomentumScrollBegin={() => setIsTransparent(true)}
@@ -773,7 +785,7 @@ export default function Contacts() {
         </View>
       </ScrollView>
 
-      <FloatingActionMenu />
+      <FloatingActionMenu isVisible={showFAB} />
 
       {/* Contact Card Modal */}
       <Modal
@@ -2745,6 +2757,8 @@ const styles = StyleSheet.create({
   },
   gradientHeader: {
     paddingBottom: 20,
+    zIndex: 10,
+    elevation: 10,
   },
   header: {
     flexDirection: 'row',
@@ -2817,6 +2831,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     marginTop: -10,
+    zIndex: 1,
   },
   contactsList: {
     paddingBottom: 100,

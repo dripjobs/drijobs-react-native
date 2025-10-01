@@ -1,10 +1,12 @@
 import DrawerMenu from '@/components/DrawerMenu';
 import FloatingActionMenu from '@/components/FloatingActionMenu';
 import NewAppointmentModal from '@/components/NewAppointmentModal';
+import StatCard from '@/components/StatCard';
+import StatDetailModal from '@/components/StatDetailModal';
 import { useTabBar } from '@/contexts/TabBarContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { Bell, Calendar, CheckSquare, ChevronDown, ChevronRight, Clock, Copy, DollarSign, FileText, Handshake, Mail, MapPin, MessageSquare, Navigation, Phone, Search, Target, TrendingUp, X } from 'lucide-react-native';
+import { Bell, Calendar, CheckSquare, ChevronDown, ChevronRight, Clock, Copy, FileText, Handshake, Lightbulb, Mail, MapPin, MessageSquare, Navigation, Phone, Search, Target, TrendingUp, Users, X } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Alert, Animated, Dimensions, Linking, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
@@ -24,6 +26,13 @@ export default function Dashboard() {
   const [showTaskStatusDropdown, setShowTaskStatusDropdown] = useState(null);
   const [nextItem, setNextItem] = useState<any>(null);
   const [currentGreeting, setCurrentGreeting] = useState<string>('');
+  const [aiSummary, setAiSummary] = useState<string>('');
+  const [isLoadingSummary, setIsLoadingSummary] = useState<boolean>(false);
+  const [showStatDetail, setShowStatDetail] = useState<boolean>(false);
+  const [selectedStatType, setSelectedStatType] = useState<'sales' | 'leads' | 'estimates' | 'appointments'>('sales');
+  const [selectedStatTitle, setSelectedStatTitle] = useState<string>('');
+  const [showFAB, setShowFAB] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
   const [statusOptions] = useState([
     { value: 'scheduled', label: 'Scheduled', color: '#3B82F6' },
     { value: 'confirmed', label: 'Confirmed', color: '#10B981' },
@@ -59,6 +68,93 @@ export default function Dashboard() {
   useEffect(() => {
     setCurrentGreeting(getRandomGreeting());
   }, []);
+
+  // AI Summary functionality
+  const generateAISummary = async () => {
+    setIsLoadingSummary(true);
+    // Simulate API call
+    setTimeout(() => {
+      const summaries = [
+        "Today's performance shows strong momentum with $12,500 in sales and 8 new leads. Your conversion rate is trending upward.",
+        "Excellent day with 5 estimates sent and 12 appointments scheduled. Revenue is 23% above yesterday's pace.",
+        "Outstanding results today: $12,500 in sales, 8 new leads, and 5 estimates sent. You're on track for a record week.",
+        "Strong performance today with $12,500 in sales and 8 new leads. Your appointment booking rate is exceptional.",
+        "Today's metrics show great progress: $12,500 in sales, 8 new leads, and 12 appointments set. Keep up the momentum!"
+      ];
+      const randomSummary = summaries[Math.floor(Math.random() * summaries.length)];
+      setAiSummary(randomSummary);
+      setIsLoadingSummary(false);
+    }, 1500);
+  };
+
+  useEffect(() => {
+    if (activeMenu === 'stats' && !aiSummary) {
+      generateAISummary();
+    }
+  }, [activeMenu]);
+
+  // Mock data for stat details
+  const salesData = [
+    { id: '1', customerName: 'John Smith', detail1: '$5,200' },
+    { id: '2', customerName: 'Sarah Johnson', detail1: '$3,800' },
+    { id: '3', customerName: 'Mike Davis', detail1: '$2,100' },
+    { id: '4', customerName: 'Emily Wilson', detail1: '$1,400' },
+  ];
+
+  const leadsData = [
+    { id: '1', customerName: 'David Thompson', detail1: 'Facebook Ads' },
+    { id: '2', customerName: 'Lisa Anderson', detail1: 'Google' },
+    { id: '3', customerName: 'Robert Martinez', detail1: 'Referral' },
+    { id: '4', customerName: 'Jennifer Taylor', detail1: 'Instagram' },
+    { id: '5', customerName: 'William Brown', detail1: 'Website' },
+    { id: '6', customerName: 'Susan Garcia', detail1: 'Facebook Ads' },
+    { id: '7', customerName: 'James Miller', detail1: 'Referral' },
+    { id: '8', customerName: 'Mary Wilson', detail1: 'Google' },
+  ];
+
+  const estimatesData = [
+    { id: '1', customerName: 'Thomas Moore', detail1: '#1234', detail2: 'Sent' },
+    { id: '2', customerName: 'Patricia Taylor', detail1: '#1235', detail2: 'Sent' },
+    { id: '3', customerName: 'Richard Anderson', detail1: '#1236', detail2: 'Sent' },
+    { id: '4', customerName: 'Barbara White', detail1: '#1237', detail2: 'Sent' },
+    { id: '5', customerName: 'Charles Martin', detail1: '#1238', detail2: 'Sent' },
+  ];
+
+  const appointmentsData = [
+    { id: '1', customerName: 'Daniel Lee', detail1: 'Today 2:30 PM', detail2: 'Site Visit' },
+    { id: '2', customerName: 'Nancy Harris', detail1: 'Tomorrow 10:00 AM', detail2: 'Consultation' },
+    { id: '3', customerName: 'Matthew Clark', detail1: 'Tomorrow 2:00 PM', detail2: 'Follow-up' },
+    { id: '4', customerName: 'Betty Lewis', detail1: 'Wed 9:00 AM', detail2: 'Site Visit' },
+    { id: '5', customerName: 'Donald Robinson', detail1: 'Wed 1:30 PM', detail2: 'Consultation' },
+    { id: '6', customerName: 'Helen Walker', detail1: 'Thu 11:00 AM', detail2: 'Site Visit' },
+    { id: '7', customerName: 'George Hall', detail1: 'Thu 3:00 PM', detail2: 'Follow-up' },
+    { id: '8', customerName: 'Karen Allen', detail1: 'Fri 10:30 AM', detail2: 'Consultation' },
+    { id: '9', customerName: 'Kenneth Young', detail1: 'Fri 2:30 PM', detail2: 'Site Visit' },
+    { id: '10', customerName: 'Dorothy King', detail1: 'Sat 9:00 AM', detail2: 'Consultation' },
+    { id: '11', customerName: 'Steven Wright', detail1: 'Sat 1:00 PM', detail2: 'Follow-up' },
+    { id: '12', customerName: 'Carol Lopez', detail1: 'Mon 10:00 AM', detail2: 'Site Visit' },
+  ];
+
+  const getStatData = () => {
+    switch (selectedStatType) {
+      case 'sales':
+        return salesData;
+      case 'leads':
+        return leadsData;
+      case 'estimates':
+        return estimatesData;
+      case 'appointments':
+        return appointmentsData;
+      default:
+        return [];
+    }
+  };
+
+  const handleStatCardPress = (type: 'sales' | 'leads' | 'estimates' | 'appointments', title: string) => {
+    setSelectedStatType(type);
+    setSelectedStatTitle(title);
+    setShowStatDetail(true);
+  };
 
   const handleNewAppointment = () => {
     setShowNewAppointment(true);
@@ -424,6 +520,16 @@ export default function Dashboard() {
       <ScrollView 
         style={styles.content} 
         showsVerticalScrollIndicator={false}
+        onScroll={(event) => {
+          const currentScrollY = event.nativeEvent.contentOffset.y;
+          if (currentScrollY > 50) {
+            setShowFAB(false);
+          } else {
+            setShowFAB(true);
+          }
+          setLastScrollY(currentScrollY);
+        }}
+        scrollEventThrottle={16}
         onScrollBeginDrag={() => setIsTransparent(true)}
         onScrollEndDrag={() => setIsTransparent(false)}
         onMomentumScrollBegin={() => setIsTransparent(true)}
@@ -628,191 +734,203 @@ export default function Dashboard() {
             </>
           ) : activeMenu === 'stats' ? (
             <View style={styles.statsContent}>
-              {/* Daily Stats Grid */}
+              {/* AI Summary Box - Purple Gradient like Next Up */}
+              <View style={styles.aiSummaryHighlight}>
+                <View style={styles.aiSummaryHeader}>
+                  <View style={styles.aiSummaryTimeSection}>
+                    <View style={styles.aiSummaryIconContainer}>
+                      <Lightbulb size={20} color="#6366F1" />
+                    </View>
+                    <View style={styles.aiSummaryTimeInfo}>
+                      <Text style={styles.aiSummaryTimeText}>AI Insights</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity 
+                    style={styles.aiSummaryStatusBadge}
+                    onPress={generateAISummary}
+                    disabled={isLoadingSummary}
+                  >
+                    <Text style={styles.aiSummaryStatusText}>Refresh</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.aiSummaryContent}>
+                  {isLoadingSummary ? (
+                    <View style={styles.aiSummaryLoadingContainer}>
+                      <View style={styles.aiSummaryLoadingDots}>
+                        <View style={[styles.aiSummaryLoadingDot, { animationDelay: '0ms' }]} />
+                        <View style={[styles.aiSummaryLoadingDot, { animationDelay: '150ms' }]} />
+                        <View style={[styles.aiSummaryLoadingDot, { animationDelay: '300ms' }]} />
+                      </View>
+                      <Text style={styles.aiSummaryLoadingText}>Generating insights...</Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.aiSummaryText}>{aiSummary}</Text>
+                  )}
+                </View>
+              </View>
+
+              {/* Enhanced Stats Grid with Better Cards */}
               <View style={styles.statsGrid}>
-                <View style={styles.statCard}>
-                  <View style={[styles.statIconContainer, { backgroundColor: '#ECFDF5' }]}>
-                    <DollarSign size={24} color="#059669" />
-                  </View>
-                  <View style={styles.statInfo}>
-                    <Text style={styles.statValue}>$12,500</Text>
-                    <Text style={styles.statLabel}>Sales Today</Text>
-                    <View style={styles.statTrend}>
-                      <TrendingUp size={14} color="#059669" />
-                      <Text style={styles.statTrendText}>+$2,300 from yesterday</Text>
-                    </View>
-                  </View>
+                <View style={styles.statRow}>
+                  <StatCard
+                    title="Sales Today"
+                    value="$12,500"
+                    subtitle="Revenue generated"
+                    icon={TrendingUp}
+                    iconColor="#059669"
+                    backgroundColor="#10B981"
+                    trend={{ value: "+$2,300", isPositive: true }}
+                    onPress={() => handleStatCardPress('sales', 'Sales Today')}
+                  />
+                  <StatCard
+                    title="New Leads"
+                    value="8"
+                    subtitle="Potential customers"
+                    icon={Users}
+                    iconColor="#6366F1"
+                    backgroundColor="#3B82F6"
+                    trend={{ value: "+3", isPositive: true }}
+                    onPress={() => handleStatCardPress('leads', 'New Leads')}
+                  />
                 </View>
 
-                <View style={styles.statCard}>
-                  <View style={[styles.statIconContainer, { backgroundColor: '#EEF2FF' }]}>
-                    <Target size={24} color="#6366F1" />
-                  </View>
-                  <View style={styles.statInfo}>
-                    <Text style={styles.statValue}>8</Text>
-                    <Text style={styles.statLabel}>New Leads Today</Text>
-                    <View style={styles.statTrend}>
-                      <TrendingUp size={14} color="#6366F1" />
-                      <Text style={styles.statTrendText}>+3 from yesterday</Text>
-                    </View>
-                  </View>
-                </View>
-
-                <View style={styles.statCard}>
-                  <View style={[styles.statIconContainer, { backgroundColor: '#F3E8FF' }]}>
-                    <FileText size={24} color="#8B5CF6" />
-                  </View>
-                  <View style={styles.statInfo}>
-                    <Text style={styles.statValue}>5</Text>
-                    <Text style={styles.statLabel}>Estimates Sent</Text>
-                    <View style={styles.statTrend}>
-                      <TrendingUp size={14} color="#8B5CF6" />
-                      <Text style={styles.statTrendText}>+2 from yesterday</Text>
-                    </View>
-                  </View>
-                </View>
-
-                <View style={styles.statCard}>
-                  <View style={[styles.statIconContainer, { backgroundColor: '#FEF3C7' }]}>
-                    <Calendar size={24} color="#F59E0B" />
-                  </View>
-                  <View style={styles.statInfo}>
-                    <Text style={styles.statValue}>12</Text>
-                    <Text style={styles.statLabel}>Appointments Set</Text>
-                    <View style={styles.statTrend}>
-                      <TrendingUp size={14} color="#F59E0B" />
-                      <Text style={styles.statTrendText}>+4 from yesterday</Text>
-                    </View>
-                  </View>
-                </View>
-              </View>
-
-              {/* Performance Metrics */}
-              <View style={styles.performanceCard}>
-                <Text style={styles.performanceTitle}>Performance Breakdown</Text>
-                
-                <View style={styles.metricRow}>
-                  <Text style={styles.metricLabel}>Conversion Rate</Text>
-                  <View style={styles.metricValueContainer}>
-                    <View style={[styles.metricBar, { width: '42%', backgroundColor: '#10B981' }]} />
-                    <Text style={styles.metricValue}>42%</Text>
-                  </View>
-                </View>
-
-                <View style={styles.metricRow}>
-                  <Text style={styles.metricLabel}>Response Time</Text>
-                  <View style={styles.metricValueContainer}>
-                    <View style={[styles.metricBar, { width: '80%', backgroundColor: '#3B82F6' }]} />
-                    <Text style={styles.metricValue}>2.3 hrs</Text>
-                  </View>
-                </View>
-
-                <View style={styles.metricRow}>
-                  <Text style={styles.metricLabel}>Customer Satisfaction</Text>
-                  <View style={styles.metricValueContainer}>
-                    <View style={[styles.metricBar, { width: '95%', backgroundColor: '#F59E0B' }]} />
-                    <Text style={styles.metricValue}>95%</Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* Pipeline Overview */}
-              <View style={styles.pipelineCard}>
-                <Text style={styles.pipelineTitle}>Pipeline Status</Text>
-                <View style={styles.pipelineStats}>
-                  <View style={styles.pipelineStat}>
-                    <Text style={styles.pipelineValue}>23</Text>
-                    <Text style={styles.pipelineLabel}>Active Deals</Text>
-                  </View>
-                  <View style={styles.pipelineStat}>
-                    <Text style={styles.pipelineValue}>$125k</Text>
-                    <Text style={styles.pipelineLabel}>Total Value</Text>
-                  </View>
-                  <View style={styles.pipelineStat}>
-                    <Text style={styles.pipelineValue}>$5.4k</Text>
-                    <Text style={styles.pipelineLabel}>Avg Deal</Text>
-                  </View>
+                <View style={styles.statRow}>
+                  <StatCard
+                    title="Estimates Sent"
+                    value="5"
+                    subtitle="Proposals delivered"
+                    icon={FileText}
+                    iconColor="#8B5CF6"
+                    backgroundColor="#A855F7"
+                    trend={{ value: "+2", isPositive: true }}
+                    onPress={() => handleStatCardPress('estimates', 'Estimates Sent')}
+                  />
+                  <StatCard
+                    title="Appointments"
+                    value="12"
+                    subtitle="Meetings scheduled"
+                    icon={Calendar}
+                    iconColor="#F59E0B"
+                    backgroundColor="#F59E0B"
+                    trend={{ value: "+4", isPositive: true }}
+                    onPress={() => handleStatCardPress('appointments', 'Appointments')}
+                  />
                 </View>
               </View>
             </View>
           ) : (
             <View style={styles.updatesContent}>
-              <Text style={styles.updatesHeader}>Recent Activity</Text>
-              
-              {/* Update Cards */}
+              {/* Signed Proposal Update */}
               <View style={styles.updateCard}>
-                <View style={styles.updateIconContainer}>
-                  <Handshake size={20} color="#10B981" />
+                <View style={styles.updateHeader}>
+                  <View style={styles.updateIconContainer}>
+                    <Handshake size={20} color="#FFFFFF" />
+                  </View>
+                  <View style={styles.updateTimeContainer}>
+                    <Text style={styles.updateTime}>5 min ago</Text>
+                  </View>
                 </View>
-                <View style={styles.updateContent}>
-                  <Text style={styles.updateTitle}>Joe Smith signed proposal #4232</Text>
-                  <Text style={styles.updateValue}>$5,000</Text>
-                  <Text style={styles.updateTime}>5 minutes ago</Text>
-                </View>
-                <View style={styles.updateActions}>
-                  <TouchableOpacity style={styles.updateActionButton}>
-                    <Calendar size={14} color="#6366F1" />
-                    <Text style={styles.updateActionText}>Schedule</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.updateActionButton, styles.updateViewButton]}>
-                    <Text style={styles.updateViewText}>View Deal</Text>
-                    <ChevronRight size={14} color="#6366F1" />
-                  </TouchableOpacity>
+                <View style={styles.updateContentSection}>
+                  <Text style={styles.updateTitle}>Proposal Signed</Text>
+                  <Text style={styles.updateCustomer}>Joe Smith</Text>
+                  <View style={styles.updateDetailsRow}>
+                    <Text style={styles.updateDetail}>Proposal #4232</Text>
+                    <View style={styles.updateDot} />
+                    <Text style={styles.updateValue}>$5,000</Text>
+                  </View>
+                  <View style={styles.updateActionsRow}>
+                    <TouchableOpacity style={styles.primaryActionButton}>
+                      <Calendar size={16} color="#FFFFFF" />
+                      <Text style={styles.primaryActionText}>Schedule</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.secondaryActionButton}>
+                      <Text style={styles.secondaryActionText}>View</Text>
+                      <ChevronRight size={16} color="#6366F1" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
 
+              {/* New Lead Update */}
               <View style={styles.updateCard}>
-                <View style={[styles.updateIconContainer, { backgroundColor: '#EEF2FF' }]}>
-                  <Target size={20} color="#6366F1" />
+                <View style={styles.updateHeader}>
+                  <View style={[styles.updateIconContainer, { backgroundColor: '#6366F1' }]}>
+                    <Target size={20} color="#FFFFFF" />
+                  </View>
+                  <View style={styles.updateTimeContainer}>
+                    <Text style={styles.updateTime}>12 min ago</Text>
+                  </View>
                 </View>
-                <View style={styles.updateContent}>
-                  <Text style={styles.updateTitle}>New lead! Sam Smith from Facebook</Text>
-                  <Text style={styles.updateMeta}>Kitchen Renovation • $35k budget</Text>
-                  <Text style={styles.updateTime}>12 minutes ago</Text>
-                </View>
-                <View style={styles.updateActions}>
-                  <TouchableOpacity style={[styles.updateActionButton, styles.callNowButton]}>
-                    <Phone size={14} color="#FFFFFF" />
-                    <Text style={styles.callNowText}>Call Now</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.updateActionButton, styles.updateViewButton]}>
-                    <Text style={styles.updateViewText}>View Deal</Text>
-                    <ChevronRight size={14} color="#6366F1" />
-                  </TouchableOpacity>
+                <View style={styles.updateContentSection}>
+                  <Text style={styles.updateTitle}>New Lead</Text>
+                  <Text style={styles.updateCustomer}>Sam Smith</Text>
+                  <View style={styles.updateDetailsRow}>
+                    <Text style={styles.updateDetail}>Kitchen Renovation</Text>
+                    <View style={styles.updateDot} />
+                    <Text style={styles.updateDetail}>$35k budget</Text>
+                  </View>
+                  <Text style={styles.updateSource}>Source: Facebook</Text>
+                  <View style={styles.updateActionsRow}>
+                    <TouchableOpacity style={[styles.primaryActionButton, { backgroundColor: '#10B981' }]}>
+                      <Phone size={16} color="#FFFFFF" />
+                      <Text style={styles.primaryActionText}>Call Now</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.secondaryActionButton}>
+                      <Text style={styles.secondaryActionText}>View</Text>
+                      <ChevronRight size={16} color="#6366F1" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
 
+              {/* Estimate Viewed Update */}
               <View style={styles.updateCard}>
-                <View style={[styles.updateIconContainer, { backgroundColor: '#F3E8FF' }]}>
-                  <FileText size={20} color="#8B5CF6" />
+                <View style={styles.updateHeader}>
+                  <View style={[styles.updateIconContainer, { backgroundColor: '#8B5CF6' }]}>
+                    <FileText size={20} color="#FFFFFF" />
+                  </View>
+                  <View style={styles.updateTimeContainer}>
+                    <Text style={styles.updateTime}>1 hour ago</Text>
+                  </View>
                 </View>
-                <View style={styles.updateContent}>
-                  <Text style={styles.updateTitle}>Estimate viewed by Michael Johnson</Text>
-                  <Text style={styles.updateMeta}>Basement Finishing • Viewed 3 times</Text>
-                  <Text style={styles.updateTime}>1 hour ago</Text>
-                </View>
-                <View style={styles.updateActions}>
-                  <TouchableOpacity style={[styles.updateActionButton, styles.updateViewButton]}>
-                    <Text style={styles.updateViewText}>View Deal</Text>
-                    <ChevronRight size={14} color="#6366F1" />
-                  </TouchableOpacity>
+                <View style={styles.updateContentSection}>
+                  <Text style={styles.updateTitle}>Estimate Viewed</Text>
+                  <Text style={styles.updateCustomer}>Michael Johnson</Text>
+                  <View style={styles.updateDetailsRow}>
+                    <Text style={styles.updateDetail}>Basement Finishing</Text>
+                    <View style={styles.updateDot} />
+                    <Text style={styles.updateDetail}>Viewed 3 times</Text>
+                  </View>
+                  <View style={styles.updateActionsRow}>
+                    <TouchableOpacity style={styles.secondaryActionButton}>
+                      <Text style={styles.secondaryActionText}>View Deal</Text>
+                      <ChevronRight size={16} color="#6366F1" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
 
+              {/* Email Reply Update */}
               <View style={styles.updateCard}>
-                <View style={[styles.updateIconContainer, { backgroundColor: '#FEF3C7' }]}>
-                  <Mail size={20} color="#F59E0B" />
+                <View style={styles.updateHeader}>
+                  <View style={[styles.updateIconContainer, { backgroundColor: '#F59E0B' }]}>
+                    <Mail size={20} color="#FFFFFF" />
+                  </View>
+                  <View style={styles.updateTimeContainer}>
+                    <Text style={styles.updateTime}>2 hours ago</Text>
+                  </View>
                 </View>
-                <View style={styles.updateContent}>
-                  <Text style={styles.updateTitle}>Email reply from Lisa Anderson</Text>
-                  <Text style={styles.updateMeta}>"Ready to move forward!"</Text>
-                  <Text style={styles.updateTime}>2 hours ago</Text>
-                </View>
-                <View style={styles.updateActions}>
-                  <TouchableOpacity style={[styles.updateActionButton, styles.updateViewButton]}>
-                    <Text style={styles.updateViewText}>View Thread</Text>
-                    <ChevronRight size={14} color="#6366F1" />
-                  </TouchableOpacity>
+                <View style={styles.updateContentSection}>
+                  <Text style={styles.updateTitle}>Email Reply</Text>
+                  <Text style={styles.updateCustomer}>Lisa Anderson</Text>
+                  <Text style={styles.updateQuote}>"Ready to move forward!"</Text>
+                  <View style={styles.updateActionsRow}>
+                    <TouchableOpacity style={styles.secondaryActionButton}>
+                      <Text style={styles.secondaryActionText}>View Thread</Text>
+                      <ChevronRight size={16} color="#6366F1" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             </View>
@@ -820,12 +938,20 @@ export default function Dashboard() {
         </View>
       </ScrollView>
 
-      <FloatingActionMenu onNewAppointment={handleNewAppointment} />
+      <FloatingActionMenu onNewAppointment={handleNewAppointment} isVisible={showFAB} />
       
       {/* New Appointment Modal */}
       <NewAppointmentModal 
         visible={showNewAppointment}
         onClose={handleAppointmentClose}
+      />
+
+      <StatDetailModal
+        visible={showStatDetail}
+        onClose={() => setShowStatDetail(false)}
+        title={selectedStatTitle}
+        type={selectedStatType}
+        data={getStatData()}
       />
 
       {/* Meeting Details Modal */}
@@ -1020,6 +1146,8 @@ const styles = StyleSheet.create({
   },
   gradientBackground: {
     paddingBottom: 8,
+    zIndex: 10,
+    elevation: 10,
   },
   header: {
     flexDirection: 'row',
@@ -1123,6 +1251,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
     marginTop: -8,
+    zIndex: 1,
   },
   // Sticky Header
   stickyHeader: {
@@ -1713,11 +1842,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#8B5CF6',
   },
-  // Updates Section
-  updatesContent: {
-    padding: 16,
-    gap: 16,
-  },
   // Overview Card
   overviewCard: {
     backgroundColor: '#FFFFFF',
@@ -2202,26 +2326,139 @@ const styles = StyleSheet.create({
     padding: 24,
     gap: 20,
   },
+  // AI Summary Card - Purple Gradient like Next Up
+  aiSummaryHighlight: {
+    backgroundColor: '#6366F1',
+    borderRadius: 20,
+    marginBottom: 20,
+    marginTop: 24,
+    padding: 0,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    elevation: 12,
+    overflow: 'hidden',
+  },
+  aiSummaryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  aiSummaryTimeSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  aiSummaryIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  aiSummaryTimeInfo: {
+    gap: 4,
+  },
+  aiSummaryTimeText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#6366F1',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  aiSummaryStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    gap: 6,
+  },
+  aiSummaryStatusText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  aiSummaryContent: {
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+  },
+  aiSummaryText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    lineHeight: 24,
+    fontWeight: '500',
+  },
+  aiSummaryLoadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  aiSummaryLoadingDots: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  aiSummaryLoadingDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FFFFFF',
+  },
+  aiSummaryLoadingText: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '500',
+  },
   statsGrid: {
     gap: 20,
+  },
+  statRow: {
+    flexDirection: 'row',
+    gap: 0,
   },
   statCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
-    padding: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 20,
+    padding: 0,
+    flex: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 4,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    overflow: 'hidden',
   },
   statIconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2229,10 +2466,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statValue: {
-    fontSize: 32,
+    fontSize: 24,
     fontWeight: '800',
     color: '#111827',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   statLabel: {
     fontSize: 15,
@@ -2250,167 +2487,194 @@ const styles = StyleSheet.create({
     color: '#059669',
     fontWeight: '600',
   },
-  performanceCard: {
+  // New stat card styles matching My Day structure
+  statHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
   },
-  performanceTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 24,
-  },
-  metricRow: {
-    marginBottom: 20,
-  },
-  metricLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#6B7280',
-    marginBottom: 10,
-  },
-  metricValueContainer: {
+  statTimeSection: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
   },
-  metricBar: {
-    height: 10,
-    borderRadius: 5,
+  statTimeInfo: {
+    gap: 4,
   },
-  metricValue: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  pipelineCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  pipelineTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 20,
-  },
-  pipelineStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  pipelineStat: {
-    alignItems: 'center',
-  },
-  pipelineValue: {
-    fontSize: 28,
+  statTimeText: {
+    fontSize: 16,
     fontWeight: '800',
     color: '#6366F1',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#E9D5FF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  statStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 24,
+    gap: 6,
+  },
+  statStatusText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  statContent: {
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+  },
+  statTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#111827',
     marginBottom: 6,
   },
-  pipelineLabel: {
-    fontSize: 13,
-    fontWeight: '600',
+  statSubtitle: {
+    fontSize: 14,
     color: '#6B7280',
+    fontWeight: '600',
   },
   // Updates Content Styles
-  updatesHeader: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 20,
-    paddingHorizontal: 24,
+  updatesContent: {
+    gap: 16,
   },
   updateCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
     padding: 20,
-    marginBottom: 16,
     marginHorizontal: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.1,
     shadowRadius: 12,
-    elevation: 4,
+    elevation: 5,
+  },
+  updateHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   updateIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#ECFDF5',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#10B981',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
   },
-  updateContent: {
-    marginBottom: 16,
-  },
-  updateTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 6,
-  },
-  updateValue: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#10B981',
-    marginBottom: 6,
-  },
-  updateMeta: {
-    fontSize: 15,
-    color: '#6B7280',
-    marginBottom: 6,
-    fontWeight: '500',
+  updateTimeContainer: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
   },
   updateTime: {
-    fontSize: 13,
-    color: '#9CA3AF',
-    fontWeight: '500',
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
   },
-  updateActions: {
-    flexDirection: 'row',
-    gap: 12,
+  updateContentSection: {
+    gap: 8,
   },
-  updateActionButton: {
+  updateTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  updateCustomer: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  updateDetailsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  updateDetail: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  updateDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#D1D5DB',
+  },
+  updateValue: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#10B981',
+  },
+  updateSource: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  updateQuote: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#111827',
+    fontStyle: 'italic',
+    backgroundColor: '#F9FAFB',
+    padding: 12,
+    borderRadius: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#F59E0B',
+  },
+  updateActionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  primaryActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#6366F1',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 12,
     gap: 6,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
   },
-  updateActionText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#6366F1',
-  },
-  callNowButton: {
-    backgroundColor: '#10B981',
-  },
-  callNowText: {
+  primaryActionText: {
     fontSize: 14,
     fontWeight: '700',
     color: '#FFFFFF',
   },
-  updateViewButton: {
+  secondaryActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    gap: 4,
     flex: 1,
     justifyContent: 'center',
   },
-  updateViewText: {
+  secondaryActionText: {
     fontSize: 14,
     fontWeight: '700',
     color: '#6366F1',

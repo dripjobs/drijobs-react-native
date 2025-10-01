@@ -4,7 +4,7 @@ import NewAppointmentModal from '@/components/NewAppointmentModal';
 import { useTabBar } from '@/contexts/TabBarContext';
 import { Archive, ArrowRight, Building, Calendar, CheckSquare, ChevronLeft, ChevronRight, Clock, DollarSign, Edit, Eye, FileText, Filter, Mail, MapPin, MessageSquare, MoreVertical, Phone, Plus, Send, Tag, Target, Trash2, TrendingUp, User, X, Zap } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Animated, Dimensions, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Dimensions, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { PanGestureHandler } from 'react-native-gesture-handler';
 
 export default function Pipeline() {
@@ -40,6 +40,8 @@ export default function Pipeline() {
     reminders: true,
     reminderType: 'both'
   });
+  const [showFAB, setShowFAB] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
 
   const pipelines = [
     {
@@ -1434,6 +1436,16 @@ export default function Pipeline() {
       <ScrollView 
         style={styles.content} 
         showsVerticalScrollIndicator={false}
+        onScroll={(event) => {
+          const currentScrollY = event.nativeEvent.contentOffset.y;
+          if (currentScrollY > 50) {
+            setShowFAB(false);
+          } else {
+            setShowFAB(true);
+          }
+          setLastScrollY(currentScrollY);
+        }}
+        scrollEventThrottle={16}
         onScrollBeginDrag={() => setIsTransparent(true)}
         onScrollEndDrag={() => setIsTransparent(false)}
         onMomentumScrollBegin={() => setIsTransparent(true)}
@@ -1607,7 +1619,7 @@ export default function Pipeline() {
         </View>
       </ScrollView>
 
-      <FloatingActionMenu onNewAppointment={handleNewAppointment} />
+      <FloatingActionMenu onNewAppointment={handleNewAppointment} isVisible={showFAB} />
 
       {/* Command Center Modal */}
       <Modal
