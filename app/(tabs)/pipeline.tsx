@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Dimensions, Modal, Animated } from 'react-native';
-import { Menu, Calendar, DollarSign, TrendingUp, ChevronLeft, ChevronRight, User, Clock, Tag, Plus, Filter, Upload, Zap, X, Mail, Phone, MapPin, Building, Eye, Target, FileText, CheckSquare, ArrowRight, Send, MessageSquare, PhoneCall, Edit, Archive, Trash2, MoreVertical, Check } from 'lucide-react-native';
-import { PanGestureHandler } from 'react-native-gesture-handler';
-import FloatingActionMenu from '@/components/FloatingActionMenu';
 import DrawerMenu from '@/components/DrawerMenu';
+import FloatingActionMenu from '@/components/FloatingActionMenu';
 import NewAppointmentModal from '@/components/NewAppointmentModal';
 import { useTabBar } from '@/contexts/TabBarContext';
+import { Archive, ArrowRight, Building, Calendar, Check, CheckSquare, ChevronLeft, ChevronRight, Clock, DollarSign, Edit, Eye, FileText, Filter, Mail, MapPin, MessageSquare, MoreVertical, Phone, Plus, Send, Tag, Target, Trash2, TrendingUp, User, X, Zap } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { Animated, Dimensions, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { PanGestureHandler } from 'react-native-gesture-handler';
 
 export default function Pipeline() {
   const { setIsTransparent } = useTabBar();
@@ -711,62 +711,19 @@ export default function Pipeline() {
           <View style={styles.journeySection}>
             <Text style={styles.sectionTitle}>Complete Customer Journey</Text>
             
-            {/* Full Home Renovation - Qualified Lead */}
+            {/* Stage 1: Inquiry (Lead) */}
             <View style={styles.journeyCard}>
               <View style={styles.journeyCardHeader}>
                 <View style={styles.journeyCardIconContainer}>
                   <User size={20} color="#6366F1" />
                 </View>
                 <View style={styles.journeyCardHeaderInfo}>
-                  <Text style={styles.journeyCardTitle}>Full Home Renovation</Text>
+                  <Text style={styles.journeyCardTitle}>Basement Finishing Inquiry</Text>
                   <View style={styles.journeyCardStatus}>
                     <View style={[styles.statusBadge, { backgroundColor: '#D1FAE5' }]}>
                       <Text style={[styles.statusBadgeText, { color: '#065F46' }]}>Qualified</Text>
                     </View>
-                    <Text style={styles.journeyCardDuration}>In stage for 1 year</Text>
-                  </View>
-                </View>
-              </View>
-              
-              <View style={styles.journeyCardMeta}>
-                <View style={styles.journeyMetaRow}>
-                  <Zap size={14} color="#F59E0B" />
-                  <Text style={styles.journeyMetaText}>Lead Source: Referral</Text>
-                </View>
-                <View style={styles.journeyCardTags}>
-                  <View style={styles.journeyTag}>
-                    <Text style={styles.journeyTagText}>High Value</Text>
-                  </View>
-                  <View style={styles.journeyTag}>
-                    <Text style={styles.journeyTagText}>Referral</Text>
-                  </View>
-                </View>
-              </View>
-              
-              <View style={styles.journeyCardFooter}>
-                <Text style={styles.journeyCardDate}>Created: Dec 20, 2023, 3:00 AM</Text>
-                <Text style={styles.journeyCardDate}>Updated: Jan 8, 2024, 11:00 AM</Text>
-              </View>
-            </View>
-
-            {/* Bathroom Renovation Inquiry - Current */}
-            <View style={[styles.journeyCard, styles.currentJourneyCard]}>
-              <View style={styles.journeyCardHeader}>
-                <View style={styles.journeyCardIconContainer}>
-                  <User size={20} color="#6366F1" />
-                </View>
-                <View style={styles.journeyCardHeaderInfo}>
-                  <View style={styles.journeyTitleRow}>
-                    <Text style={styles.journeyCardTitle}>Bathroom Renovation Inquiry</Text>
-                    <View style={[styles.statusBadge, { backgroundColor: '#DBEAFE' }]}>
-                      <Text style={[styles.statusBadgeText, { color: '#1E40AF' }]}>Current</Text>
-                    </View>
-                  </View>
-                  <View style={styles.journeyCardStatus}>
-                    <View style={[styles.statusBadge, { backgroundColor: '#EEF2FF' }]}>
-                      <Text style={[styles.statusBadgeText, { color: '#4F46E5' }]}>New Leads</Text>
-                    </View>
-                    <Text style={styles.journeyCardDuration}>In stage for 1 year</Text>
+                    <Text style={styles.journeyCardDuration}>In stage for 2 weeks</Text>
                   </View>
                 </View>
               </View>
@@ -778,46 +735,56 @@ export default function Pipeline() {
                 </View>
                 <View style={styles.journeyCardTags}>
                   <View style={styles.journeyTag}>
-                    <Text style={styles.journeyTagText}>New Lead</Text>
+                    <Text style={styles.journeyTagText}>Basement</Text>
                   </View>
                   <View style={styles.journeyTag}>
-                    <Text style={styles.journeyTagText}>Website</Text>
+                    <Text style={styles.journeyTagText}>Residential</Text>
                   </View>
                 </View>
               </View>
               
               <View style={styles.journeyCardFooter}>
-                <Text style={styles.journeyCardDate}>Created: Jan 10, 2024, 5:00 AM</Text>
-                <Text style={styles.journeyCardDate}>Updated: Jan 18, 2024, 9:30 AM</Text>
+                <Text style={styles.journeyCardDate}>Created: Nov 1, 2023, 9:00 AM</Text>
+                <Text style={styles.journeyCardDate}>Updated: Nov 15, 2023, 2:00 PM</Text>
+              </View>
+            </View>
+
+            {/* Stage 2: Opportunity */}
+            <View style={styles.journeyCard}>
+              <View style={styles.journeyCardHeader}>
+                <View style={[styles.journeyCardIconContainer, { backgroundColor: '#D1FAE5' }]}>
+                  <Target size={20} color="#059669" />
+                </View>
+                <View style={styles.journeyCardHeaderInfo}>
+                  <View style={styles.journeyTitleRow}>
+                    <Text style={styles.journeyCardTitle}>Basement Finishing Opportunity</Text>
+                    <Text style={styles.journeyCardValue}>$35,000.00</Text>
+                  </View>
+                  <View style={styles.journeyCardStatus}>
+                    <View style={[styles.statusBadge, { backgroundColor: '#D1FAE5' }]}>
+                      <Text style={[styles.statusBadgeText, { color: '#065F46' }]}>Qualified</Text>
+                    </View>
+                    <Text style={styles.journeyCardDuration}>In stage for 1 week</Text>
+                  </View>
+                </View>
               </View>
               
-              <View style={styles.journeyCardActions}>
-                <TouchableOpacity style={styles.journeyActionButton}>
-                  <Check size={16} color="#FFFFFF" />
-                  <Text style={styles.journeyActionButtonText}>Qualify Lead</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.journeyActionButton, styles.journeyActionButtonSecondary]}>
-                  <Text style={styles.journeyActionButtonTextSecondary}>Move Stage</Text>
-                </TouchableOpacity>
+              <View style={styles.journeyCardMeta}>
+                <View style={styles.journeyRelatedRecords}>
+                  <View style={styles.relatedRecord}>
+                    <ArrowRight size={12} color="#6B7280" />
+                    <Text style={styles.relatedRecordText}>From Lead #5</Text>
+                  </View>
+                </View>
+              </View>
+              
+              <View style={styles.journeyCardFooter}>
+                <Text style={styles.journeyCardDate}>Created: Nov 15, 2023, 3:00 PM</Text>
+                <Text style={styles.journeyCardDate}>Updated: Nov 20, 2023, 10:00 AM</Text>
               </View>
             </View>
 
-            {/* Future Opportunities Section */}
-            <View style={styles.futureSection}>
-              <View style={styles.futureSectionHeader}>
-                <View style={styles.futureSectionIconPlaceholder}>
-                  <Plus size={16} color="#D1D5DB" />
-                </View>
-                <View style={styles.futureSectionInfo}>
-                  <Text style={styles.futureSectionTitle}>Future Opportunities</Text>
-                  <Text style={styles.futureSectionDescription}>
-                    Qualify this lead to create opportunities and proposals
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Proposal Example - Basement Finishing Proposal */}
+            {/* Stage 3: Proposal */}
             <View style={styles.journeyCard}>
               <View style={styles.journeyCardHeader}>
                 <View style={[styles.journeyCardIconContainer, { backgroundColor: '#F3E8FF' }]}>
@@ -832,7 +799,7 @@ export default function Pipeline() {
                     <View style={[styles.statusBadge, { backgroundColor: '#D1FAE5' }]}>
                       <Text style={[styles.statusBadgeText, { color: '#065F46' }]}>Proposal Approved</Text>
                     </View>
-                    <Text style={styles.journeyCardDuration}>In stage for 1 year</Text>
+                    <Text style={styles.journeyCardDuration}>In stage for 1 month</Text>
                   </View>
                 </View>
               </View>
@@ -840,7 +807,7 @@ export default function Pipeline() {
               <View style={styles.journeyCardMeta}>
                 <View style={styles.journeyMetaRow}>
                   <Send size={14} color="#9333EA" />
-                  <Text style={styles.journeyMetaText}>Sent: Jan 18, 2024</Text>
+                  <Text style={styles.journeyMetaText}>Sent: Nov 20, 2023</Text>
                 </View>
                 <View style={styles.journeyRelatedRecords}>
                   <View style={styles.relatedRecord}>
@@ -858,59 +825,10 @@ export default function Pipeline() {
                 <Text style={styles.journeyCardDate}>Created: Nov 20, 2023, 7:00 AM</Text>
                 <Text style={styles.journeyCardDate}>Updated: Dec 28, 2023, 9:00 AM</Text>
               </View>
-              
-              <View style={styles.journeyCardActions}>
-                <TouchableOpacity style={[styles.journeyActionButton, styles.journeyActionButtonSecondary]}>
-                  <Text style={styles.journeyActionButtonTextSecondary}>Move Stage</Text>
-                </TouchableOpacity>
-              </View>
             </View>
 
-            {/* Opportunity Example - Kitchen Renovation Estimate */}
-            <View style={styles.journeyCard}>
-              <View style={styles.journeyCardHeader}>
-                <View style={[styles.journeyCardIconContainer, { backgroundColor: '#D1FAE5' }]}>
-                  <Target size={20} color="#059669" />
-                </View>
-                <View style={styles.journeyCardHeaderInfo}>
-                  <View style={styles.journeyTitleRow}>
-                    <Text style={styles.journeyCardTitle}>Kitchen Renovation Estimate</Text>
-                    <Text style={styles.journeyCardValue}>$28,000.00</Text>
-                  </View>
-                  <View style={styles.journeyCardStatus}>
-                    <View style={[styles.statusBadge, { backgroundColor: '#D1FAE5' }]}>
-                      <Text style={[styles.statusBadgeText, { color: '#065F46' }]}>Qualified</Text>
-                    </View>
-                    <Text style={styles.journeyCardDuration}>In stage for 1 year</Text>
-                  </View>
-                </View>
-              </View>
-              
-              <View style={styles.journeyCardMeta}>
-                <View style={styles.journeyRelatedRecords}>
-                  <View style={styles.relatedRecord}>
-                    <ArrowRight size={12} color="#6B7280" />
-                    <Text style={styles.relatedRecordText}>From Lead #6</Text>
-                  </View>
-                </View>
-                <View style={styles.journeyCardTags}>
-                  <View style={styles.journeyTag}>
-                    <Text style={styles.journeyTagText}>Kitchen</Text>
-                  </View>
-                  <View style={styles.journeyTag}>
-                    <Text style={styles.journeyTagText}>Ready to Close</Text>
-                  </View>
-                </View>
-              </View>
-              
-              <View style={styles.journeyCardFooter}>
-                <Text style={styles.journeyCardDate}>Created: Dec 15, 2023, 6:00 AM</Text>
-                <Text style={styles.journeyCardDate}>Updated: Jan 3, 2024, 10:00 AM</Text>
-              </View>
-            </View>
-
-            {/* Job Example - Basement Finishing Project */}
-            <View style={styles.journeyCard}>
+            {/* Stage 4: Job (Current) */}
+            <View style={[styles.journeyCard, styles.currentJourneyCard]}>
               <View style={styles.journeyCardHeader}>
                 <View style={[styles.journeyCardIconContainer, { backgroundColor: '#FED7AA' }]}>
                   <Building size={20} color="#C2410C" />
@@ -918,13 +836,15 @@ export default function Pipeline() {
                 <View style={styles.journeyCardHeaderInfo}>
                   <View style={styles.journeyTitleRow}>
                     <Text style={styles.journeyCardTitle}>Basement Finishing Project</Text>
-                    <Text style={styles.journeyCardValue}>$35,000.00</Text>
+                    <View style={[styles.statusBadge, { backgroundColor: '#DBEAFE' }]}>
+                      <Text style={[styles.statusBadgeText, { color: '#1E40AF' }]}>Current</Text>
+                    </View>
                   </View>
                   <View style={styles.journeyCardStatus}>
                     <View style={[styles.statusBadge, { backgroundColor: '#DBEAFE' }]}>
                       <Text style={[styles.statusBadgeText, { color: '#1E40AF' }]}>Pending Schedule</Text>
                     </View>
-                    <Text style={styles.journeyCardDuration}>In stage for 1 year</Text>
+                    <Text style={styles.journeyCardDuration}>In stage for 3 weeks</Text>
                   </View>
                 </View>
               </View>
@@ -949,6 +869,12 @@ export default function Pipeline() {
               <View style={styles.journeyCardFooter}>
                 <Text style={styles.journeyCardDate}>Created: Dec 28, 2023, 9:00 AM</Text>
                 <Text style={styles.journeyCardDate}>Updated: Jan 19, 2024, 5:00 AM</Text>
+              </View>
+              
+              <View style={styles.journeyCardActions}>
+                <TouchableOpacity style={[styles.journeyActionButton, styles.journeyActionButtonSecondary]}>
+                  <Text style={styles.journeyActionButtonTextSecondary}>Move Stage</Text>
+                </TouchableOpacity>
               </View>
             </View>
           </View>
