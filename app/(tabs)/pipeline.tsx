@@ -711,6 +711,53 @@ export default function Pipeline() {
           <View style={styles.journeySection}>
             <Text style={styles.sectionTitle}>Complete Customer Journey</Text>
             
+            {/* Deal Insights Card */}
+            <View style={styles.insightsCard}>
+              <View style={styles.insightsHeader}>
+                <TrendingUp size={20} color="#6366F1" />
+                <Text style={styles.insightsTitle}>Deal Insights</Text>
+              </View>
+              
+              <View style={styles.insightsGrid}>
+                <View style={styles.insightItem}>
+                  <Text style={styles.insightLabel}>Project Value</Text>
+                  <Text style={styles.insightValue}>$35,000</Text>
+                </View>
+                
+                <View style={styles.insightItem}>
+                  <Text style={styles.insightLabel}>Time in Pipeline</Text>
+                  <Text style={styles.insightValue}>89 days</Text>
+                  <Text style={styles.insightSubtext}>Avg: 45 days</Text>
+                </View>
+                
+                <View style={styles.insightItem}>
+                  <Text style={styles.insightLabel}>Customer Engagement</Text>
+                  <View style={styles.engagementBar}>
+                    <View style={[styles.engagementFill, { width: '85%' }]} />
+                  </View>
+                  <Text style={styles.insightSubtext}>85% Response Rate</Text>
+                </View>
+                
+                <View style={styles.insightItem}>
+                  <Text style={styles.insightLabel}>Est. Start Date</Text>
+                  <Text style={styles.insightValue}>Feb 15, 2024</Text>
+                </View>
+              </View>
+              
+              <View style={styles.insightsDivider} />
+              
+              <View style={styles.insightsFooter}>
+                <View style={styles.insightAlert}>
+                  <Clock size={14} color="#F59E0B" />
+                  <Text style={styles.insightAlertText}>Last contact: 3 days ago</Text>
+                </View>
+                <View style={[styles.insightAlert, { backgroundColor: '#D1FAE5' }]}>
+                  <CheckSquare size={14} color="#059669" />
+                  <Text style={[styles.insightAlertText, { color: '#065F46' }]}>On track for Feb start</Text>
+                </View>
+              </View>
+            </View>
+            
             {/* Stage 4: Project (Current) */}
             <View style={[styles.journeyCard, styles.currentJourneyCard]}>
               <View style={styles.journeyCardHeader}>
@@ -2484,6 +2531,90 @@ const styles = StyleSheet.create({
   futureSectionDescription: {
     fontSize: 12,
     color: '#9CA3AF',
+  },
+  insightsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    padding: 16,
+    marginBottom: 20,
+  },
+  insightsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  insightsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  insightsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  insightItem: {
+    flex: 1,
+    minWidth: '45%',
+  },
+  insightLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 4,
+    fontWeight: '500',
+  },
+  insightValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  insightSubtext: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    marginTop: 2,
+  },
+  engagementBar: {
+    height: 8,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 4,
+    marginTop: 6,
+    marginBottom: 4,
+    overflow: 'hidden',
+  },
+  engagementFill: {
+    height: '100%',
+    backgroundColor: '#10B981',
+    borderRadius: 4,
+  },
+  insightsDivider: {
+    height: 1,
+    backgroundColor: '#E5E7EB',
+    marginVertical: 12,
+  },
+  insightsFooter: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  insightAlert: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    flex: 1,
+    minWidth: '45%',
+  },
+  insightAlertText: {
+    fontSize: 12,
+    color: '#92400E',
+    fontWeight: '500',
+    flex: 1,
   },
   journeySteps: {
     gap: 16,
