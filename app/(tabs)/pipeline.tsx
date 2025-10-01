@@ -711,123 +711,7 @@ export default function Pipeline() {
           <View style={styles.journeySection}>
             <Text style={styles.sectionTitle}>Complete Customer Journey</Text>
             
-            {/* Stage 1: Inquiry (Lead) */}
-            <View style={styles.journeyCard}>
-              <View style={styles.journeyCardHeader}>
-                <View style={styles.journeyCardIconContainer}>
-                  <User size={20} color="#6366F1" />
-                </View>
-                <View style={styles.journeyCardHeaderInfo}>
-                  <Text style={styles.journeyCardTitle}>Basement Finishing Inquiry</Text>
-                  <View style={styles.journeyCardStatus}>
-                    <View style={[styles.statusBadge, { backgroundColor: '#D1FAE5' }]}>
-                      <Text style={[styles.statusBadgeText, { color: '#065F46' }]}>Qualified</Text>
-                    </View>
-                    <Text style={styles.journeyCardDuration}>In stage for 2 weeks</Text>
-                  </View>
-                </View>
-              </View>
-              
-              <View style={styles.journeyCardMeta}>
-                <View style={styles.journeyMetaRow}>
-                  <Zap size={14} color="#F59E0B" />
-                  <Text style={styles.journeyMetaText}>Lead Source: Website Form</Text>
-                </View>
-                <View style={styles.journeyCardTags}>
-                  <View style={styles.journeyTag}>
-                    <Text style={styles.journeyTagText}>Basement</Text>
-                  </View>
-                  <View style={styles.journeyTag}>
-                    <Text style={styles.journeyTagText}>Residential</Text>
-                  </View>
-                </View>
-              </View>
-              
-              <View style={styles.journeyCardFooter}>
-                <Text style={styles.journeyCardDate}>Created: Nov 1, 2023, 9:00 AM</Text>
-                <Text style={styles.journeyCardDate}>Updated: Nov 15, 2023, 2:00 PM</Text>
-              </View>
-            </View>
-
-            {/* Stage 2: Opportunity */}
-            <View style={styles.journeyCard}>
-              <View style={styles.journeyCardHeader}>
-                <View style={[styles.journeyCardIconContainer, { backgroundColor: '#D1FAE5' }]}>
-                  <Target size={20} color="#059669" />
-                </View>
-                <View style={styles.journeyCardHeaderInfo}>
-                  <View style={styles.journeyTitleRow}>
-                    <Text style={styles.journeyCardTitle}>Basement Finishing Opportunity</Text>
-                    <Text style={styles.journeyCardValue}>$35,000.00</Text>
-                  </View>
-                  <View style={styles.journeyCardStatus}>
-                    <View style={[styles.statusBadge, { backgroundColor: '#D1FAE5' }]}>
-                      <Text style={[styles.statusBadgeText, { color: '#065F46' }]}>Qualified</Text>
-                    </View>
-                    <Text style={styles.journeyCardDuration}>In stage for 1 week</Text>
-                  </View>
-                </View>
-              </View>
-              
-              <View style={styles.journeyCardMeta}>
-                <View style={styles.journeyRelatedRecords}>
-                  <View style={styles.relatedRecord}>
-                    <ArrowRight size={12} color="#6B7280" />
-                    <Text style={styles.relatedRecordText}>From Lead #5</Text>
-                  </View>
-                </View>
-              </View>
-              
-              <View style={styles.journeyCardFooter}>
-                <Text style={styles.journeyCardDate}>Created: Nov 15, 2023, 3:00 PM</Text>
-                <Text style={styles.journeyCardDate}>Updated: Nov 20, 2023, 10:00 AM</Text>
-              </View>
-            </View>
-
-            {/* Stage 3: Proposal */}
-            <View style={styles.journeyCard}>
-              <View style={styles.journeyCardHeader}>
-                <View style={[styles.journeyCardIconContainer, { backgroundColor: '#F3E8FF' }]}>
-                  <FileText size={20} color="#9333EA" />
-                </View>
-                <View style={styles.journeyCardHeaderInfo}>
-                  <View style={styles.journeyTitleRow}>
-                    <Text style={styles.journeyCardTitle}>Basement Finishing Proposal</Text>
-                    <Text style={styles.journeyCardValue}>$35,000.00</Text>
-                  </View>
-                  <View style={styles.journeyCardStatus}>
-                    <View style={[styles.statusBadge, { backgroundColor: '#D1FAE5' }]}>
-                      <Text style={[styles.statusBadgeText, { color: '#065F46' }]}>Proposal Approved</Text>
-                    </View>
-                    <Text style={styles.journeyCardDuration}>In stage for 1 month</Text>
-                  </View>
-                </View>
-              </View>
-              
-              <View style={styles.journeyCardMeta}>
-                <View style={styles.journeyMetaRow}>
-                  <Send size={14} color="#9333EA" />
-                  <Text style={styles.journeyMetaText}>Sent: Nov 20, 2023</Text>
-                </View>
-                <View style={styles.journeyRelatedRecords}>
-                  <View style={styles.relatedRecord}>
-                    <ArrowRight size={12} color="#6B7280" />
-                    <Text style={styles.relatedRecordText}>From Lead #5</Text>
-                  </View>
-                  <View style={styles.relatedRecord}>
-                    <ArrowRight size={12} color="#6B7280" />
-                    <Text style={styles.relatedRecordText}>From Opportunity #3</Text>
-                  </View>
-                </View>
-              </View>
-              
-              <View style={styles.journeyCardFooter}>
-                <Text style={styles.journeyCardDate}>Created: Nov 20, 2023, 7:00 AM</Text>
-                <Text style={styles.journeyCardDate}>Updated: Dec 28, 2023, 9:00 AM</Text>
-              </View>
-            </View>
-
-            {/* Stage 4: Job (Current) */}
+            {/* Stage 4: Project (Current) */}
             <View style={[styles.journeyCard, styles.currentJourneyCard]}>
               <View style={styles.journeyCardHeader}>
                 <View style={[styles.journeyCardIconContainer, { backgroundColor: '#FED7AA' }]}>
@@ -875,6 +759,122 @@ export default function Pipeline() {
                 <TouchableOpacity style={[styles.journeyActionButton, styles.journeyActionButtonSecondary]}>
                   <Text style={styles.journeyActionButtonTextSecondary}>Move Stage</Text>
                 </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Stage 3: Proposal */}
+            <View style={styles.journeyCard}>
+              <View style={styles.journeyCardHeader}>
+                <View style={[styles.journeyCardIconContainer, { backgroundColor: '#F3E8FF' }]}>
+                  <FileText size={20} color="#9333EA" />
+                </View>
+                <View style={styles.journeyCardHeaderInfo}>
+                  <View style={styles.journeyTitleRow}>
+                    <Text style={styles.journeyCardTitle}>Basement Finishing Proposal</Text>
+                    <Text style={styles.journeyCardValue}>$35,000.00</Text>
+                  </View>
+                  <View style={styles.journeyCardStatus}>
+                    <View style={[styles.statusBadge, { backgroundColor: '#D1FAE5' }]}>
+                      <Text style={[styles.statusBadgeText, { color: '#065F46' }]}>Proposal Approved</Text>
+                    </View>
+                    <Text style={styles.journeyCardDuration}>In stage for 1 month</Text>
+                  </View>
+                </View>
+              </View>
+              
+              <View style={styles.journeyCardMeta}>
+                <View style={styles.journeyMetaRow}>
+                  <Send size={14} color="#9333EA" />
+                  <Text style={styles.journeyMetaText}>Sent: Nov 20, 2023</Text>
+                </View>
+                <View style={styles.journeyRelatedRecords}>
+                  <View style={styles.relatedRecord}>
+                    <ArrowRight size={12} color="#6B7280" />
+                    <Text style={styles.relatedRecordText}>From Lead #5</Text>
+                  </View>
+                  <View style={styles.relatedRecord}>
+                    <ArrowRight size={12} color="#6B7280" />
+                    <Text style={styles.relatedRecordText}>From Opportunity #3</Text>
+                  </View>
+                </View>
+              </View>
+              
+              <View style={styles.journeyCardFooter}>
+                <Text style={styles.journeyCardDate}>Created: Nov 20, 2023, 7:00 AM</Text>
+                <Text style={styles.journeyCardDate}>Updated: Dec 28, 2023, 9:00 AM</Text>
+              </View>
+            </View>
+
+            {/* Stage 2: Opportunity */}
+            <View style={styles.journeyCard}>
+              <View style={styles.journeyCardHeader}>
+                <View style={[styles.journeyCardIconContainer, { backgroundColor: '#D1FAE5' }]}>
+                  <Target size={20} color="#059669" />
+                </View>
+                <View style={styles.journeyCardHeaderInfo}>
+                  <View style={styles.journeyTitleRow}>
+                    <Text style={styles.journeyCardTitle}>Basement Finishing Opportunity</Text>
+                    <Text style={styles.journeyCardValue}>$35,000.00</Text>
+                  </View>
+                  <View style={styles.journeyCardStatus}>
+                    <View style={[styles.statusBadge, { backgroundColor: '#D1FAE5' }]}>
+                      <Text style={[styles.statusBadgeText, { color: '#065F46' }]}>Qualified</Text>
+                    </View>
+                    <Text style={styles.journeyCardDuration}>In stage for 1 week</Text>
+                  </View>
+                </View>
+              </View>
+              
+              <View style={styles.journeyCardMeta}>
+                <View style={styles.journeyRelatedRecords}>
+                  <View style={styles.relatedRecord}>
+                    <ArrowRight size={12} color="#6B7280" />
+                    <Text style={styles.relatedRecordText}>From Lead #5</Text>
+                  </View>
+                </View>
+              </View>
+              
+              <View style={styles.journeyCardFooter}>
+                <Text style={styles.journeyCardDate}>Created: Nov 15, 2023, 3:00 PM</Text>
+                <Text style={styles.journeyCardDate}>Updated: Nov 20, 2023, 10:00 AM</Text>
+              </View>
+            </View>
+
+            {/* Stage 1: Inquiry (Lead) */}
+            <View style={styles.journeyCard}>
+              <View style={styles.journeyCardHeader}>
+                <View style={styles.journeyCardIconContainer}>
+                  <User size={20} color="#6366F1" />
+                </View>
+                <View style={styles.journeyCardHeaderInfo}>
+                  <Text style={styles.journeyCardTitle}>Basement Finishing Inquiry</Text>
+                  <View style={styles.journeyCardStatus}>
+                    <View style={[styles.statusBadge, { backgroundColor: '#D1FAE5' }]}>
+                      <Text style={[styles.statusBadgeText, { color: '#065F46' }]}>Qualified</Text>
+                    </View>
+                    <Text style={styles.journeyCardDuration}>In stage for 2 weeks</Text>
+                  </View>
+                </View>
+              </View>
+              
+              <View style={styles.journeyCardMeta}>
+                <View style={styles.journeyMetaRow}>
+                  <Zap size={14} color="#F59E0B" />
+                  <Text style={styles.journeyMetaText}>Lead Source: Website Form</Text>
+                </View>
+                <View style={styles.journeyCardTags}>
+                  <View style={styles.journeyTag}>
+                    <Text style={styles.journeyTagText}>Basement</Text>
+                  </View>
+                  <View style={styles.journeyTag}>
+                    <Text style={styles.journeyTagText}>Residential</Text>
+                  </View>
+                </View>
+              </View>
+              
+              <View style={styles.journeyCardFooter}>
+                <Text style={styles.journeyCardDate}>Created: Nov 1, 2023, 9:00 AM</Text>
+                <Text style={styles.journeyCardDate}>Updated: Nov 15, 2023, 2:00 PM</Text>
               </View>
             </View>
           </View>
