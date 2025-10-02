@@ -888,106 +888,96 @@ const SubstratesStep: React.FC<{
 
   return (
     <View style={styles.stepContent}>
-      <View style={styles.substratesHeader}>
-        <View>
-          <Text style={styles.stepTitle}>Substrates</Text>
-          <Text style={styles.stepDescription}>Configure substrates for each area</Text>
-        </View>
-        
-        {/* Area Picker */}
-        <View style={styles.areaPicker}>
-          <Text style={styles.areaPickerLabel}>Area:</Text>
-          <View style={styles.areaPickerButton}>
-            <Text style={styles.areaPickerText}>{selectedArea}</Text>
-          </View>
-        </View>
+      <Text style={styles.stepTitle}>Substrates</Text>
+      <Text style={styles.stepDescription}>Configure substrates for each area</Text>
+
+      {/* Area Info Card */}
+      <View style={styles.areaInfoCard}>
+        <Text style={styles.areaInfoLabel}>Area: {selectedArea}</Text>
+        <Text style={styles.areaInfoMeasurement}>{getMeasurementDisplay()}</Text>
       </View>
 
-      {/* Two Column Layout */}
-      <View style={styles.substrateColumns}>
-        {/* Left Column - Substrate List */}
-        <View style={styles.substrateLeftColumn}>
-          <View style={styles.substrateListHeader}>
-            <Text style={styles.substrateListTitle}>{selectedArea}</Text>
-            <Text style={styles.substrateListMeasurement}>{getMeasurementDisplay()}</Text>
-          </View>
-
-          <ScrollView style={styles.substrateList}>
-            {Object.entries(currentAreaSubstrates).map(([substrateKey, substrate]) => (
-              <TouchableOpacity
-                key={substrateKey}
-                style={[
-                  styles.substrateListItem,
-                  selectedSubstrate === substrateKey && styles.substrateListItemActive
-                ]}
-                onPress={() => setSelectedSubstrate(substrateKey)}
-              >
-                <View style={styles.substrateListItemContent}>
-                  <Text style={styles.substrateListItemName}>{substrate.substrate}</Text>
-                  <Text style={styles.substrateListItemCategory}>
-                    {Object.entries(substratesByCategory).find(([cat, subs]) =>
-                      subs.includes(substrate.substrate)
-                    )?.[0] || 'Unknown'}
+      {Object.keys(currentAreaSubstrates).length === 0 ? (
+        <View style={styles.emptySubstrateState}>
+          <Package size={48} color="#9CA3AF" />
+          <Text style={styles.emptySubstrateStateText}>
+            No substrates added yet
+          </Text>
+          <Text style={styles.emptySubstrateStateSubtext}>
+            Go back and select categories to add substrates
+          </Text>
+        </View>
+      ) : (
+        <>
+          {/* Substrate Selector */}
+          <View style={styles.substrateSelector}>
+            <Text style={styles.substrateSelectorLabel}>Select Substrate:</Text>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              style={styles.substrateSelectorScroll}
+              contentContainerStyle={styles.substrateSelectorContent}
+            >
+              {Object.entries(currentAreaSubstrates).map(([substrateKey, substrate]) => (
+                <TouchableOpacity
+                  key={substrateKey}
+                  style={[
+                    styles.substrateChip,
+                    selectedSubstrate === substrateKey && styles.substrateChipActive
+                  ]}
+                  onPress={() => setSelectedSubstrate(substrateKey)}
+                >
+                  <Text style={[
+                    styles.substrateChipText,
+                    selectedSubstrate === substrateKey && styles.substrateChipTextActive
+                  ]}>
+                    {substrate.substrate}
                   </Text>
-                </View>
-                <View style={styles.substrateListItemDetails}>
-                  <Text style={styles.substrateListItemQuantity}>
+                  <Text style={[
+                    styles.substrateChipMeta,
+                    selectedSubstrate === substrateKey && styles.substrateChipMetaActive
+                  ]}>
                     {substrate.quantity} {spreadRates[substrate.substrate]?.unit === 'hrs/item' ? 'x' : 'sqft'}
                   </Text>
-                  <Text style={styles.substrateListItemRate}>
-                    {substrate.spreadRate} {spreadRates[substrate.substrate]?.unit || 'sqft/hr'}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
 
-          {Object.keys(currentAreaSubstrates).length === 0 && (
-            <View style={styles.emptySubstrateList}>
-              <Package size={40} color="#9CA3AF" />
-              <Text style={styles.emptySubstrateListText}>
-                Select categories to add substrates
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {/* Right Column - Substrate Details */}
-        <ScrollView style={styles.substrateRightColumn}>
+          {/* Substrate Configuration */}
           {currentSubstrateData ? (
-            <View style={styles.substrateDetails}>
-              <View style={styles.substrateDetailsHeader}>
-                <Text style={styles.substrateDetailsTitle}>{currentSubstrateData.substrate}</Text>
-                <Text style={styles.substrateDetailsCategory}>
+            <View style={styles.substrateConfigCard}>
+              <View style={styles.substrateConfigHeader}>
+                <Text style={styles.substrateConfigTitle}>{currentSubstrateData.substrate}</Text>
+                <Text style={styles.substrateConfigCategory}>
                   {Object.entries(substratesByCategory).find(([cat, subs]) =>
                     subs.includes(currentSubstrateData.substrate)
                   )?.[0] || 'Unknown'}
                 </Text>
               </View>
 
-              {/* Configuration Inputs */}
-              <View style={styles.substrateConfig}>
-                <View style={styles.substrateConfigRow}>
-                  <View style={styles.substrateConfigInput}>
-                    <Text style={styles.inputLabel}>Substrate</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={currentSubstrateData.substrate}
-                      onChangeText={(text) => updateSubstrate('substrate', text)}
-                    />
-                  </View>
-                  <View style={styles.substrateConfigInput}>
-                    <Text style={styles.inputLabel}>Client Label</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={currentSubstrateData.clientLabel}
-                      onChangeText={(text) => updateSubstrate('clientLabel', text)}
-                    />
-                  </View>
+              {/* Basic Configuration */}
+              <View style={styles.configSection}>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Substrate Name</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={currentSubstrateData.substrate}
+                    onChangeText={(text) => updateSubstrate('substrate', text)}
+                  />
                 </View>
 
-                <View style={styles.substrateConfigRow}>
-                  <View style={styles.substrateConfigInput}>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Client Label</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={currentSubstrateData.clientLabel}
+                    onChangeText={(text) => updateSubstrate('clientLabel', text)}
+                  />
+                </View>
+
+                <View style={styles.inputRow}>
+                  <View style={styles.inputHalf}>
                     <Text style={styles.inputLabel}>Prep (hrs)</Text>
                     <TextInput
                       style={styles.input}
@@ -996,8 +986,8 @@ const SubstratesStep: React.FC<{
                       keyboardType="decimal-pad"
                     />
                   </View>
-                  <View style={styles.substrateConfigInput}>
-                    <Text style={styles.inputLabel}>Spreadrate</Text>
+                  <View style={styles.inputHalf}>
+                    <Text style={styles.inputLabel}>Spread Rate</Text>
                     <TextInput
                       style={styles.input}
                       value={currentSubstrateData.spreadRate?.toString() || ''}
@@ -1007,8 +997,8 @@ const SubstratesStep: React.FC<{
                   </View>
                 </View>
 
-                <View style={styles.substrateConfigRow}>
-                  <View style={styles.substrateConfigInput}>
+                <View style={styles.inputRow}>
+                  <View style={styles.inputHalf}>
                     <Text style={styles.inputLabel}>Measurement (sqft)</Text>
                     <TextInput
                       style={styles.input}
@@ -1017,7 +1007,7 @@ const SubstratesStep: React.FC<{
                       keyboardType="decimal-pad"
                     />
                   </View>
-                  <View style={styles.substrateConfigInput}>
+                  <View style={styles.inputHalf}>
                     <Text style={styles.inputLabel}>Coats</Text>
                     <View style={styles.coatsSelector}>
                       {[1, 2, 3].map(coats => (
@@ -1073,7 +1063,7 @@ const SubstratesStep: React.FC<{
               {/* Tab Content */}
               <View style={styles.substrateTabContent}>
                 {activeTab === 'product' && (
-                  <View style={styles.productTab}>
+                  <View style={styles.productTabContent}>
                     <View style={styles.inputGroup}>
                       <Text style={styles.inputLabel}>Product</Text>
                       <View style={styles.pickerContainer}>
@@ -1081,8 +1071,8 @@ const SubstratesStep: React.FC<{
                       </View>
                     </View>
 
-                    <View style={styles.substrateConfigRow}>
-                      <View style={styles.substrateConfigInput}>
+                    <View style={styles.inputRow}>
+                      <View style={styles.inputHalf}>
                         <Text style={styles.inputLabel}>Unit Price</Text>
                         <TextInput
                           style={styles.input}
@@ -1091,7 +1081,7 @@ const SubstratesStep: React.FC<{
                           keyboardType="decimal-pad"
                         />
                       </View>
-                      <View style={styles.substrateConfigInput}>
+                      <View style={styles.inputHalf}>
                         <Text style={styles.inputLabel}>Coverage (sqft/gal)</Text>
                         <TextInput
                           style={styles.input}
@@ -1105,7 +1095,7 @@ const SubstratesStep: React.FC<{
                 )}
 
                 {activeTab === 'crew' && (
-                  <View style={styles.noteTab}>
+                  <View style={styles.noteTabContent}>
                     <TextInput
                       style={styles.textArea}
                       placeholder="Crew notes for work order..."
@@ -1118,7 +1108,7 @@ const SubstratesStep: React.FC<{
                 )}
 
                 {activeTab === 'client' && (
-                  <View style={styles.noteTab}>
+                  <View style={styles.noteTabContent}>
                     <TextInput
                       style={styles.textArea}
                       placeholder="Client notes for proposal..."
@@ -1132,15 +1122,15 @@ const SubstratesStep: React.FC<{
               </View>
             </View>
           ) : (
-            <View style={styles.emptySubstrateDetails}>
-              <Package size={48} color="#9CA3AF" />
-              <Text style={styles.emptySubstrateDetailsText}>
-                Select a substrate to configure its details
+            <View style={styles.emptySubstrateSelection}>
+              <Package size={40} color="#9CA3AF" />
+              <Text style={styles.emptySubstrateSelectionText}>
+                Select a substrate above to configure
               </Text>
             </View>
           )}
-        </ScrollView>
-      </View>
+        </>
+      )}
     </View>
   );
 };
@@ -1586,146 +1576,132 @@ const styles = StyleSheet.create({
   categoryCardTextActive: {
     color: '#A855F7',
   },
-  substratesHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  areaPicker: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  areaPickerLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6B7280',
-  },
-  areaPickerButton: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    minWidth: 120,
-  },
-  areaPickerText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  substrateColumns: {
-    flexDirection: 'row',
-    gap: 12,
-    flex: 1,
-  },
-  substrateLeftColumn: {
-    width: 200,
-    backgroundColor: '#FFFFFF',
+  // Substrate Styles
+  areaInfoCard: {
+    backgroundColor: '#EEF2FF',
     borderRadius: 12,
-    padding: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
   },
-  substrateListHeader: {
-    marginBottom: 12,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  substrateListTitle: {
+  areaInfoLabel: {
     fontSize: 15,
     fontWeight: '700',
     color: '#111827',
   },
-  substrateListMeasurement: {
+  areaInfoMeasurement: {
+    fontSize: 13,
+    color: '#6366F1',
+    marginTop: 4,
+    fontWeight: '600',
+  },
+  emptySubstrateState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    marginTop: 20,
+  },
+  emptySubstrateStateText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginTop: 16,
+  },
+  emptySubstrateStateSubtext: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 8,
+    textAlign: 'center',
+    paddingHorizontal: 32,
+  },
+  substrateSelector: {
+    marginBottom: 16,
+  },
+  substrateSelectorLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 10,
+  },
+  substrateSelectorScroll: {
+    flexGrow: 0,
+  },
+  substrateSelectorContent: {
+    gap: 8,
+  },
+  substrateChip: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    minWidth: 120,
+  },
+  substrateChipActive: {
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
+  },
+  substrateChipText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  substrateChipTextActive: {
+    color: '#FFFFFF',
+  },
+  substrateChipMeta: {
     fontSize: 12,
     color: '#6B7280',
     marginTop: 2,
   },
-  substrateList: {
-    flex: 1,
+  substrateChipMetaActive: {
+    color: 'rgba(255, 255, 255, 0.9)',
   },
-  substrateListItem: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  substrateListItemActive: {
-    backgroundColor: '#EEF2FF',
-    borderColor: '#6366F1',
-  },
-  substrateListItemContent: {
-    marginBottom: 6,
-  },
-  substrateListItemName: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  substrateListItemCategory: {
-    fontSize: 11,
-    color: '#6B7280',
-    marginTop: 2,
-  },
-  substrateListItemDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  substrateListItemQuantity: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  substrateListItemRate: {
-    fontSize: 11,
-    color: '#6B7280',
-  },
-  emptySubstrateList: {
-    flex: 1,
+  emptySubstrateSelection: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 40,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
   },
-  emptySubstrateListText: {
-    fontSize: 13,
+  emptySubstrateSelectionText: {
+    fontSize: 14,
     color: '#9CA3AF',
     marginTop: 12,
-    textAlign: 'center',
   },
-  substrateRightColumn: {
-    flex: 1,
+  substrateConfigCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
-  },
-  substrateDetails: {
     gap: 16,
   },
-  substrateDetailsHeader: {
-    marginBottom: 8,
+  substrateConfigHeader: {
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
-  substrateDetailsTitle: {
-    fontSize: 17,
+  substrateConfigTitle: {
+    fontSize: 18,
     fontWeight: '700',
     color: '#111827',
   },
-  substrateDetailsCategory: {
+  substrateConfigCategory: {
     fontSize: 13,
     color: '#6B7280',
-    marginTop: 2,
+    marginTop: 4,
   },
-  substrateConfig: {
-    gap: 12,
+  configSection: {
+    gap: 14,
   },
-  substrateConfigRow: {
+  inputRow: {
     flexDirection: 'row',
     gap: 12,
   },
-  substrateConfigInput: {
+  inputHalf: {
     flex: 1,
     gap: 6,
   },
@@ -1757,21 +1733,28 @@ const styles = StyleSheet.create({
   },
   substrateTabs: {
     flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-    marginTop: 8,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 10,
+    padding: 3,
+    gap: 2,
   },
   substrateTab: {
+    flex: 1,
     paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    alignItems: 'center',
   },
   substrateTabActive: {
-    borderBottomColor: '#6366F1',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   substrateTabText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     color: '#6B7280',
   },
@@ -1779,37 +1762,37 @@ const styles = StyleSheet.create({
     color: '#6366F1',
   },
   substrateTabContent: {
-    marginTop: 12,
+    marginTop: 4,
   },
-  productTab: {
+  productTabContent: {
+    gap: 14,
+  },
+  noteTabContent: {
     gap: 12,
-  },
-  noteTab: {
-    gap: 8,
   },
   pickerContainer: {
     backgroundColor: '#F9FAFB',
     borderWidth: 1,
     borderColor: '#E5E7EB',
     borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
   },
   pickerValue: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#111827',
+    fontWeight: '500',
   },
-  emptySubstrateDetails: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-  },
-  emptySubstrateDetailsText: {
-    fontSize: 14,
-    color: '#9CA3AF',
-    marginTop: 16,
-    textAlign: 'center',
+  textArea: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: '#111827',
+    minHeight: 100,
   },
   summaryCard: {
     backgroundColor: '#FFFFFF',
