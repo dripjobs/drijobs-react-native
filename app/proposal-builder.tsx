@@ -1,3 +1,4 @@
+import { AddAreaWizard } from '@/components/AddAreaWizard';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
@@ -80,6 +81,9 @@ export default function ProposalBuilder() {
   const [showAddItemModal, setShowAddItemModal] = useState(false);
   const [isAddingOptionalItem, setIsAddingOptionalItem] = useState(false);
   
+  // Area wizard state
+  const [showAreaWizard, setShowAreaWizard] = useState(false);
+  
   // Deposit state
   const [depositRequired, setDepositRequired] = useState(false);
   const [depositType, setDepositType] = useState<'amount' | 'percentage'>('amount');
@@ -158,6 +162,22 @@ export default function ProposalBuilder() {
   const removeMilestone = (id: string) => {
     setMilestonePayments(milestonePayments.filter(m => m.id !== id));
   };
+  
+  const handleAddArea = (area: any) => {
+    // Convert area to line item
+    const newLineItem: ProposalLineItem = {
+      id: area.id,
+      name: area.name,
+      description: `${area.type} - ${area.categories.join(', ')}`,
+      quantity: 1,
+      unitPrice: 0, // Calculate from substrates
+      totalPrice: 0, // Calculate from substrates
+      isOptional: area.isOptional,
+    };
+    
+    setLineItems([...lineItems, newLineItem]);
+    Alert.alert('Success', 'Area added successfully!');
+  };
 
   const renderTabBar = () => {
     const tabs = [
@@ -210,10 +230,16 @@ export default function ProposalBuilder() {
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Line Items</Text>
-          <TouchableOpacity style={styles.addButton} onPress={addLineItem}>
-            <Plus size={16} color="#FFFFFF" />
-            <Text style={styles.addButtonText}>Add Item</Text>
-          </TouchableOpacity>
+          <View style={styles.headerButtons}>
+            <TouchableOpacity style={styles.addButtonSecondary} onPress={() => setShowAreaWizard(true)}>
+              <Package size={14} color="#6366F1" />
+              <Text style={styles.addButtonSecondaryText}>Area</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.addButton} onPress={addLineItem}>
+              <Plus size={16} color="#FFFFFF" />
+              <Text style={styles.addButtonText}>Item</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {lineItems.filter(item => !item.isOptional).map((item) => (
@@ -898,6 +924,13 @@ export default function ProposalBuilder() {
           </View>
         </View>
       </Modal>
+
+      {/* Add Area Wizard */}
+      <AddAreaWizard
+        visible={showAreaWizard}
+        onClose={() => setShowAreaWizard(false)}
+        onAddArea={handleAddArea}
+      />
     </SafeAreaView>
   );
 }
@@ -1024,6 +1057,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#111827',
   },
+  headerButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1035,6 +1072,20 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  addButtonSecondary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 4,
+  },
+  addButtonSecondaryText: {
+    color: '#6366F1',
     fontSize: 14,
     fontWeight: '600',
   },
