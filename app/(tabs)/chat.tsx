@@ -2,7 +2,7 @@ import DrawerMenu from '@/components/DrawerMenu';
 import FloatingActionMenu from '@/components/FloatingActionMenu';
 import { useTabBar } from '@/contexts/TabBarContext';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, Building, Calendar, Camera, ChevronRight, DollarSign, Image as ImageIcon, Mail, MapPin, Paperclip, Phone, Search, Send, TrendingUp, User, X } from 'lucide-react-native';
+import { ArrowLeft, Building, Calendar, Camera, ChevronRight, DollarSign, FileText, Image, Mail, MapPin, Phone, Search, Send, TrendingUp, Upload, User, X } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Dimensions, KeyboardAvoidingView, Modal, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -44,6 +44,10 @@ export default function Chat() {
   const [isTyping, setIsTyping] = useState(false);
   const [typingUser, setTypingUser] = useState<string | null>(null);
   const [isNoteMode, setIsNoteMode] = useState(false);
+  const [showAttachmentModal, setShowAttachmentModal] = useState(false);
+  const [showUserMention, setShowUserMention] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [mentionStart, setMentionStart] = useState(0);
 
   // Mock chat threads data
   const chatThreads: ChatThread[] = [
@@ -209,6 +213,55 @@ export default function Chat() {
   const handleCloseContactPanel = () => {
     setShowContactPanel(false);
   };
+
+  const handleAttachmentPress = () => {
+    setShowAttachmentModal(true);
+  };
+
+  const handleCloseAttachmentModal = () => {
+    setShowAttachmentModal(false);
+  };
+
+  const handleAttachmentOption = (option: string) => {
+    console.log('Selected attachment option:', option);
+    setShowAttachmentModal(false);
+    // TODO: Implement actual attachment functionality
+  };
+
+  const handleTextChange = (text: string) => {
+    setNewMessage(text);
+    
+    // Check for @ mentions
+    const atIndex = text.lastIndexOf('@');
+    if (atIndex !== -1) {
+      const afterAt = text.substring(atIndex + 1);
+      if (!afterAt.includes(' ') && !afterAt.includes('\n')) {
+        setMentionQuery(afterAt);
+        setMentionStart(atIndex);
+        setShowUserMention(true);
+      } else {
+        setShowUserMention(false);
+      }
+    } else {
+      setShowUserMention(false);
+    }
+  };
+
+  const handleUserMention = (user: string) => {
+    const beforeMention = newMessage.substring(0, mentionStart);
+    const afterMention = newMessage.substring(mentionStart + mentionQuery.length + 1);
+    setNewMessage(beforeMention + '@' + user + ' ' + afterMention);
+    setShowUserMention(false);
+    setMentionQuery('');
+  };
+
+  // Mock team members for mentions
+  const teamMembers = [
+    { name: 'Sarah Martinez', initials: 'SM' },
+    { name: 'Mike Johnson', initials: 'MJ' },
+    { name: 'Emily Chen', initials: 'EC' },
+    { name: 'David Wilson', initials: 'DW' },
+  ];
 
   const handleSendMessage = () => {
     if (newMessage.trim() && selectedThread) {
@@ -399,7 +452,7 @@ export default function Chat() {
                 key={message.id}
                 style={[
                   styles.messageContainer,
-                  message.isNote ? styles.noteContainer : (message.sender === 'business' ? styles.sentMessageContainer : styles.receivedMessageContainer)
+                  message.isNote ? styles.noteMessageContainer : (message.sender === 'business' ? styles.sentMessageContainer : styles.receivedMessageContainer)
                 ]}
               >
                 {message.isNote && (
@@ -435,22 +488,23 @@ export default function Chat() {
               </View>
             ))}
 
-            {/* Typing Indicator */}
-            {isTyping && (
-              <View style={styles.typingIndicatorContainer}>
-                <View style={styles.typingBubble}>
-                  <View style={styles.typingDots}>
-                    <View style={[styles.typingDot, styles.typingDot1]} />
-                    <View style={[styles.typingDot, styles.typingDot2]} />
-                    <View style={[styles.typingDot, styles.typingDot3]} />
-                  </View>
+          </ScrollView>
+
+          {/* Typing Indicator - Bottom Middle */}
+          {isTyping && (
+            <View style={styles.typingIndicatorBottom}>
+              <View style={styles.typingBubbleBottom}>
+                <View style={styles.typingDots}>
+                  <View style={[styles.typingDot, styles.typingDot1]} />
+                  <View style={[styles.typingDot, styles.typingDot2]} />
+                  <View style={[styles.typingDot, styles.typingDot3]} />
                 </View>
                 {typingUser && (
-                  <Text style={styles.typingText}>{typingUser} is typing...</Text>
+                  <Text style={styles.typingTextBottom}>{typingUser} is typing...</Text>
                 )}
               </View>
-            )}
-          </ScrollView>
+            </View>
+          )}
 
           {/* Message Input */}
           <KeyboardAvoidingView 
@@ -464,16 +518,11 @@ export default function Chat() {
               styles.messageInputWrapper,
               isNoteMode && styles.noteInputWrapper
             ]}>
-              <TouchableOpacity style={styles.inputIconButton}>
-                <Paperclip size={22} color={isNoteMode ? "#92400E" : "#6B7280"} />
-              </TouchableOpacity>
-              
-              <TouchableOpacity style={styles.inputIconButton}>
-                <ImageIcon size={22} color={isNoteMode ? "#92400E" : "#6B7280"} />
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.inputIconButton}>
-                <Camera size={22} color={isNoteMode ? "#92400E" : "#6B7280"} />
+              <TouchableOpacity 
+                style={styles.attachmentButton}
+                onPress={handleAttachmentPress}
+              >
+                <Image size={22} color={isNoteMode ? "#92400E" : "#6B7280"} />
               </TouchableOpacity>
 
               <TouchableOpacity 
@@ -491,17 +540,42 @@ export default function Chat() {
                 </Text>
               </TouchableOpacity>
 
-              <TextInput
-                style={[
-                  styles.messageInput,
-                  isNoteMode && styles.noteInput
-                ]}
-                placeholder={isNoteMode ? "Add internal note..." : "Type a message..."}
-                value={newMessage}
-                onChangeText={setNewMessage}
-                multiline
-                placeholderTextColor={isNoteMode ? "#92400E" : "#9CA3AF"}
-              />
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={[
+                    styles.messageInput,
+                    isNoteMode && styles.noteInput
+                  ]}
+                  placeholder={isNoteMode ? "Add internal note..." : "Type a message..."}
+                  value={newMessage}
+                  onChangeText={handleTextChange}
+                  multiline
+                  placeholderTextColor={isNoteMode ? "#92400E" : "#9CA3AF"}
+                />
+                
+                {/* User Mention Dropdown */}
+                {showUserMention && (
+                  <View style={styles.mentionDropdown}>
+                    {teamMembers
+                      .filter(member => 
+                        member.name.toLowerCase().includes(mentionQuery.toLowerCase())
+                      )
+                      .map((member, index) => (
+                        <TouchableOpacity
+                          key={index}
+                          style={styles.mentionOption}
+                          onPress={() => handleUserMention(member.name)}
+                        >
+                          <View style={styles.mentionAvatar}>
+                            <Text style={styles.mentionAvatarText}>{member.initials}</Text>
+                          </View>
+                          <Text style={styles.mentionName}>{member.name}</Text>
+                        </TouchableOpacity>
+                      ))
+                    }
+                  </View>
+                )}
+              </View>
 
               <TouchableOpacity 
                 style={[
@@ -654,6 +728,88 @@ export default function Chat() {
                   </TouchableOpacity>
                 </View>
             </SafeAreaView>
+          </Modal>
+
+          {/* Attachment Options Modal */}
+          <Modal
+            visible={showAttachmentModal}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={handleCloseAttachmentModal}
+          >
+            <View style={styles.attachmentModalOverlay}>
+              <TouchableOpacity 
+                style={styles.attachmentModalBackdrop}
+                activeOpacity={1}
+                onPress={handleCloseAttachmentModal}
+              />
+              <View style={styles.attachmentModal}>
+              <View style={styles.attachmentHeader}>
+                <Text style={styles.attachmentTitle}>Attach File</Text>
+                <TouchableOpacity onPress={handleCloseAttachmentModal} style={styles.closeAttachmentButton}>
+                  <X size={24} color="#111827" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.attachmentOptions}>
+                <TouchableOpacity 
+                  style={styles.attachmentOption}
+                  onPress={() => handleAttachmentOption('camera')}
+                >
+                  <View style={styles.attachmentOptionIcon}>
+                    <Camera size={24} color="#6366F1" />
+                  </View>
+                  <View style={styles.attachmentOptionContent}>
+                    <Text style={styles.attachmentOptionTitle}>Take Photo</Text>
+                    <Text style={styles.attachmentOptionSubtitle}>Use camera to take a new photo</Text>
+                  </View>
+                  <ChevronRight size={20} color="#9CA3AF" />
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.attachmentOption}
+                  onPress={() => handleAttachmentOption('gallery')}
+                >
+                  <View style={styles.attachmentOptionIcon}>
+                    <Image size={24} color="#6366F1" />
+                  </View>
+                  <View style={styles.attachmentOptionContent}>
+                    <Text style={styles.attachmentOptionTitle}>Choose from Gallery</Text>
+                    <Text style={styles.attachmentOptionSubtitle}>Select photo from your gallery</Text>
+                  </View>
+                  <ChevronRight size={20} color="#9CA3AF" />
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.attachmentOption}
+                  onPress={() => handleAttachmentOption('file')}
+                >
+                  <View style={styles.attachmentOptionIcon}>
+                    <FileText size={24} color="#6366F1" />
+                  </View>
+                  <View style={styles.attachmentOptionContent}>
+                    <Text style={styles.attachmentOptionTitle}>Attach Document</Text>
+                    <Text style={styles.attachmentOptionSubtitle}>Upload PDF, Word, or other files</Text>
+                  </View>
+                  <ChevronRight size={20} color="#9CA3AF" />
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.attachmentOption}
+                  onPress={() => handleAttachmentOption('upload')}
+                >
+                  <View style={styles.attachmentOptionIcon}>
+                    <Upload size={24} color="#6366F1" />
+                  </View>
+                  <View style={styles.attachmentOptionContent}>
+                    <Text style={styles.attachmentOptionTitle}>Upload from Cloud</Text>
+                    <Text style={styles.attachmentOptionSubtitle}>Import from Google Drive, Dropbox, etc.</Text>
+                  </View>
+                  <ChevronRight size={20} color="#9CA3AF" />
+                </TouchableOpacity>
+              </View>
+              </View>
+            </View>
           </Modal>
         </View>
       )}
@@ -897,8 +1053,8 @@ const styles = StyleSheet.create({
   receivedMessageContainer: {
     alignItems: 'flex-start',
   },
-  noteContainer: {
-    alignItems: 'center',
+  noteMessageContainer: {
+    alignItems: 'flex-end',
     width: '100%',
   },
   noteLabel: {
@@ -906,10 +1062,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#92400E',
     marginBottom: 4,
+    marginRight: 4,
     backgroundColor: '#FEF3C7',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
+    alignSelf: 'flex-end',
   },
   messageBubble: {
     maxWidth: '80%',
@@ -933,9 +1091,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF3C7',
     borderColor: '#F59E0B',
     borderWidth: 1,
-    borderLeftWidth: 4,
-    borderLeftColor: '#F59E0B',
-    maxWidth: '90%',
+    borderRightWidth: 4,
+    borderRightColor: '#F59E0B',
+    maxWidth: '80%',
+    borderBottomRightRadius: 4,
     shadowColor: '#F59E0B',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
@@ -991,16 +1150,19 @@ const styles = StyleSheet.create({
   noteSender: {
     color: '#92400E',
   },
-  typingIndicatorContainer: {
-    alignItems: 'flex-start',
-    marginVertical: 4,
+  typingIndicatorBottom: {
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
-  typingBubble: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderBottomLeftRadius: 4,
-    padding: 12,
-    paddingVertical: 16,
+  typingBubbleBottom: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -1027,12 +1189,10 @@ const styles = StyleSheet.create({
   typingDot3: {
     opacity: 0.8,
   },
-  typingText: {
+  typingTextBottom: {
     fontSize: 12,
     color: '#6B7280',
     fontWeight: '500',
-    marginTop: 4,
-    marginLeft: 4,
   },
   messageInputContainer: {
     backgroundColor: '#FFFFFF',
@@ -1059,7 +1219,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#F59E0B',
   },
-  inputIconButton: {
+  attachmentButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -1328,5 +1488,125 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#6366F1',
+  },
+  // Attachment Modal Styles
+  attachmentModalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  attachmentModalBackdrop: {
+    flex: 1,
+  },
+  attachmentModal: {
+    height: '40%',
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  attachmentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  attachmentTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  closeAttachmentButton: {
+    padding: 8,
+  },
+  attachmentOptions: {
+    padding: 20,
+    gap: 12,
+  },
+  attachmentOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  attachmentOptionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  attachmentOptionContent: {
+    flex: 1,
+  },
+  attachmentOptionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  attachmentOptionSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  // Input Container and Mention Styles
+  inputContainer: {
+    flex: 1,
+    position: 'relative',
+  },
+  mentionDropdown: {
+    position: 'absolute',
+    bottom: '100%',
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
+    marginBottom: 8,
+    maxHeight: 200,
+  },
+  mentionOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  mentionAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#6366F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  mentionAvatarText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  mentionName: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#111827',
   },
 });

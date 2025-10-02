@@ -1,7 +1,7 @@
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useTabBar } from '@/contexts/TabBarContext';
 import { Tabs } from 'expo-router';
-import { Handshake, House, MessageCircle, Users } from 'lucide-react-native';
+import { Handshake, Hash, House, MessageCircle, Users } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 
 // Custom Dialer Icon Component
@@ -87,15 +87,24 @@ export default function TabLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="chat"
-        options={{
-          title: 'Chat',
-          tabBarIcon: ({ size, color }) => (
-            <MessageCircle size={24} color={color} strokeWidth={2} />
-          ),
-        }}
-      />
+              <Tabs.Screen
+                name="chat"
+                options={{
+                  title: 'Chat',
+                  tabBarIcon: ({ size, color }) => (
+                    <MessageCircle size={24} color={color} strokeWidth={2} />
+                  ),
+                }}
+              />
+              <Tabs.Screen
+                name="team-chat"
+                options={{
+                  title: 'Team',
+                  tabBarIcon: ({ size, color }) => (
+                    <Hash size={24} color={color} strokeWidth={2} />
+                  ),
+                }}
+              />
     </Tabs>
   );
 }

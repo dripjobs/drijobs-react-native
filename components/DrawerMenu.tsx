@@ -24,20 +24,20 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
         { icon: BarChart3, label: 'Pipeline', action: () => router.push('/(tabs)/pipeline'), primary: true },
       ]
     },
-    {
-      title: 'Communication',
-      items: [
-        { icon: Mic, label: 'Voice', action: () => router.push('/(tabs)/phone') },
-        { icon: MessageSquare, label: 'Chat', action: () => router.push('/(tabs)/chat') },
-        { icon: Mail, label: 'Email', action: () => router.push('/email') },
-        { icon: MessageCircle, label: 'Team Chat', action: () => console.log('Team Chat') },
-      ]
-    },
+        {
+          title: 'Communication',
+          items: [
+            { icon: Mic, label: 'Voice', action: () => router.push('/(tabs)/phone') },
+            { icon: MessageSquare, label: 'Chat', action: () => router.push('/(tabs)/chat') },
+            { icon: Mail, label: 'Email', action: () => router.push('/email') },
+            { icon: MessageCircle, label: 'Team Chat', action: () => router.push('/(tabs)/team-chat') },
+          ]
+        },
     {
       title: 'Scheduling',
       items: [
         { icon: Calendar, label: 'Appointments', action: () => router.push('/appointments') },
-        { icon: Clock, label: 'Job Schedule', action: () => console.log('Job Schedule') },
+        { icon: Clock, label: 'Job Schedule', action: () => router.push('/job-schedule') },
         { icon: CalendarIcon, label: 'Booking Forms', action: () => console.log('Booking Forms') },
         { icon: RotateCcw, label: 'Recurring Jobs', action: () => console.log('Recurring Jobs') },
       ]
@@ -45,8 +45,8 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
     {
       title: 'Business',
       items: [
-        { icon: FileText, label: 'Invoices', action: () => console.log('Invoices') },
-        { icon: FileCheck, label: 'Proposals', action: () => console.log('Proposals') },
+        { icon: FileText, label: 'Invoices', action: () => router.push('/invoices') },
+        { icon: FileCheck, label: 'Proposals', action: () => router.push('/proposals') },
         { icon: Wrench, label: 'Work Orders', action: () => console.log('Work Orders') },
         { icon: Star, label: 'Reviews', action: () => console.log('Reviews') },
       ]
