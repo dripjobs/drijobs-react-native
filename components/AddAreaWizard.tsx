@@ -5,7 +5,7 @@ import {
     ChevronLeft,
     ChevronRight,
     Home,
-    Info,
+    Package,
     Plus,
     Square,
     X
