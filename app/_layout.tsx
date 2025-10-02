@@ -17,6 +17,8 @@ export default function RootLayout() {
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen name="email" options={{ headerShown: false }} />
               <Stack.Screen name="appointments" options={{ headerShown: false }} />
+              <Stack.Screen name="proposals" options={{ headerShown: false }} />
+              <Stack.Screen name="proposal-builder" options={{ headerShown: false }} />
               <Stack.Screen name="+not-found" />
             </Stack>
             <StatusBar style="auto" />

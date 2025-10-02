@@ -3,7 +3,7 @@ import FloatingActionMenu from '@/components/FloatingActionMenu';
 import { useTabBar } from '@/contexts/TabBarContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, Building, Calendar, Camera, ChevronRight, DollarSign, FileText, Image, Mail, MapPin, Phone, Search, Send, TrendingUp, Upload, User, X } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Dimensions, KeyboardAvoidingView, Modal, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -48,6 +48,8 @@ export default function Chat() {
   const [showUserMention, setShowUserMention] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
   const [mentionStart, setMentionStart] = useState(0);
+  
+  const scrollViewRef = useRef<ScrollView>(null);
 
   // Mock chat threads data
   const chatThreads: ChatThread[] = [
@@ -190,6 +192,10 @@ export default function Chat() {
   useEffect(() => {
     if (selectedThread) {
       setIsVisible(false);
+      // Scroll to bottom when thread is opened
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: false });
+      }, 100);
     } else {
       setIsVisible(true);
     }
@@ -298,6 +304,11 @@ export default function Chat() {
       // Clear input and reset note mode
       setNewMessage('');
       setIsNoteMode(false);
+      
+      // Scroll to bottom after message is added
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
     }
   };
 
@@ -443,6 +454,7 @@ export default function Chat() {
 
           {/* Messages Area */}
           <ScrollView 
+            ref={scrollViewRef}
             style={styles.messagesArea}
             contentContainerStyle={styles.messagesContent}
             showsVerticalScrollIndicator={false}

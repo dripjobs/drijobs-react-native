@@ -11,6 +11,7 @@ import {
     Edit,
     FileText,
     Filter,
+    Plus,
     Search,
     XCircle
 } from 'lucide-react-native';
@@ -230,9 +231,10 @@ export default function ProposalsPage() {
   };
 
   const handleOpenProposal = () => {
-    // TODO: Navigate to full proposal view or generate PDF
-    console.log('Open proposal:', selectedProposal?.proposalNumber);
-    setShowDetailModal(false);
+    if (selectedProposal) {
+      setShowDetailModal(false);
+      router.push(`/proposal-builder?id=${selectedProposal.proposalNumber}`);
+    }
   };
 
   return (
@@ -251,7 +253,12 @@ export default function ProposalsPage() {
             <ChevronLeft size={24} color="#FFFFFF" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Proposals</Text>
-          <View style={styles.headerSpacer} />
+          <TouchableOpacity 
+            onPress={() => router.push('/proposal-builder')} 
+            style={styles.newProposalButton}
+          >
+            <Plus size={20} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
 
         {/* Search Bar */}
@@ -585,6 +592,11 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   backButton: {
+    padding: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 12,
+  },
+  newProposalButton: {
     padding: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 12,

@@ -1,0 +1,1434 @@
+import { LinearGradient } from 'expo-linear-gradient';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import {
+    ChevronLeft,
+    Clock,
+    Eye,
+    FileText,
+    MessageSquare,
+    Package,
+    Paperclip,
+    Percent,
+    Plus,
+    Presentation,
+    Save,
+    Send,
+    Settings,
+    Shield,
+    Target,
+    Trash2
+} from 'lucide-react-native';
+import React, { useState } from 'react';
+import {
+    Alert,
+    Modal,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+
+interface ProposalLineItem {
+  id: string;
+  name: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  isOptional: boolean;
+}
+
+interface ProposalMilestone {
+  id: string;
+  name: string;
+  description: string;
+  amount: number;
+  dueDate: Date;
+  isCompleted: boolean;
+  percentage: number;
+}
+
+export default function ProposalBuilder() {
+  const router = useRouter();
+  const params = useLocalSearchParams();
+  
+  // Parse proposal data from params if editing
+  const proposalId = params.id as string | undefined;
+  const isEditing = !!proposalId;
+  
+  // Active tab state
+  const [activeTab, setActiveTab] = useState<'overview' | 'settings' | 'notes' | 'comments' | 'activity' | 'video' | 'presentation'>('overview');
+  
+  // Form state
+  const [title, setTitle] = useState('');
+  const [contactName, setContactName] = useState('');
+  const [businessName, setBusinessName] = useState('');
+  const [validUntil, setValidUntil] = useState('');
+  const [paymentTerms, setPaymentTerms] = useState('Net 30');
+  const [terms, setTerms] = useState('');
+  const [notes, setNotes] = useState('');
+  const [crewNotes, setCrewNotes] = useState('');
+  const [companyNotes, setCompanyNotes] = useState('');
+  const [clientNotes, setClientNotes] = useState('');
+  
+  // Line items state
+  const [lineItems, setLineItems] = useState<ProposalLineItem[]>([]);
+  const [showAddItemModal, setShowAddItemModal] = useState(false);
+  const [isAddingOptionalItem, setIsAddingOptionalItem] = useState(false);
+  
+  // Deposit state
+  const [depositRequired, setDepositRequired] = useState(false);
+  const [depositType, setDepositType] = useState<'amount' | 'percentage'>('amount');
+  const [depositValue, setDepositValue] = useState(0);
+  const [showDepositModal, setShowDepositModal] = useState(false);
+  
+  // Discount state
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [showDiscountModal, setShowDiscountModal] = useState(false);
+  const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('percentage');
+  const [discountValue, setDiscountValue] = useState(0);
+  
+  // Milestone payments
+  const [milestonePayments, setMilestonePayments] = useState<ProposalMilestone[]>([]);
+  const [showMilestoneModal, setShowMilestoneModal] = useState(false);
+  
+  // Calculations
+  const standardItems = lineItems.filter(item => !item.isOptional);
+  const optionalItems = lineItems.filter(item => item.isOptional);
+  const subtotal = standardItems.reduce((sum, item) => sum + item.totalPrice, 0);
+  const optionalSubtotal = optionalItems.reduce((sum, item) => sum + item.totalPrice, 0);
+  const taxAmount = 0; // TODO: Calculate based on settings
+  const totalAmount = subtotal - discountAmount + taxAmount;
+  const depositAmount = depositRequired
+    ? depositType === 'amount'
+      ? depositValue
+      : (totalAmount * depositValue) / 100
+    : 0;
+  const remainingAmount = totalAmount - depositAmount;
+  
+  const formatCurrency = (amount: number) => {
+    return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+  
+  const handleSave = () => {
+    // TODO: Implement save logic
+    Alert.alert('Success', 'Proposal saved successfully!');
+  };
+  
+  const handleSend = () => {
+    // TODO: Implement send logic
+    Alert.alert('Send Proposal', 'Are you sure you want to send this proposal?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Send', onPress: () => console.log('Proposal sent') },
+    ]);
+  };
+  
+  const addLineItem = () => {
+    setIsAddingOptionalItem(false);
+    setShowAddItemModal(true);
+  };
+  
+  const addOptionalItem = () => {
+    setIsAddingOptionalItem(true);
+    setShowAddItemModal(true);
+  };
+  
+  const removeLineItem = (id: string) => {
+    setLineItems(lineItems.filter(item => item.id !== id));
+  };
+  
+  const addMilestone = () => {
+    const newMilestone: ProposalMilestone = {
+      id: `milestone-${Date.now()}`,
+      name: '',
+      description: '',
+      amount: 0,
+      dueDate: new Date(),
+      isCompleted: false,
+      percentage: 0,
+    };
+    setMilestonePayments([...milestonePayments, newMilestone]);
+    setShowMilestoneModal(true);
+  };
+  
+  const removeMilestone = (id: string) => {
+    setMilestonePayments(milestonePayments.filter(m => m.id !== id));
+  };
+
+  const renderTabBar = () => {
+    const tabs = [
+      { id: 'overview', label: 'Overview', icon: FileText },
+      { id: 'settings', label: 'Settings', icon: Settings },
+      { id: 'notes', label: 'Notes', icon: FileText },
+      { id: 'comments', label: 'Comments', icon: MessageSquare },
+      { id: 'activity', label: 'Activity', icon: Clock },
+      { id: 'video', label: 'Video', icon: Paperclip },
+      { id: 'presentation', label: 'Present', icon: Presentation },
+    ];
+
+    return (
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.tabBar}
+        contentContainerStyle={styles.tabBarContent}
+      >
+        {tabs.map((tab) => (
+          <TouchableOpacity
+            key={tab.id}
+            style={[
+              styles.tab,
+              activeTab === tab.id && styles.tabActive,
+            ]}
+            onPress={() => setActiveTab(tab.id as any)}
+          >
+            <tab.icon
+              size={16}
+              color={activeTab === tab.id ? '#6366F1' : '#6B7280'}
+            />
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === tab.id && styles.tabTextActive,
+              ]}
+            >
+              {tab.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    );
+  };
+
+  const renderOverviewTab = () => (
+    <View style={styles.tabContent}>
+      {/* Line Items Section */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Line Items</Text>
+          <TouchableOpacity style={styles.addButton} onPress={addLineItem}>
+            <Plus size={16} color="#FFFFFF" />
+            <Text style={styles.addButtonText}>Add Item</Text>
+          </TouchableOpacity>
+        </View>
+
+        {lineItems.filter(item => !item.isOptional).map((item) => (
+          <View key={item.id} style={styles.lineItem}>
+            <View style={styles.lineItemHeader}>
+              <Text style={styles.lineItemName}>{item.name}</Text>
+              <TouchableOpacity onPress={() => removeLineItem(item.id)}>
+                <Trash2 size={18} color="#EF4444" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.lineItemDescription}>{item.description}</Text>
+            <View style={styles.lineItemDetails}>
+              <Text style={styles.lineItemText}>
+                Qty: {item.quantity} × {formatCurrency(item.unitPrice)}
+              </Text>
+              <Text style={styles.lineItemTotal}>{formatCurrency(item.totalPrice)}</Text>
+            </View>
+          </View>
+        ))}
+
+        {lineItems.filter(item => !item.isOptional).length === 0 && (
+          <View style={styles.emptyState}>
+            <Package size={40} color="#9CA3AF" />
+            <Text style={styles.emptyStateText}>No line items added yet</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Optional Items Section */}
+      {optionalItems.length > 0 && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Optional Items</Text>
+          </View>
+
+          {optionalItems.map((item) => (
+            <View key={item.id} style={[styles.lineItem, styles.optionalItem]}>
+              <View style={styles.lineItemHeader}>
+                <Text style={styles.lineItemName}>{item.name}</Text>
+                <TouchableOpacity onPress={() => removeLineItem(item.id)}>
+                  <Trash2 size={18} color="#EF4444" />
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.lineItemDescription}>{item.description}</Text>
+              <View style={styles.lineItemDetails}>
+                <Text style={styles.lineItemText}>
+                  Qty: {item.quantity} × {formatCurrency(item.unitPrice)}
+                </Text>
+                <Text style={styles.lineItemTotal}>{formatCurrency(item.totalPrice)}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+
+      <TouchableOpacity style={styles.optionalButton} onPress={addOptionalItem}>
+        <Plus size={16} color="#6366F1" />
+        <Text style={styles.optionalButtonText}>Add Optional Item</Text>
+      </TouchableOpacity>
+
+      {/* Proposal Summary */}
+      <View style={[styles.section, styles.summarySection]}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Proposal Summary</Text>
+          <TouchableOpacity
+            style={styles.discountButton}
+            onPress={() => setShowDiscountModal(true)}
+          >
+            <Percent size={16} color="#6366F1" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>Subtotal:</Text>
+          <Text style={styles.summaryValue}>{formatCurrency(subtotal)}</Text>
+        </View>
+
+        {optionalSubtotal > 0 && (
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Optional Items:</Text>
+            <Text style={[styles.summaryValue, styles.summaryOptional]}>
+              {formatCurrency(optionalSubtotal)}
+            </Text>
+          </View>
+        )}
+
+        {discountAmount > 0 && (
+          <View style={styles.summaryRow}>
+            <Text style={[styles.summaryLabel, styles.summaryDiscount]}>Discount:</Text>
+            <Text style={[styles.summaryValue, styles.summaryDiscount]}>
+              -{formatCurrency(discountAmount)}
+            </Text>
+          </View>
+        )}
+
+        {taxAmount > 0 && (
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Tax:</Text>
+            <Text style={styles.summaryValue}>{formatCurrency(taxAmount)}</Text>
+          </View>
+        )}
+
+        <View style={[styles.summaryRow, styles.summaryTotal]}>
+          <Text style={styles.summaryTotalLabel}>Total Amount:</Text>
+          <Text style={styles.summaryTotalValue}>{formatCurrency(totalAmount)}</Text>
+        </View>
+
+        {depositRequired && (
+          <>
+            <View style={[styles.summaryRow, styles.summaryDeposit]}>
+              <Text style={styles.summaryDepositLabel}>Deposit Required:</Text>
+              <Text style={styles.summaryDepositValue}>{formatCurrency(depositAmount)}</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Remaining Balance:</Text>
+              <Text style={styles.summaryValue}>{formatCurrency(remainingAmount)}</Text>
+            </View>
+          </>
+        )}
+      </View>
+
+      {/* Payment Settings */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Payment Settings</Text>
+
+        {/* Deposit Section */}
+        <TouchableOpacity
+          style={styles.settingCard}
+          onPress={() => setShowDepositModal(true)}
+        >
+          <View style={styles.settingIcon}>
+            <Shield size={20} color="#6366F1" />
+          </View>
+          <View style={styles.settingContent}>
+            <Text style={styles.settingTitle}>Deposit</Text>
+            <Text style={styles.settingDescription}>
+              {depositRequired
+                ? `${depositType === 'amount' ? formatCurrency(depositValue) : `${depositValue}%`} deposit required`
+                : 'No deposit required'}
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* Payment Schedule */}
+        <View style={styles.settingCard}>
+          <View style={styles.settingIcon}>
+            <Target size={20} color="#10B981" />
+          </View>
+          <View style={styles.settingContent}>
+            <Text style={styles.settingTitle}>Payment Schedule</Text>
+            <Text style={styles.settingDescription}>
+              {milestonePayments.length} milestone{milestonePayments.length !== 1 ? 's' : ''}
+            </Text>
+          </View>
+          <TouchableOpacity style={styles.addIconButton} onPress={addMilestone}>
+            <Plus size={20} color="#6366F1" />
+          </TouchableOpacity>
+        </View>
+
+        {milestonePayments.map((milestone) => (
+          <View key={milestone.id} style={styles.milestoneItem}>
+            <View style={styles.milestoneContent}>
+              <Text style={styles.milestoneName}>{milestone.name || 'Unnamed Milestone'}</Text>
+              <Text style={styles.milestoneAmount}>{formatCurrency(milestone.amount)}</Text>
+            </View>
+            <TouchableOpacity onPress={() => removeMilestone(milestone.id)}>
+              <Trash2 size={16} color="#EF4444" />
+            </TouchableOpacity>
+          </View>
+        ))}
+      </View>
+
+      {/* Terms and Conditions */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Terms and Conditions</Text>
+        <TextInput
+          style={styles.textArea}
+          placeholder="Enter your terms and conditions..."
+          placeholderTextColor="#9CA3AF"
+          multiline
+          numberOfLines={6}
+          value={terms}
+          onChangeText={setTerms}
+          textAlignVertical="top"
+        />
+      </View>
+
+      {/* Notes */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Notes</Text>
+        <TextInput
+          style={styles.textArea}
+          placeholder="Add any additional notes or special instructions..."
+          placeholderTextColor="#9CA3AF"
+          multiline
+          numberOfLines={4}
+          value={notes}
+          onChangeText={setNotes}
+          textAlignVertical="top"
+        />
+      </View>
+    </View>
+  );
+
+  const renderSettingsTab = () => (
+    <View style={styles.tabContent}>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Proposal Settings</Text>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Proposal Title</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter proposal title"
+            placeholderTextColor="#9CA3AF"
+            value={title}
+            onChangeText={setTitle}
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Contact Name</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter contact name"
+            placeholderTextColor="#9CA3AF"
+            value={contactName}
+            onChangeText={setContactName}
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Business Name</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter business name (optional)"
+            placeholderTextColor="#9CA3AF"
+            value={businessName}
+            onChangeText={setBusinessName}
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Valid Until</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="MM/DD/YYYY"
+            placeholderTextColor="#9CA3AF"
+            value={validUntil}
+            onChangeText={setValidUntil}
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Payment Terms</Text>
+          <View style={styles.pickerContainer}>
+            <Text style={styles.pickerValue}>{paymentTerms}</Text>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+
+  const renderNotesTab = () => (
+    <View style={styles.tabContent}>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Notes</Text>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Crew Notes (Shows on Work Order)</Text>
+          <TextInput
+            style={styles.textArea}
+            placeholder="Notes for the crew that will appear on the work order..."
+            placeholderTextColor="#9CA3AF"
+            multiline
+            numberOfLines={4}
+            value={crewNotes}
+            onChangeText={setCrewNotes}
+            textAlignVertical="top"
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Company Notes (Internal)</Text>
+          <TextInput
+            style={styles.textArea}
+            placeholder="Internal notes for your team..."
+            placeholderTextColor="#9CA3AF"
+            multiline
+            numberOfLines={4}
+            value={companyNotes}
+            onChangeText={setCompanyNotes}
+            textAlignVertical="top"
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Client Notes (Shows on Proposal)</Text>
+          <TextInput
+            style={styles.textArea}
+            placeholder="Notes that will be visible to the client on the proposal..."
+            placeholderTextColor="#9CA3AF"
+            multiline
+            numberOfLines={4}
+            value={clientNotes}
+            onChangeText={setClientNotes}
+            textAlignVertical="top"
+          />
+        </View>
+      </View>
+    </View>
+  );
+
+  const renderCommentsTab = () => (
+    <View style={styles.tabContent}>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Comments</Text>
+        <View style={styles.emptyState}>
+          <MessageSquare size={40} color="#9CA3AF" />
+          <Text style={styles.emptyStateText}>No comments yet</Text>
+        </View>
+      </View>
+    </View>
+  );
+
+  const renderActivityTab = () => (
+    <View style={styles.tabContent}>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Activity Log</Text>
+        <View style={styles.emptyState}>
+          <Clock size={40} color="#9CA3AF" />
+          <Text style={styles.emptyStateText}>No activity recorded yet</Text>
+        </View>
+      </View>
+    </View>
+  );
+
+  const renderVideoTab = () => (
+    <View style={styles.tabContent}>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Video Content</Text>
+        <View style={styles.emptyState}>
+          <Paperclip size={40} color="#9CA3AF" />
+          <Text style={styles.emptyStateText}>No videos added yet</Text>
+        </View>
+      </View>
+    </View>
+  );
+
+  const renderPresentationTab = () => (
+    <View style={styles.tabContent}>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Presentation Wizard</Text>
+        <View style={styles.emptyState}>
+          <Presentation size={40} color="#9CA3AF" />
+          <Text style={styles.emptyStateText}>No presentation created</Text>
+          <Text style={styles.emptyStateSubtext}>
+            Create a professional presentation to showcase your proposal
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'overview':
+        return renderOverviewTab();
+      case 'settings':
+        return renderSettingsTab();
+      case 'notes':
+        return renderNotesTab();
+      case 'comments':
+        return renderCommentsTab();
+      case 'activity':
+        return renderActivityTab();
+      case 'video':
+        return renderVideoTab();
+      case 'presentation':
+        return renderPresentationTab();
+      default:
+        return renderOverviewTab();
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <LinearGradient
+        colors={['#6366F1', '#8B5CF6', '#A855F7']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <View style={styles.headerTop}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <ChevronLeft size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerTitle}>
+              {isEditing ? 'Edit Proposal' : 'New Proposal'}
+            </Text>
+            <Text style={styles.headerSubtitle}>
+              {isEditing ? proposalId : 'Create a new business proposal'}
+            </Text>
+          </View>
+          <View style={styles.headerSpacer} />
+        </View>
+
+        {/* Action Buttons */}
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.headerActionButton} onPress={handleSave}>
+            <Save size={18} color="#FFFFFF" />
+            <Text style={styles.headerActionText}>Save</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.headerActionButton} onPress={handleSend}>
+            <Send size={18} color="#FFFFFF" />
+            <Text style={styles.headerActionText}>Send</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.headerActionButton}>
+            <Eye size={18} color="#FFFFFF" />
+            <Text style={styles.headerActionText}>Preview</Text>
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
+
+      {/* Tab Bar */}
+      {renderTabBar()}
+
+      {/* Content */}
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.contentContainer}
+      >
+        {renderTabContent()}
+      </ScrollView>
+
+      {/* Add Item Modal */}
+      <Modal
+        visible={showAddItemModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowAddItemModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                Add {isAddingOptionalItem ? 'Optional' : ''} Item
+              </Text>
+              <TouchableOpacity onPress={() => setShowAddItemModal(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Item Name</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter item name"
+                  placeholderTextColor="#9CA3AF"
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Description</Text>
+                <TextInput
+                  style={styles.textArea}
+                  placeholder="Enter item description"
+                  placeholderTextColor="#9CA3AF"
+                  multiline
+                  numberOfLines={3}
+                  textAlignVertical="top"
+                />
+              </View>
+
+              <View style={styles.inputRow}>
+                <View style={styles.inputGroupHalf}>
+                  <Text style={styles.inputLabel}>Quantity</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="0"
+                    placeholderTextColor="#9CA3AF"
+                    keyboardType="numeric"
+                  />
+                </View>
+
+                <View style={styles.inputGroupHalf}>
+                  <Text style={styles.inputLabel}>Unit Price</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="$0.00"
+                    placeholderTextColor="#9CA3AF"
+                    keyboardType="numeric"
+                  />
+                </View>
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.modalButtonSecondary}
+                onPress={() => setShowAddItemModal(false)}
+              >
+                <Text style={styles.modalButtonSecondaryText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalButtonPrimary}
+                onPress={() => {
+                  // TODO: Add item logic
+                  setShowAddItemModal(false);
+                }}
+              >
+                <Text style={styles.modalButtonPrimaryText}>Add Item</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Deposit Modal */}
+      <Modal
+        visible={showDepositModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowDepositModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Deposit Settings</Text>
+              <TouchableOpacity onPress={() => setShowDepositModal(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody}>
+              <View style={styles.toggleRow}>
+                <Text style={styles.toggleLabel}>Require Deposit</Text>
+                <TouchableOpacity
+                  style={[styles.toggle, depositRequired && styles.toggleActive]}
+                  onPress={() => setDepositRequired(!depositRequired)}
+                >
+                  <View style={[styles.toggleThumb, depositRequired && styles.toggleThumbActive]} />
+                </TouchableOpacity>
+              </View>
+
+              {depositRequired && (
+                <>
+                  <View style={styles.radioGroup}>
+                    <Text style={styles.inputLabel}>Deposit Type</Text>
+                    <TouchableOpacity
+                      style={styles.radioOption}
+                      onPress={() => setDepositType('amount')}
+                    >
+                      <View style={styles.radioCircle}>
+                        {depositType === 'amount' && <View style={styles.radioCircleSelected} />}
+                      </View>
+                      <Text style={styles.radioLabel}>Fixed Amount ($)</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.radioOption}
+                      onPress={() => setDepositType('percentage')}
+                    >
+                      <View style={styles.radioCircle}>
+                        {depositType === 'percentage' && <View style={styles.radioCircleSelected} />}
+                      </View>
+                      <Text style={styles.radioLabel}>Percentage (%)</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>
+                      Deposit {depositType === 'amount' ? 'Amount' : 'Percentage'}
+                    </Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder={depositType === 'amount' ? '$0.00' : '0'}
+                      placeholderTextColor="#9CA3AF"
+                      keyboardType="numeric"
+                      value={depositValue.toString()}
+                      onChangeText={(text) => setDepositValue(parseFloat(text) || 0)}
+                    />
+                  </View>
+                </>
+              )}
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.modalButtonSecondary}
+                onPress={() => setShowDepositModal(false)}
+              >
+                <Text style={styles.modalButtonSecondaryText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalButtonPrimary}
+                onPress={() => setShowDepositModal(false)}
+              >
+                <Text style={styles.modalButtonPrimaryText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Discount Modal */}
+      <Modal
+        visible={showDiscountModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowDiscountModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Apply Discount</Text>
+              <TouchableOpacity onPress={() => setShowDiscountModal(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalBody}>
+              <View style={styles.radioGroup}>
+                <Text style={styles.inputLabel}>Discount Type</Text>
+                <TouchableOpacity
+                  style={styles.radioOption}
+                  onPress={() => setDiscountType('percentage')}
+                >
+                  <View style={styles.radioCircle}>
+                    {discountType === 'percentage' && <View style={styles.radioCircleSelected} />}
+                  </View>
+                  <Text style={styles.radioLabel}>Percentage (%)</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.radioOption}
+                  onPress={() => setDiscountType('fixed')}
+                >
+                  <View style={styles.radioCircle}>
+                    {discountType === 'fixed' && <View style={styles.radioCircleSelected} />}
+                  </View>
+                  <Text style={styles.radioLabel}>Fixed Amount ($)</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Discount Value</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder={discountType === 'percentage' ? '0' : '$0.00'}
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="numeric"
+                  value={discountValue.toString()}
+                  onChangeText={(text) => setDiscountValue(parseFloat(text) || 0)}
+                />
+              </View>
+            </View>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.modalButtonSecondary}
+                onPress={() => setShowDiscountModal(false)}
+              >
+                <Text style={styles.modalButtonSecondaryText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalButtonPrimary}
+                onPress={() => {
+                  if (discountType === 'percentage') {
+                    setDiscountAmount((subtotal * discountValue) / 100);
+                  } else {
+                    setDiscountAmount(discountValue);
+                  }
+                  setShowDiscountModal(false);
+                }}
+              >
+                <Text style={styles.modalButtonPrimaryText}>Apply</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+  },
+  header: {
+    paddingBottom: 16,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 12,
+  },
+  backButton: {
+    padding: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 12,
+  },
+  headerTitleContainer: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginTop: 2,
+  },
+  headerSpacer: {
+    width: 40,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingHorizontal: 20,
+    paddingTop: 8,
+  },
+  headerActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+    gap: 6,
+  },
+  headerActionText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  tabBar: {
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    maxHeight: 48,
+  },
+  tabBarContent: {
+    paddingHorizontal: 12,
+    gap: 4,
+    alignItems: 'center',
+  },
+  tab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 4,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+    height: 48,
+  },
+  tabActive: {
+    borderBottomColor: '#6366F1',
+  },
+  tabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  tabTextActive: {
+    color: '#6366F1',
+  },
+  content: {
+    flex: 1,
+  },
+  contentContainer: {
+    padding: 16,
+    paddingBottom: 32,
+  },
+  tabContent: {
+    gap: 12,
+  },
+  section: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    marginBottom: 12,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#6366F1',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 4,
+  },
+  addButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  lineItem: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+  },
+  optionalItem: {
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+    borderStyle: 'dashed',
+  },
+  lineItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  lineItemName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    flex: 1,
+  },
+  lineItemDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  lineItemDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  lineItemText: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  lineItemTotal: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: '#9CA3AF',
+    marginTop: 12,
+    textAlign: 'center',
+  },
+  emptyStateSubtext: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    marginTop: 4,
+    textAlign: 'center',
+    paddingHorizontal: 32,
+  },
+  optionalButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: '#6366F1',
+    borderStyle: 'dashed',
+    gap: 8,
+    marginBottom: 16,
+  },
+  optionalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  summarySection: {
+    backgroundColor: '#EEF2FF',
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  summaryLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  summaryValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  summaryOptional: {
+    color: '#F59E0B',
+  },
+  summaryDiscount: {
+    color: '#10B981',
+  },
+  summaryTotal: {
+    borderTopWidth: 2,
+    borderTopColor: '#C7D2FE',
+    marginTop: 8,
+    paddingTop: 12,
+  },
+  summaryTotalLabel: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  summaryTotalValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#6366F1',
+  },
+  summaryDeposit: {
+    borderTopWidth: 1,
+    borderTopColor: '#C7D2FE',
+    marginTop: 8,
+    paddingTop: 8,
+  },
+  summaryDepositLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  summaryDepositValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#6366F1',
+  },
+  discountButton: {
+    padding: 8,
+    backgroundColor: '#EEF2FF',
+    borderRadius: 8,
+  },
+  settingCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 12,
+  },
+  settingIcon: {
+    width: 40,
+    height: 40,
+    backgroundColor: '#EEF2FF',
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  settingContent: {
+    flex: 1,
+  },
+  settingTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  settingDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  addIconButton: {
+    padding: 8,
+  },
+  milestoneItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  milestoneContent: {
+    flex: 1,
+  },
+  milestoneName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  milestoneAmount: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#111827',
+  },
+  textArea: {
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#111827',
+    minHeight: 100,
+  },
+  pickerContainer: {
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  pickerValue: {
+    fontSize: 16,
+    color: '#111827',
+  },
+  inputRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  inputGroupHalf: {
+    flex: 1,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '85%',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  modalClose: {
+    fontSize: 24,
+    color: '#6B7280',
+    fontWeight: '300',
+  },
+  modalBody: {
+    padding: 20,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    gap: 12,
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  modalButtonSecondary: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    alignItems: 'center',
+  },
+  modalButtonSecondaryText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  modalButtonPrimary: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#6366F1',
+    alignItems: 'center',
+  },
+  modalButtonPrimaryText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  toggleLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  toggle: {
+    width: 50,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#D1D5DB',
+    padding: 2,
+    justifyContent: 'center',
+  },
+  toggleActive: {
+    backgroundColor: '#6366F1',
+  },
+  toggleThumb: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#FFFFFF',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  toggleThumbActive: {
+    alignSelf: 'flex-end',
+  },
+  radioGroup: {
+    marginBottom: 20,
+  },
+  radioOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  radioCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#6366F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  radioCircleSelected: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#6366F1',
+  },
+  radioLabel: {
+    fontSize: 16,
+    color: '#111827',
+  },
+});
+

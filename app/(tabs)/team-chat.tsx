@@ -1667,12 +1667,6 @@ export default function TeamChat() {
                   </>
                 ) : (
                   <>
-                    <TouchableOpacity style={styles.chatHeaderButton}>
-                      <Phone size={20} color="#FFFFFF" />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.chatHeaderButton}>
-                      <Video size={20} color="#FFFFFF" />
-                    </TouchableOpacity>
                     <TouchableOpacity 
                       style={styles.chatHeaderButton}
                       onPress={() => setShowChannelSettings(true)}
