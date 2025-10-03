@@ -1,4 +1,5 @@
 import DrawerMenu from '@/components/DrawerMenu';
+import { InvoiceDetail } from '@/components/InvoiceDetail';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -139,6 +140,8 @@ export default function InvoicesPage() {
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showInvoiceEditor, setShowInvoiceEditor] = useState(false);
+  const [invoiceForEditor, setInvoiceForEditor] = useState<any>(null);
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
@@ -202,9 +205,58 @@ export default function InvoicesPage() {
   };
 
   const handleOpenInvoice = () => {
-    // TODO: Navigate to full invoice view or generate PDF
-    console.log('Open invoice:', selectedInvoice?.invoiceNumber);
+    if (!selectedInvoice) return;
+    
+    // Create full invoice data for the editor
+    const fullInvoice = {
+      id: selectedInvoice.id.toString(),
+      invoiceNumber: selectedInvoice.invoiceNumber,
+      subject: selectedInvoice.items.join(', '),
+      status: selectedInvoice.status,
+      paymentStatus: selectedInvoice.status === 'paid' ? 'paid' : selectedInvoice.status === 'overdue' ? 'overdue' : 'unpaid',
+      issueDate: selectedInvoice.issueDate,
+      dueDate: selectedInvoice.dueDate,
+      createdBy: 'System',
+      sentAt: selectedInvoice.status !== 'draft' ? selectedInvoice.issueDate : undefined,
+      items: selectedInvoice.items.map((item: string) => ({
+        description: item,
+        quantity: 1,
+        unitPrice: selectedInvoice.amount / selectedInvoice.items.length,
+      })),
+      subtotal: selectedInvoice.amount,
+      taxAmount: 0,
+      discountAmount: 0,
+      totalAmount: selectedInvoice.amount,
+      amountPaid: selectedInvoice.status === 'paid' ? selectedInvoice.amount : 0,
+      balanceDue: selectedInvoice.status === 'paid' ? 0 : selectedInvoice.amount,
+      payments: selectedInvoice.status === 'paid' ? [{
+        amount: selectedInvoice.amount,
+        method: 'Credit Card',
+        status: 'completed',
+        processedAt: selectedInvoice.dueDate,
+        transactionId: 'TXN-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+      }] : [],
+      attachments: [],
+      notes: [],
+      settings: {
+        allowCardPayment: true,
+        waiveCardConvenienceFee: false,
+        allowBankPayment: true,
+        alternativePayment: false,
+        lineItemQuantityOnly: false,
+      },
+      contactName: selectedInvoice.customerName,
+      contactEmail: selectedInvoice.customerName.toLowerCase().replace(' ', '.') + '@email.com',
+      contactPhone: '',
+      businessName: '',
+      businessAddress: '',
+    };
+    
+    setInvoiceForEditor(fullInvoice);
     setShowDetailModal(false);
+    setTimeout(() => {
+      setShowInvoiceEditor(true);
+    }, 300);
   };
 
   return (
@@ -532,6 +584,30 @@ export default function InvoicesPage() {
             )}
           </View>
         </View>
+      </Modal>
+
+      {/* Invoice Editor Modal */}
+      <Modal
+        visible={showInvoiceEditor && invoiceForEditor !== null}
+        animationType="slide"
+        onRequestClose={() => {
+          setShowInvoiceEditor(false);
+          setInvoiceForEditor(null);
+        }}
+      >
+        {invoiceForEditor && (
+          <InvoiceDetail
+            invoice={invoiceForEditor}
+            onBack={() => {
+              setShowInvoiceEditor(false);
+              setInvoiceForEditor(null);
+            }}
+            onUpdate={() => {
+              // Handle invoice update
+              console.log('Invoice updated');
+            }}
+          />
+        )}
       </Modal>
     </SafeAreaView>
   );
