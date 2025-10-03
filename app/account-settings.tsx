@@ -3,7 +3,6 @@ import { useRouter } from 'expo-router';
 import {
     AlertCircle,
     Bell,
-    Briefcase,
     Building2,
     Calendar,
     CheckCircle,
@@ -12,23 +11,16 @@ import {
     Copy,
     CreditCard,
     Edit,
-    Eye,
     FileText,
-    Globe,
     Mail,
-    MapPin,
     Palette,
-    Phone,
     Plus,
     Save,
+    Send,
     Settings,
-    Tag,
     Trash2,
     Upload,
-    Users,
-    X,
-    XCircle,
-    Zap
+    X
 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
@@ -42,7 +34,7 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 
 type SettingsTab = 'company' | 'brand' | 'email' | 'general' | 'events' | 'payments' | 'reminders';
@@ -118,9 +110,10 @@ export default function AccountSettings() {
     // Email Settings
     const [emailSettings, setEmailSettings] = useState({
         replyEmail: 'noreply@dripjobs.com',
-        bccOnReceipt: 'accounting@dripjobs.com',
+        fromEmail: 'hello@dripjobs.com',
         postmarkApiKey: '••••••••••••••••',
         customDomain: 'mail.dripjobs.com',
+        usingCustomDomain: false,
         dkimVerified: true,
         returnPathVerified: true
     });
@@ -653,11 +646,61 @@ export default function AccountSettings() {
             case 'email':
                 return (
                     <View style={styles.tabContent}>
+                        {/* Helper Info Box */}
+                        <View style={styles.infoBoxLarge}>
+                            <View style={styles.infoBoxHeader}>
+                                <Mail size={24} color="#6366F1" />
+                                <Text style={styles.infoBoxTitle}>Send From Your Own Domain</Text>
+                            </View>
+                            <Text style={styles.infoBoxText}>
+                                Currently, you're sending transactional emails from our domain. Setting up your own custom email domain provides several key benefits:
+                            </Text>
+                            <View style={styles.benefitsList}>
+                                <View style={styles.benefitItem}>
+                                    <CheckCircle size={16} color="#10B981" />
+                                    <Text style={styles.benefitText}>Improved deliverability & trust</Text>
+                                </View>
+                                <View style={styles.benefitItem}>
+                                    <CheckCircle size={16} color="#10B981" />
+                                    <Text style={styles.benefitText}>Professional brand appearance</Text>
+                                </View>
+                                <View style={styles.benefitItem}>
+                                    <CheckCircle size={16} color="#10B981" />
+                                    <Text style={styles.benefitText}>Better email reputation</Text>
+                                </View>
+                                <View style={styles.benefitItem}>
+                                    <CheckCircle size={16} color="#10B981" />
+                                    <Text style={styles.benefitText}>Reduced spam folder risk</Text>
+                                </View>
+                            </View>
+                            <TouchableOpacity 
+                                style={styles.sendInstructionsButton}
+                                onPress={() => {
+                                    RNAlert.alert(
+                                        'Send Setup Instructions',
+                                        'Enter your web developer\'s email address:',
+                                        [
+                                            { text: 'Cancel', style: 'cancel' },
+                                            { 
+                                                text: 'Send',
+                                                onPress: () => {
+                                                    RNAlert.alert('Success', 'Setup instructions sent to your web developer');
+                                                }
+                                            }
+                                        ]
+                                    );
+                                }}
+                            >
+                                <Send size={16} color="#FFFFFF" />
+                                <Text style={styles.sendInstructionsButtonText}>Send Instructions to Web Developer</Text>
+                            </TouchableOpacity>
+                        </View>
+
                         <View style={styles.section}>
                             <Text style={styles.sectionTitle}>Email Configuration</Text>
                             
                             <View style={styles.inputGroup}>
-                                <Text style={styles.inputLabel}>Reply Email</Text>
+                                <Text style={styles.inputLabel}>Reply-To Email Address</Text>
                                 <TextInput
                                     style={[styles.input, !isEditing && styles.inputDisabled]}
                                     value={emailSettings.replyEmail}
@@ -668,21 +711,69 @@ export default function AccountSettings() {
                                     editable={isEditing}
                                     keyboardType="email-address"
                                     autoCapitalize="none"
+                                    placeholder="replies@yourdomain.com"
                                 />
+                                <Text style={styles.inputHint}>
+                                    Default email address where customer replies will be sent
+                                </Text>
                             </View>
 
                             <View style={styles.inputGroup}>
-                                <Text style={styles.inputLabel}>BCC On Receipt</Text>
+                                <Text style={styles.inputLabel}>From Email Address</Text>
                                 <TextInput
                                     style={[styles.input, !isEditing && styles.inputDisabled]}
-                                    value={emailSettings.bccOnReceipt}
+                                    value={emailSettings.fromEmail}
                                     onChangeText={(value) => {
-                                        setEmailSettings({...emailSettings, bccOnReceipt: value});
+                                        setEmailSettings({...emailSettings, fromEmail: value});
                                         markChanged();
                                     }}
                                     editable={isEditing}
                                     keyboardType="email-address"
                                     autoCapitalize="none"
+                                    placeholder="hello@yourdomain.com"
+                                />
+                                <Text style={styles.inputHint}>
+                                    Email address that appears in the "From" field
+                                </Text>
+                            </View>
+
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Custom Email Domain</Text>
+                                <TextInput
+                                    style={[styles.input, !isEditing && styles.inputDisabled]}
+                                    value={emailSettings.customDomain}
+                                    onChangeText={(value) => {
+                                        setEmailSettings({...emailSettings, customDomain: value});
+                                        markChanged();
+                                    }}
+                                    editable={isEditing}
+                                    keyboardType="url"
+                                    autoCapitalize="none"
+                                    placeholder="mail.yourdomain.com"
+                                />
+                                <Text style={styles.inputHint}>
+                                    Your custom subdomain for sending emails (e.g., mail.yourdomain.com)
+                                </Text>
+                            </View>
+
+                            <View style={styles.switchRow}>
+                                <View style={styles.switchLabel}>
+                                    <Text style={styles.switchLabelText}>Using Custom Domain</Text>
+                                    <Text style={styles.switchLabelSubtext}>
+                                        {emailSettings.usingCustomDomain 
+                                            ? 'Sending from your domain' 
+                                            : 'Currently sending from DripJobs domain'}
+                                    </Text>
+                                </View>
+                                <Switch
+                                    value={emailSettings.usingCustomDomain}
+                                    onValueChange={(value) => {
+                                        setEmailSettings({...emailSettings, usingCustomDomain: value});
+                                        markChanged();
+                                    }}
+                                    disabled={!isEditing}
+                                    trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
+                                    thumbColor={emailSettings.usingCustomDomain ? '#3B82F6' : '#F3F4F6'}
                                 />
                             </View>
 
@@ -698,36 +789,44 @@ export default function AccountSettings() {
                                         }}
                                         editable={isEditing}
                                         secureTextEntry
+                                        placeholder="Enter your Postmark API key"
                                     />
                                     <TouchableOpacity style={styles.inputButton}>
                                         <Copy size={16} color="#6B7280" />
                                     </TouchableOpacity>
                                 </View>
-                            </View>
-
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.inputLabel}>Custom Email Domain</Text>
-                                <TextInput
-                                    style={[styles.input, !isEditing && styles.inputDisabled]}
-                                    value={emailSettings.customDomain}
-                                    onChangeText={(value) => {
-                                        setEmailSettings({...emailSettings, customDomain: value});
-                                        markChanged();
-                                    }}
-                                    editable={isEditing}
-                                    keyboardType="url"
-                                    autoCapitalize="none"
-                                />
+                                <Text style={styles.inputHint}>
+                                    Required for sending transactional emails via Postmark
+                                </Text>
                             </View>
                         </View>
 
                         <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>Domain Verification</Text>
+                            <View style={styles.sectionHeaderWithAction}>
+                                <Text style={styles.sectionTitle}>Domain Verification Status</Text>
+                                <TouchableOpacity 
+                                    style={styles.checkVerificationButton}
+                                    onPress={() => {
+                                        RNAlert.alert('Checking...', 'Verifying your domain records');
+                                    }}
+                                >
+                                    <Text style={styles.checkVerificationButtonText}>Check Status</Text>
+                                </TouchableOpacity>
+                            </View>
                             
+                            {!emailSettings.usingCustomDomain && (
+                                <View style={styles.warningBox}>
+                                    <AlertCircle size={16} color="#F59E0B" />
+                                    <Text style={styles.warningText}>
+                                        Domain verification not required while using DripJobs domain
+                                    </Text>
+                                </View>
+                            )}
+
                             <View style={styles.verificationRow}>
                                 <View style={styles.verificationInfo}>
-                                    <Text style={styles.verificationTitle}>DKIM</Text>
-                                    <Text style={styles.verificationSubtext}>20237pm._domainkey</Text>
+                                    <Text style={styles.verificationTitle}>DKIM (DomainKeys)</Text>
+                                    <Text style={styles.verificationSubtext}>Authenticates email sender</Text>
                                 </View>
                                 <View style={[styles.badge, emailSettings.dkimVerified ? styles.badgeSuccess : styles.badgeWarning]}>
                                     {emailSettings.dkimVerified ? (
@@ -744,7 +843,7 @@ export default function AccountSettings() {
                             <View style={styles.verificationRow}>
                                 <View style={styles.verificationInfo}>
                                     <Text style={styles.verificationTitle}>Return-Path</Text>
-                                    <Text style={styles.verificationSubtext}>pm-bounces</Text>
+                                    <Text style={styles.verificationSubtext}>Handles bounced emails</Text>
                                 </View>
                                 <View style={[styles.badge, emailSettings.returnPathVerified ? styles.badgeSuccess : styles.badgeWarning]}>
                                     {emailSettings.returnPathVerified ? (
@@ -757,6 +856,52 @@ export default function AccountSettings() {
                                     </Text>
                                 </View>
                             </View>
+                        </View>
+
+                        {/* Setup Instructions */}
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>DNS Setup Instructions</Text>
+                            <Text style={styles.instructionsText}>
+                                To set up your custom email domain, you or your web developer will need to add the following DNS records:
+                            </Text>
+                            
+                            <View style={styles.dnsRecordCard}>
+                                <View style={styles.dnsRecordHeader}>
+                                    <Text style={styles.dnsRecordType}>CNAME Record #1</Text>
+                                    <TouchableOpacity>
+                                        <Copy size={16} color="#6366F1" />
+                                    </TouchableOpacity>
+                                </View>
+                                <View style={styles.dnsRecordRow}>
+                                    <Text style={styles.dnsRecordLabel}>Name:</Text>
+                                    <Text style={styles.dnsRecordValue}>20237pm._domainkey</Text>
+                                </View>
+                                <View style={styles.dnsRecordRow}>
+                                    <Text style={styles.dnsRecordLabel}>Value:</Text>
+                                    <Text style={styles.dnsRecordValue}>20237pm.dkim.postmarkapp.com</Text>
+                                </View>
+                            </View>
+
+                            <View style={styles.dnsRecordCard}>
+                                <View style={styles.dnsRecordHeader}>
+                                    <Text style={styles.dnsRecordType}>CNAME Record #2</Text>
+                                    <TouchableOpacity>
+                                        <Copy size={16} color="#6366F1" />
+                                    </TouchableOpacity>
+                                </View>
+                                <View style={styles.dnsRecordRow}>
+                                    <Text style={styles.dnsRecordLabel}>Name:</Text>
+                                    <Text style={styles.dnsRecordValue}>pm-bounces</Text>
+                                </View>
+                                <View style={styles.dnsRecordRow}>
+                                    <Text style={styles.dnsRecordLabel}>Value:</Text>
+                                    <Text style={styles.dnsRecordValue}>pm.mtasv.net</Text>
+                                </View>
+                            </View>
+
+                            <Text style={styles.instructionsNote}>
+                                💡 DNS changes can take up to 48 hours to propagate. Use the "Check Status" button above to verify once configured.
+                            </Text>
                         </View>
                     </View>
                 );
@@ -1818,5 +1963,143 @@ const styles = StyleSheet.create({
     },
     tabSelectorItemTextActive: {
         color: '#6366F1',
+    },
+    // Email Configuration Styles
+    infoBoxLarge: {
+        backgroundColor: '#EEF2FF',
+        borderRadius: 12,
+        padding: 20,
+        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: '#C7D2FE',
+    },
+    infoBoxHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        marginBottom: 12,
+    },
+    infoBoxTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#4338CA',
+    },
+    infoBoxText: {
+        fontSize: 14,
+        color: '#4338CA',
+        lineHeight: 20,
+        marginBottom: 12,
+    },
+    benefitsList: {
+        gap: 10,
+        marginBottom: 16,
+    },
+    benefitItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    benefitText: {
+        fontSize: 14,
+        color: '#4338CA',
+        fontWeight: '500',
+    },
+    sendInstructionsButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        backgroundColor: '#6366F1',
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderRadius: 10,
+    },
+    sendInstructionsButtonText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#FFFFFF',
+    },
+    sectionHeaderWithAction: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    checkVerificationButton: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        backgroundColor: '#EEF2FF',
+        borderRadius: 8,
+    },
+    checkVerificationButtonText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#6366F1',
+    },
+    warningBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        padding: 12,
+        backgroundColor: '#FEF3C7',
+        borderRadius: 10,
+        marginBottom: 16,
+    },
+    warningText: {
+        flex: 1,
+        fontSize: 13,
+        color: '#92400E',
+        lineHeight: 18,
+    },
+    instructionsText: {
+        fontSize: 14,
+        color: '#6B7280',
+        lineHeight: 20,
+        marginBottom: 16,
+    },
+    dnsRecordCard: {
+        backgroundColor: '#F9FAFB',
+        borderRadius: 10,
+        padding: 16,
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+    },
+    dnsRecordHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
+        paddingBottom: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E7EB',
+    },
+    dnsRecordType: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#111827',
+    },
+    dnsRecordRow: {
+        flexDirection: 'row',
+        marginBottom: 8,
+    },
+    dnsRecordLabel: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#6B7280',
+        width: 60,
+    },
+    dnsRecordValue: {
+        flex: 1,
+        fontSize: 13,
+        color: '#111827',
+        fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    },
+    instructionsNote: {
+        fontSize: 13,
+        color: '#6B7280',
+        lineHeight: 18,
+        fontStyle: 'italic',
+        marginTop: 8,
     },
 });
