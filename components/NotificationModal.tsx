@@ -130,16 +130,13 @@ export default function NotificationModal({ visible, onClose }: NotificationModa
       animationType="slide"
       onRequestClose={onClose}
     >
-      <TouchableOpacity 
-        style={styles.modalOverlay}
-        activeOpacity={1}
-        onPress={onClose}
-      >
+      <View style={styles.modalOverlay}>
         <TouchableOpacity 
+          style={styles.modalBackdrop}
           activeOpacity={1}
-          onPress={(e) => e.stopPropagation()}
-          style={styles.modalContainer}
-        >
+          onPress={onClose}
+        />
+        <View style={styles.modalContainer}>
           <SafeAreaView style={styles.modalSafeArea}>
             {/* Modal Header */}
             <View style={styles.modalHeader}>
@@ -209,8 +206,8 @@ export default function NotificationModal({ visible, onClose }: NotificationModa
               <Text style={styles.viewAllButtonText}>View All Notifications</Text>
             </TouchableOpacity>
           </SafeAreaView>
-        </TouchableOpacity>
-      </TouchableOpacity>
+        </View>
+      </View>
     </Modal>
   );
 }
@@ -218,10 +215,20 @@ export default function NotificationModal({ visible, onClose }: NotificationModa
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
+  },
+  modalBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
   },
   modalContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,

@@ -1,9 +1,11 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import {
+    AlertCircle,
     BellRing,
     Building2,
-    CheckCircle,
+    CheckCircle2,
     ChevronLeft,
+    Clock,
     Copy,
     CreditCard,
     DollarSign,
@@ -24,7 +26,8 @@ import {
     Settings,
     Trash2,
     User,
-    UserCircle
+    UserCircle,
+    XCircle
 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
@@ -147,6 +150,30 @@ export const InvoiceDetail: React.FC<InvoiceDetailProps> = ({ invoice, onBack, o
     }
   };
 
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'draft': return FileText;
+      case 'sent': return Send;
+      case 'viewed': return Eye;
+      case 'paid': return CheckCircle2;
+      case 'overdue': return AlertCircle;
+      case 'cancelled': return XCircle;
+      default: return FileText;
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'draft': return 'Draft';
+      case 'sent': return 'Sent';
+      case 'viewed': return 'Viewed';
+      case 'paid': return 'Paid';
+      case 'overdue': return 'Overdue';
+      case 'cancelled': return 'Cancelled';
+      default: return status.charAt(0).toUpperCase() + status.slice(1);
+    }
+  };
+
   const formatCurrency = (amount: number) => {
     return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
@@ -215,18 +242,24 @@ export const InvoiceDetail: React.FC<InvoiceDetailProps> = ({ invoice, onBack, o
           </TouchableOpacity>
         </View>
 
-        {/* Status Badges */}
+        {/* Status Badge */}
         <View style={styles.statusContainer}>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusBgColor(invoice.status) }]}>
-            <Text style={[styles.statusText, { color: getStatusColor(invoice.status) }]}>
-              {invoice.status.toUpperCase()}
-            </Text>
+          <View style={styles.statusBadgeWrapper}>
+            {React.createElement(getStatusIcon(invoice.paymentStatus), { 
+              size: 18, 
+              color: '#FFFFFF' 
+            })}
+            <View>
+              <Text style={styles.statusLabel}>Status</Text>
+              <Text style={styles.statusValue}>{getStatusLabel(invoice.paymentStatus)}</Text>
+            </View>
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusBgColor(invoice.paymentStatus) }]}>
-            <Text style={[styles.statusText, { color: getStatusColor(invoice.paymentStatus) }]}>
-              {invoice.paymentStatus.toUpperCase()}
-            </Text>
-          </View>
+          {invoice.balanceDue > 0 && invoice.paymentStatus !== 'paid' && (
+            <View style={styles.amountDueWrapper}>
+              <Text style={styles.amountDueLabel}>Amount Due</Text>
+              <Text style={styles.amountDueValue}>{formatCurrency(invoice.balanceDue)}</Text>
+            </View>
+          )}
         </View>
       </LinearGradient>
 
@@ -1182,19 +1215,42 @@ const styles = StyleSheet.create({
   },
   statusContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingBottom: 16,
   },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  statusBadgeWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     borderRadius: 12,
   },
-  statusText: {
+  statusLabel: {
     fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 2,
+  },
+  statusValue: {
+    fontSize: 14,
     fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  amountDueWrapper: {
+    alignItems: 'flex-end',
+  },
+  amountDueLabel: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 2,
+  },
+  amountDueValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   tabBar: {
     backgroundColor: '#FFFFFF',
