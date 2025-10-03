@@ -55,7 +55,7 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
       title: 'Productivity',
       items: [
         { icon: CheckSquare, label: 'Tasks', action: () => router.push('/(tabs)/tasks') },
-        { icon: Activity, label: 'Metrics', action: () => console.log('Metrics') },
+        { icon: Activity, label: 'Metrics', action: () => router.push('/metrics') },
         { icon: Droplets, label: 'Drips', action: () => console.log('Drips') },
       ]
     },

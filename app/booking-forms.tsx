@@ -4,7 +4,6 @@ import {
     AlertCircle,
     CheckCircle,
     ChevronLeft,
-    ChevronRight,
     Copy,
     Edit,
     Eye,
@@ -12,7 +11,6 @@ import {
     List,
     MoreVertical,
     Plus,
-    Save,
     Trash2,
     X
 } from 'lucide-react-native';
@@ -23,11 +21,9 @@ import {
     SafeAreaView,
     ScrollView,
     StyleSheet,
-    Switch,
     Text,
-    TextInput,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 
 type QuestionType = 'text' | 'image' | 'leadSource' | 'projectDescription' | 'dropdown' | 'shortAnswer' | 'checkbox';

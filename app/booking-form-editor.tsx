@@ -10,7 +10,7 @@ import {
     Save,
     X
 } from 'lucide-react-native';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Alert,
     Modal,
@@ -43,6 +43,7 @@ interface BookingFormData {
     status: FormStatus;
     style: FormStyle;
     isDefault: boolean;
+    assignedLeadSource?: string; // Auto-assign lead source (e.g., "Website", "Facebook")
     customQuestions: CustomQuestion[];
     thankYouMessage: string;
 }
@@ -58,6 +59,7 @@ export default function BookingFormEditor() {
         status: 'draft',
         style: 'card',
         isDefault: false,
+        assignedLeadSource: '',
         customQuestions: [],
         thankYouMessage: 'Thank you for booking! We\'ll be in touch soon.'
     });
@@ -164,6 +166,19 @@ export default function BookingFormEditor() {
                         />
                     </View>
 
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.inputLabel}>Assigned Lead Source (Optional)</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={formData.assignedLeadSource}
+                            onChangeText={(value) => handleUpdateField('assignedLeadSource', value)}
+                            placeholder="e.g., Website, Facebook, Google Ads"
+                        />
+                        <Text style={styles.inputHint}>
+                            This automatically assigns a lead source to all submissions. Lead source question will be hidden.
+                        </Text>
+                    </View>
+
                     <View style={styles.switchRow}>
                         <View style={styles.switchLabel}>
                             <Text style={styles.switchLabelText}>Set as Default Form</Text>
@@ -222,6 +237,16 @@ export default function BookingFormEditor() {
                         <Text style={styles.sectionTitle}>Custom Questions</Text>
                         <Text style={styles.questionCount}>{formData.customQuestions.length} questions</Text>
                     </View>
+
+                    {formData.assignedLeadSource && formData.assignedLeadSource.trim() !== '' && (
+                        <View style={styles.leadSourceInfo}>
+                            <Text style={styles.leadSourceInfoIcon}>🎯</Text>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.leadSourceInfoTitle}>Lead Source: {formData.assignedLeadSource}</Text>
+                                <Text style={styles.leadSourceInfoText}>This will be automatically assigned to all form submissions</Text>
+                            </View>
+                        </View>
+                    )}
 
                     <TouchableOpacity 
                         style={styles.manageQuestionsButton}
@@ -320,6 +345,7 @@ export default function BookingFormEditor() {
                 <QuestionsManagerModal
                     visible={showQuestionsModal}
                     questions={formData.customQuestions}
+                    assignedLeadSource={formData.assignedLeadSource}
                     onClose={() => setShowQuestionsModal(false)}
                     onSave={handleQuestionsUpdate}
                 />
@@ -332,11 +358,12 @@ export default function BookingFormEditor() {
 interface QuestionsManagerModalProps {
     visible: boolean;
     questions: CustomQuestion[];
+    assignedLeadSource?: string;
     onClose: () => void;
     onSave: (questions: CustomQuestion[]) => void;
 }
 
-function QuestionsManagerModal({ visible, questions, onClose, onSave }: QuestionsManagerModalProps) {
+function QuestionsManagerModal({ visible, questions, assignedLeadSource, onClose, onSave }: QuestionsManagerModalProps) {
     const [localQuestions, setLocalQuestions] = useState<CustomQuestion[]>(questions);
     const [showTypeSelector, setShowTypeSelector] = useState(false);
     const [showQuestionEditor, setShowQuestionEditor] = useState(false);
@@ -354,6 +381,17 @@ function QuestionsManagerModal({ visible, questions, onClose, onSave }: Question
     ];
 
     const handleAddQuestion = (type: QuestionType) => {
+        // Check if trying to add lead source when form already has one assigned
+        if (type === 'leadSource' && assignedLeadSource && assignedLeadSource.trim() !== '') {
+            Alert.alert(
+                'Lead Source Already Assigned',
+                `This form automatically assigns "${assignedLeadSource}" as the lead source. You cannot add a lead source question.\n\nTo add this question, remove the assigned lead source from the form settings.`,
+                [{ text: 'OK' }]
+            );
+            setShowTypeSelector(false);
+            return;
+        }
+
         setSelectedType(type);
         setEditingQuestion(null);
         setShowTypeSelector(false);
@@ -477,16 +515,36 @@ function QuestionsManagerModal({ visible, questions, onClose, onSave }: Question
                                 </TouchableOpacity>
                             </View>
                             <ScrollView style={styles.typeModalContent}>
-                                {questionTypes.map((type) => (
-                                    <TouchableOpacity
-                                        key={type.value}
-                                        style={styles.typeOption}
-                                        onPress={() => handleAddQuestion(type.value as QuestionType)}
-                                    >
-                                        <Text style={styles.typeOptionIcon}>{type.icon}</Text>
-                                        <Text style={styles.typeOptionLabel}>{type.label}</Text>
-                                    </TouchableOpacity>
-                                ))}
+                                {questionTypes.map((type) => {
+                                    const isDisabled = type.value === 'leadSource' && assignedLeadSource && assignedLeadSource.trim() !== '';
+                                    return (
+                                        <TouchableOpacity
+                                            key={type.value}
+                                            style={[
+                                                styles.typeOption,
+                                                isDisabled && styles.typeOptionDisabled
+                                            ]}
+                                            onPress={() => handleAddQuestion(type.value as QuestionType)}
+                                            disabled={isDisabled}
+                                        >
+                                            <Text style={[
+                                                styles.typeOptionIcon,
+                                                isDisabled && styles.typeOptionDisabledText
+                                            ]}>{type.icon}</Text>
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={[
+                                                    styles.typeOptionLabel,
+                                                    isDisabled && styles.typeOptionDisabledText
+                                                ]}>{type.label}</Text>
+                                                {isDisabled && (
+                                                    <Text style={styles.typeOptionDisabledNote}>
+                                                        Already assigned: {assignedLeadSource}
+                                                    </Text>
+                                                )}
+                                            </View>
+                                        </TouchableOpacity>
+                                    );
+                                })}
                             </ScrollView>
                         </View>
                     </View>
@@ -738,6 +796,12 @@ const styles = StyleSheet.create({
         minHeight: 80,
         textAlignVertical: 'top',
     },
+    inputHint: {
+        fontSize: 12,
+        color: '#6B7280',
+        marginTop: 6,
+        lineHeight: 16,
+    },
     switchRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -786,6 +850,30 @@ const styles = StyleSheet.create({
     },
     styleOptionTextActive: {
         color: '#6366F1',
+    },
+    leadSourceInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        padding: 14,
+        backgroundColor: '#DBEAFE',
+        borderRadius: 10,
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: '#93C5FD',
+    },
+    leadSourceInfoIcon: {
+        fontSize: 24,
+    },
+    leadSourceInfoTitle: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#1E40AF',
+        marginBottom: 2,
+    },
+    leadSourceInfoText: {
+        fontSize: 12,
+        color: '#1E3A8A',
     },
     manageQuestionsButton: {
         flexDirection: 'row',
@@ -1024,6 +1112,10 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         marginBottom: 8,
     },
+    typeOptionDisabled: {
+        opacity: 0.5,
+        backgroundColor: '#F3F4F6',
+    },
     typeOptionIcon: {
         fontSize: 24,
     },
@@ -1032,6 +1124,15 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: '600',
         color: '#111827',
+    },
+    typeOptionDisabledText: {
+        color: '#9CA3AF',
+    },
+    typeOptionDisabledNote: {
+        fontSize: 12,
+        color: '#EF4444',
+        marginTop: 4,
+        fontWeight: '500',
     },
     // Question Editor Modal
     editorModalContainer: {
