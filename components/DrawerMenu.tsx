@@ -39,7 +39,7 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
         { icon: Calendar, label: 'Appointments', action: () => router.push('/appointments') },
         { icon: Clock, label: 'Job Schedule', action: () => router.push('/job-schedule') },
         { icon: CalendarIcon, label: 'Booking Forms', action: () => console.log('Booking Forms') },
-        { icon: RotateCcw, label: 'Recurring Jobs', action: () => console.log('Recurring Jobs') },
+        { icon: RotateCcw, label: 'Recurring Jobs', action: () => router.push('/recurring-jobs') },
       ]
     },
     {

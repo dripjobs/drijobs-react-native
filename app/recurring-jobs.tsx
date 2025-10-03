@@ -1,23 +1,20 @@
 import DrawerMenu from '@/components/DrawerMenu';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
-  Calendar,
-  CheckCircle,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  DollarSign,
-  Edit,
-  FileText,
-  Filter,
-  Plus,
-  RefreshCw,
-  Repeat,
-  Search,
-  TrendingUp,
-  XCircle
+    Calendar,
+    CheckCircle,
+    ChevronLeft,
+    Clock,
+    DollarSign,
+    Edit,
+    Filter,
+    Plus,
+    RefreshCw,
+    Repeat,
+    Search,
+    TrendingUp,
+    XCircle
 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Modal, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
