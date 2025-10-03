@@ -5,15 +5,19 @@ import {
     Calendar,
     CheckCircle,
     ChevronLeft,
+    ChevronRight,
     Clock,
     DollarSign,
     Edit,
+    FileText,
     Filter,
     Plus,
     RefreshCw,
     Repeat,
     Search,
     TrendingUp,
+    Users,
+    X,
     XCircle
 } from 'lucide-react-native';
 import React, { useState } from 'react';
@@ -471,94 +475,191 @@ const RecurringJobsScreen: React.FC = () => {
       <Modal
         visible={showDetailModal}
         transparent
-        animationType="slide"
+        animationType="none"
         onRequestClose={() => setShowDetailModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.detailModal}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Job Details</Text>
-              <TouchableOpacity onPress={() => setShowDetailModal(false)}>
-                <XCircle size={24} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
-
+        <View style={styles.fullScreenModalOverlay}>
+          <View style={styles.fullScreenModalContainer}>
             {selectedJob && (
-              <ScrollView style={styles.detailContent} showsVerticalScrollIndicator={false}>
-                <View style={styles.detailSection}>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Job Number</Text>
-                    <Text style={styles.detailValue}>{selectedJob.jobNumber}</Text>
+              <View style={styles.fullScreenContent}>
+                <View style={styles.modalHeader}>
+                  <TouchableOpacity 
+                    style={styles.closeButton}
+                    onPress={() => setShowDetailModal(false)}
+                  >
+                    <X size={24} color="#6B7280" />
+                  </TouchableOpacity>
+                  <Text style={styles.modalHeaderTitle}>Recurring Job Details</Text>
+                  <View style={styles.headerSpacer} />
+                </View>
+
+                <ScrollView
+                  style={styles.fullScreenScrollView}
+                  showsVerticalScrollIndicator={false}
+                >
+                  {/* Status Section */}
+                  <View style={styles.statusSectionTop}>
+                    <Text style={styles.statusLabel}>Status</Text>
+                    <View style={[styles.statusDropdown, { backgroundColor: selectedJob.statusColor }]}>
+                      <View style={styles.statusBadge}>
+                        {getStatusIcon(selectedJob.status)}
+                        <Text style={styles.statusDropdownText}>
+                          {selectedJob.status.charAt(0).toUpperCase() + selectedJob.status.slice(1)}
+                        </Text>
+                      </View>
+                    </View>
                   </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Customer</Text>
-                    <Text style={styles.detailValue}>{selectedJob.customerName}</Text>
+
+                  {/* Service Information */}
+                  <View style={styles.serviceSection}>
+                    <View style={styles.serviceHeaderRow}>
+                      <Repeat size={20} color="#6366F1" />
+                      <Text style={styles.serviceLabelText}>Service</Text>
+                    </View>
+                    <Text style={styles.serviceTitle}>{selectedJob.serviceName}</Text>
+                    <Text style={styles.serviceDescription}>{selectedJob.description}</Text>
                   </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Service</Text>
-                    <Text style={styles.detailValue}>{selectedJob.serviceName}</Text>
+
+                  {/* Edit Job Button */}
+                  <View style={styles.editJobSection}>
+                    <TouchableOpacity 
+                      style={styles.editJobButton}
+                      onPress={handleEditJob}
+                    >
+                      <Edit size={20} color="#FFFFFF" />
+                      <Text style={styles.editJobButtonText}>Edit Recurring Job</Text>
+                    </TouchableOpacity>
                   </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Frequency</Text>
-                    <Text style={styles.detailValue}>{getFrequencyLabel(selectedJob.frequency)}</Text>
+
+                  {/* Customer Information */}
+                  <View style={styles.modalSection}>
+                    <Text style={styles.modalSectionTitle}>Customer Information</Text>
+                    
+                    <View style={styles.contactItem}>
+                      <Users size={16} color="#6B7280" />
+                      <Text style={styles.contactItemText}>{selectedJob.customerName}</Text>
+                    </View>
                   </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Amount</Text>
-                    <Text style={styles.detailValue}>${selectedJob.amount.toFixed(2)}</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Status</Text>
-                    <View style={styles.statusBadge}>
-                      {getStatusIcon(selectedJob.status)}
-                      <Text style={[styles.statusText, { color: selectedJob.statusColor }]}>
-                        {selectedJob.status.charAt(0).toUpperCase() + selectedJob.status.slice(1)}
+
+                  {/* Schedule Information */}
+                  <View style={styles.modalSection}>
+                    <Text style={styles.modalSectionTitle}>Schedule Information</Text>
+                    
+                    <View style={styles.jobDetailRow}>
+                      <Text style={styles.jobDetailLabel}>Frequency</Text>
+                      <Text style={styles.jobDetailValue}>{getFrequencyLabel(selectedJob.frequency)}</Text>
+                    </View>
+                    <View style={styles.jobDetailRow}>
+                      <Text style={styles.jobDetailLabel}>Contract Start Date</Text>
+                      <Text style={styles.jobDetailValue}>
+                        {new Date(selectedJob.startDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                      </Text>
+                    </View>
+                    {selectedJob.lastService && (
+                      <View style={styles.jobDetailRow}>
+                        <Text style={styles.jobDetailLabel}>Last Service</Text>
+                        <Text style={styles.jobDetailValue}>
+                          {new Date(selectedJob.lastService).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                        </Text>
+                      </View>
+                    )}
+                    {selectedJob.nextService && (
+                      <View style={styles.jobDetailRow}>
+                        <Text style={styles.jobDetailLabel}>Next Service</Text>
+                        <Text style={[styles.jobDetailValue, styles.nextServiceHighlight]}>
+                          {new Date(selectedJob.nextService).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                        </Text>
+                      </View>
+                    )}
+                    <View style={styles.jobDetailRow}>
+                      <Text style={styles.jobDetailLabel}>Contract Length</Text>
+                      <Text style={styles.jobDetailValue}>
+                        {Math.floor((new Date().getTime() - new Date(selectedJob.startDate).getTime()) / (1000 * 60 * 60 * 24 * 30))} months
                       </Text>
                     </View>
                   </View>
-                </View>
 
-                <View style={styles.detailSection}>
-                  <Text style={styles.sectionTitle}>Schedule</Text>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Start Date</Text>
-                    <Text style={styles.detailValue}>{new Date(selectedJob.startDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</Text>
-                  </View>
-                  {selectedJob.lastService && (
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Last Service</Text>
-                      <Text style={styles.detailValue}>{new Date(selectedJob.lastService).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</Text>
+                  {/* Financial Details */}
+                  <View style={styles.modalSection}>
+                    <Text style={styles.modalSectionTitle}>Financial Details</Text>
+                    
+                    <View style={styles.financialRow}>
+                      <Text style={styles.financialLabel}>Service Amount</Text>
+                      <Text style={styles.financialValueLarge}>${selectedJob.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
                     </View>
-                  )}
-                  {selectedJob.nextService && (
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Next Service</Text>
-                      <Text style={styles.detailValue}>{new Date(selectedJob.nextService).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</Text>
+                    <View style={styles.financialRow}>
+                      <Text style={styles.financialLabel}>Monthly Recurring Revenue (MRR)</Text>
+                      <Text style={styles.financialValue}>${selectedJob.mrr.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
                     </View>
-                  )}
-                </View>
-
-                <View style={styles.detailSection}>
-                  <Text style={styles.sectionTitle}>Revenue</Text>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Monthly Recurring Revenue</Text>
-                    <Text style={styles.detailValue}>${selectedJob.mrr.toFixed(2)}</Text>
+                    <View style={styles.financialRow}>
+                      <Text style={styles.financialLabel}>Annual Recurring Revenue (ARR)</Text>
+                      <Text style={styles.financialValue}>${selectedJob.arr.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+                    </View>
+                    <View style={styles.financialRow}>
+                      <Text style={styles.financialLabel}>Total Revenue Collected</Text>
+                      <Text style={[styles.financialValue, styles.totalRevenueHighlight]}>
+                        ${(selectedJob.mrr * Math.floor((new Date().getTime() - new Date(selectedJob.startDate).getTime()) / (1000 * 60 * 60 * 24 * 30))).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </Text>
+                    </View>
+                    
+                    <View style={styles.financialButtonsRow}>
+                      <TouchableOpacity style={styles.financialButton}>
+                        <DollarSign size={18} color="#6366F1" />
+                        <Text style={styles.financialButtonText}>View Invoices</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.financialButton}>
+                        <FileText size={18} color="#6366F1" />
+                        <Text style={styles.financialButtonText}>View History</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Annual Recurring Revenue</Text>
-                    <Text style={styles.detailValue}>${selectedJob.arr.toFixed(2)}</Text>
+
+                  {/* Invoice History */}
+                  <View style={styles.modalSection}>
+                    <Text style={styles.modalSectionTitle}>Invoice History</Text>
+                    
+                    <View style={styles.invoiceHistoryItem}>
+                      <View style={styles.invoiceHistoryIcon}>
+                        <CheckCircle size={16} color="#10B981" />
+                      </View>
+                      <View style={styles.invoiceHistoryInfo}>
+                        <Text style={styles.invoiceHistoryDate}>October 2025</Text>
+                        <Text style={styles.invoiceHistoryStatus}>Paid • Oct 1, 2025</Text>
+                      </View>
+                      <Text style={styles.invoiceHistoryAmount}>${selectedJob.amount.toFixed(2)}</Text>
+                    </View>
+
+                    <View style={styles.invoiceHistoryItem}>
+                      <View style={styles.invoiceHistoryIcon}>
+                        <CheckCircle size={16} color="#10B981" />
+                      </View>
+                      <View style={styles.invoiceHistoryInfo}>
+                        <Text style={styles.invoiceHistoryDate}>September 2025</Text>
+                        <Text style={styles.invoiceHistoryStatus}>Paid • Sep 1, 2025</Text>
+                      </View>
+                      <Text style={styles.invoiceHistoryAmount}>${selectedJob.amount.toFixed(2)}</Text>
+                    </View>
+
+                    <View style={styles.invoiceHistoryItem}>
+                      <View style={styles.invoiceHistoryIcon}>
+                        <CheckCircle size={16} color="#10B981" />
+                      </View>
+                      <View style={styles.invoiceHistoryInfo}>
+                        <Text style={styles.invoiceHistoryDate}>August 2025</Text>
+                        <Text style={styles.invoiceHistoryStatus}>Paid • Aug 1, 2025</Text>
+                      </View>
+                      <Text style={styles.invoiceHistoryAmount}>${selectedJob.amount.toFixed(2)}</Text>
+                    </View>
+
+                    <TouchableOpacity style={styles.viewAllInvoicesButton}>
+                      <Text style={styles.viewAllInvoicesText}>View All Invoices</Text>
+                      <ChevronRight size={16} color="#6366F1" />
+                    </TouchableOpacity>
                   </View>
-                </View>
 
-                <View style={styles.detailSection}>
-                  <Text style={styles.sectionTitle}>Description</Text>
-                  <Text style={styles.description}>{selectedJob.description}</Text>
-                </View>
-
-                <TouchableOpacity style={styles.editButton} onPress={handleEditJob}>
-                  <Edit size={18} color="#FFFFFF" />
-                  <Text style={styles.editButtonText}>Edit Recurring Job</Text>
-                </TouchableOpacity>
-              </ScrollView>
+                  <View style={styles.bottomSpacing} />
+                </ScrollView>
+              </View>
             )}
           </View>
         </View>
@@ -804,23 +905,43 @@ const styles = StyleSheet.create({
     padding: 24,
     maxHeight: '50%',
   },
-  detailModal: {
+  fullScreenModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  fullScreenModalContainer: {
+    flex: 1,
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    maxHeight: '90%',
+    marginTop: 50,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  fullScreenContent: {
+    flex: 1,
+  },
+  fullScreenScrollView: {
+    flex: 1,
   },
   modalHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+  closeButton: {
+    padding: 8,
+  },
+  modalHeaderTitle: {
+    fontSize: 18,
+    fontWeight: '600',
     color: '#111827',
+  },
+  headerSpacer: {
+    width: 40,
   },
   filterOptions: {
     gap: 8,
@@ -845,55 +966,226 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#111827',
   },
-  detailContent: {
-    flex: 1,
-  },
-  detailSection: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 12,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
+  statusSectionTop: {
+    paddingHorizontal: 20,
+    paddingVertical: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
-  detailLabel: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
-  detailValue: {
+  statusLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#111827',
-  },
-  description: {
-    fontSize: 14,
     color: '#6B7280',
-    lineHeight: 20,
+    marginBottom: 12,
   },
-  editButton: {
+  statusDropdown: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statusDropdownText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  serviceSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    backgroundColor: '#F9FAFB',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  serviceHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  serviceLabelText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  serviceTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  serviceDescription: {
+    fontSize: 15,
+    color: '#6B7280',
+    lineHeight: 22,
+  },
+  editJobSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  editJobButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#6366F1',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
     borderRadius: 12,
-    paddingVertical: 16,
+    gap: 10,
+  },
+  editJobButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  modalSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalSectionTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 16,
+  },
+  contactItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+  },
+  contactItemText: {
+    fontSize: 15,
+    color: '#111827',
+    fontWeight: '500',
+    flex: 1,
+  },
+  jobDetailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  jobDetailLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  jobDetailValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  nextServiceHighlight: {
+    color: '#6366F1',
+    fontWeight: '700',
+  },
+  financialRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  financialLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
+    flex: 1,
+  },
+  financialValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  financialValueLarge: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  totalRevenueHighlight: {
+    color: '#10B981',
+    fontSize: 18,
+  },
+  financialButtonsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+  },
+  financialButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F8FAFC',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
     gap: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  financialButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  invoiceHistoryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  invoiceHistoryIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#D1FAE5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  invoiceHistoryInfo: {
+    flex: 1,
+  },
+  invoiceHistoryDate: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  invoiceHistoryStatus: {
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  invoiceHistoryAmount: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  viewAllInvoicesButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    gap: 6,
     marginTop: 8,
   },
-  editButtonText: {
-    fontSize: 16,
+  viewAllInvoicesText: {
+    fontSize: 15,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#6366F1',
+  },
+  bottomSpacing: {
+    height: 40,
   },
   calendarModalContainer: {
     flex: 1,
