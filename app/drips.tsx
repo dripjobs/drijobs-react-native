@@ -1,0 +1,1512 @@
+import DripItemModal from '@/components/DripItemModal';
+import NewSequenceModal from '@/components/NewSequenceModal';
+import { useTabBar } from '@/contexts/TabBarContext';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import {
+    ArrowLeft,
+    BarChart3,
+    Clock,
+    DollarSign,
+    Edit,
+    Info,
+    MessageSquare,
+    MoreHorizontal,
+    Plus,
+    Send,
+    Settings,
+    Target,
+    Users,
+    Zap
+} from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import {
+    Dimensions,
+    Modal,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
+} from 'react-native';
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+
+// Mock data types - these would come from your actual types
+interface DripSequence {
+  id: string;
+  name: string;
+  description?: string;
+  status: 'active' | 'paused' | 'draft';
+  trigger: 'created_in_stage' | 'moved_to_stage';
+  timingMode: 'previous_action' | 'time_in_stage';
+  totalMessages: number;
+  totalAutomations: number;
+  totalSent: number;
+  isDefault?: boolean;
+  optOutRules?: any[];
+  messages: DripMessage[];
+  automations: DripAutomation[];
+}
+
+interface DripMessage {
+  id: string;
+  sequenceId: string;
+  type: 'email' | 'text';
+  subject?: string;
+  content: string;
+  delay: number;
+  order: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface DripAutomation {
+  id: string;
+  sequenceId: string;
+  type: AutomationType;
+  delay: number;
+  order: number;
+  isActive: boolean;
+  config?: any;
+  createdAt: string;
+  updatedAt: string;
+}
+
+type AutomationType = 'add_note' | 'create_task' | 'add_discount' | 'add_label' | 'move_stage' | 'ai_followup' | 'send_text' | 'send_email';
+
+type ViewMode = 'sequences' | 'timeline' | 'analytics';
+
+// Mock service - replace with actual service
+const mockDripService = {
+  getSequencesByStage: (pipeline: string, stage: string) => [
+    {
+      id: '1',
+      name: 'Welcome New Leads',
+      description: 'Initial welcome sequence for new leads',
+      status: 'active',
+      trigger: 'created_in_stage',
+      timingMode: 'previous_action',
+      totalMessages: 3,
+      totalAutomations: 2,
+      totalSent: 1247,
+      isDefault: true,
+      messages: [],
+      automations: []
+    },
+    {
+      id: '2',
+      name: 'Follow Up Sequence',
+      description: 'Follow up with prospects who showed interest',
+      status: 'active',
+      trigger: 'moved_to_stage',
+      timingMode: 'previous_action',
+      totalMessages: 5,
+      totalAutomations: 1,
+      totalSent: 892,
+      messages: [],
+      automations: []
+    }
+  ],
+  getSequenceAnalytics: (id: string) => ({
+    totalContacts: 150,
+    activeContacts: 45,
+    completedContacts: 89,
+    optedOutContacts: 16,
+    averageDeliveryRate: 98.5,
+    averageOpenRate: 24.3,
+    averageReplyRate: 8.7,
+    averageClickRate: 12.1,
+    conversionRate: 15.2,
+    totalRevenue: 45600,
+    averageRevenuePerContact: 304,
+    averageTimeToConversion: 72
+  })
+};
+
+const pipelineConfigs = {
+  leads: {
+    title: 'Lead Pipeline',
+    stages: ['new_leads', 'qualified_leads', 'hot_leads'],
+    stageLabels: {
+      new_leads: 'New Leads',
+      qualified_leads: 'Qualified Leads', 
+      hot_leads: 'Hot Leads'
+    },
+    stageDescriptions: {
+      new_leads: 'Fresh leads that need initial contact',
+      qualified_leads: 'Leads that have shown interest',
+      hot_leads: 'High-priority leads ready to convert'
+    }
+  }
+};
+
+export default function DripsScreen() {
+  const router = useRouter();
+  const { setIsTransparent } = useTabBar();
+  const [selectedPipeline, setSelectedPipeline] = useState('leads');
+  const [selectedStage, setSelectedStage] = useState('new_leads');
+  const [sequences, setSequences] = useState<DripSequence[]>([]);
+  const [selectedSequence, setSelectedSequence] = useState<DripSequence | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('sequences');
+  const [showNewSequenceModal, setShowNewSequenceModal] = useState(false);
+  const [showSequenceSettings, setShowSequenceSettings] = useState(false);
+  const [showDripItemModal, setShowDripItemModal] = useState(false);
+  const [dripItemModalMode, setDripItemModalMode] = useState<'add-item' | 'add-delay'>('add-item');
+  const [dripItemModalPrefillDelay, setDripItemModalPrefillDelay] = useState(60);
+
+  useEffect(() => {
+    loadSequences();
+  }, [selectedPipeline, selectedStage]);
+
+  const loadSequences = () => {
+    const stageSequences = mockDripService.getSequencesByStage(selectedPipeline, selectedStage);
+    setSequences(stageSequences);
+  };
+
+  const handleCreateNewSequence = () => {
+    setShowNewSequenceModal(true);
+  };
+
+  const handleSaveNewSequence = (sequenceData: any) => {
+    // Mock save - replace with actual service call
+    console.log('Saving new sequence:', sequenceData);
+    setShowNewSequenceModal(false);
+    loadSequences();
+  };
+
+  const handleAddDripItem = (mode: 'add-item' | 'add-delay', prefillDelay: number = 60) => {
+    setDripItemModalMode(mode);
+    setDripItemModalPrefillDelay(prefillDelay);
+    setShowDripItemModal(true);
+  };
+
+  const handleSaveDripItem = (itemData: any) => {
+    // Mock save - replace with actual service call
+    console.log('Saving drip item:', itemData);
+    setShowDripItemModal(false);
+  };
+
+  const handleEditSequence = (sequence: DripSequence) => {
+    setSelectedSequence(sequence);
+    setViewMode('timeline');
+  };
+
+  const handleViewAnalytics = (sequence: DripSequence) => {
+    setSelectedSequence(sequence);
+    setViewMode('analytics');
+  };
+
+  const handleBackToSequences = () => {
+    setSelectedSequence(null);
+    setViewMode('sequences');
+  };
+
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <TouchableOpacity 
+        onPress={() => router.back()}
+        style={styles.backButton}
+      >
+        <ArrowLeft size={24} color="#374151" />
+      </TouchableOpacity>
+      <View style={styles.headerContent}>
+        <Text style={styles.headerTitle}>Drip Sequences</Text>
+        <Text style={styles.headerSubtitle}>
+          {selectedSequence ? selectedSequence.name : 'Automate your communication'}
+        </Text>
+      </View>
+      {!selectedSequence && (
+        <TouchableOpacity 
+          onPress={handleCreateNewSequence}
+          style={styles.addButton}
+        >
+          <Plus size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+
+  const renderPipelineSelector = () => (
+    <View style={styles.pipelineSelector}>
+      <Text style={styles.sectionTitle}>Pipeline</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pipelineScroll}>
+        {Object.entries(pipelineConfigs).map(([key, config]) => (
+          <TouchableOpacity
+            key={key}
+            onPress={() => {
+              setSelectedPipeline(key);
+              setSelectedSequence(null);
+              setViewMode('sequences');
+            }}
+            style={[
+              styles.pipelineButton,
+              selectedPipeline === key && styles.pipelineButtonActive
+            ]}
+          >
+            <Text style={[
+              styles.pipelineButtonText,
+              selectedPipeline === key && styles.pipelineButtonTextActive
+            ]}>
+              {config.title}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  );
+
+  const renderStageSelector = () => (
+    <View style={styles.stageSelector}>
+      <Text style={styles.sectionTitle}>Stage</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.stageScroll}>
+        {pipelineConfigs[selectedPipeline]?.stages.map(stage => {
+          const stageLabel = pipelineConfigs[selectedPipeline]?.stageLabels[stage];
+          const stageSequences = mockDripService.getSequencesByStage(selectedPipeline, stage);
+          
+          return (
+            <TouchableOpacity
+              key={stage}
+              onPress={() => {
+                setSelectedStage(stage);
+                setSelectedSequence(null);
+                setViewMode('sequences');
+              }}
+              style={[
+                styles.stageButton,
+                selectedStage === stage && styles.stageButtonActive
+              ]}
+            >
+              <Text style={[
+                styles.stageButtonText,
+                selectedStage === stage && styles.stageButtonTextActive
+              ]}>
+                {stageLabel}
+              </Text>
+              <View style={styles.stageBadge}>
+                <Text style={styles.stageBadgeText}>{stageSequences.length}</Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+
+  const renderSequencesList = () => (
+    <View style={styles.sequencesList}>
+      {sequences.length === 0 ? (
+        <View style={styles.emptyState}>
+          <View style={styles.emptyIcon}>
+            <MessageSquare size={48} color="#9CA3AF" />
+          </View>
+          <Text style={styles.emptyTitle}>No sequences configured</Text>
+          <Text style={styles.emptySubtitle}>
+            Create your first drip sequence to start automating your customer communication
+          </Text>
+          <TouchableOpacity 
+            onPress={handleCreateNewSequence}
+            style={styles.createFirstButton}
+          >
+            <Plus size={20} color="#FFFFFF" />
+            <Text style={styles.createFirstButtonText}>Create First Sequence</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {sequences.map(sequence => {
+            const analytics = mockDripService.getSequenceAnalytics(sequence.id);
+            return (
+              <TouchableOpacity
+                key={sequence.id}
+                style={styles.sequenceCard}
+                onPress={() => handleEditSequence(sequence)}
+              >
+                <View style={styles.sequenceHeader}>
+                  <View style={styles.sequenceInfo}>
+                    <Text style={styles.sequenceName}>{sequence.name}</Text>
+                    <View style={styles.sequenceBadges}>
+                      <View style={[
+                        styles.statusBadge,
+                        sequence.status === 'active' ? styles.statusBadgeActive : styles.statusBadgePaused
+                      ]}>
+                        <Text style={[
+                          styles.statusBadgeText,
+                          sequence.status === 'active' ? styles.statusBadgeTextActive : styles.statusBadgeTextPaused
+                        ]}>
+                          {sequence.status}
+                        </Text>
+                      </View>
+                      {sequence.isDefault && (
+                        <View style={styles.defaultBadge}>
+                          <Text style={styles.defaultBadgeText}>Default</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                  <TouchableOpacity style={styles.sequenceMenu}>
+                    <MoreHorizontal size={20} color="#6B7280" />
+                  </TouchableOpacity>
+                </View>
+
+                {sequence.description && (
+                  <Text style={styles.sequenceDescription}>{sequence.description}</Text>
+                )}
+
+                <View style={styles.sequenceStats}>
+                  <View style={styles.statItem}>
+                    <MessageSquare size={16} color="#6B7280" />
+                    <Text style={styles.statText}>{sequence.totalMessages} messages</Text>
+                  </View>
+                  <View style={styles.statItem}>
+                    <Zap size={16} color="#6B7280" />
+                    <Text style={styles.statText}>{sequence.totalAutomations} automations</Text>
+                  </View>
+                  <View style={styles.statItem}>
+                    <Send size={16} color="#6B7280" />
+                    <Text style={styles.statText}>{sequence.totalSent.toLocaleString()} sent</Text>
+                  </View>
+                </View>
+
+                {analytics && (
+                  <View style={styles.analyticsPreview}>
+                    <View style={styles.analyticsRow}>
+                      <Text style={styles.analyticsLabel}>Open Rate</Text>
+                      <Text style={styles.analyticsValue}>{analytics.averageOpenRate.toFixed(1)}%</Text>
+                    </View>
+                    <View style={styles.analyticsRow}>
+                      <Text style={styles.analyticsLabel}>Reply Rate</Text>
+                      <Text style={styles.analyticsValue}>{analytics.averageReplyRate.toFixed(1)}%</Text>
+                    </View>
+                    <View style={styles.analyticsRow}>
+                      <Text style={styles.analyticsLabel}>Conversion</Text>
+                      <Text style={styles.analyticsValue}>{analytics.conversionRate.toFixed(1)}%</Text>
+                    </View>
+                  </View>
+                )}
+
+                <View style={styles.sequenceActions}>
+                  <TouchableOpacity 
+                    style={styles.actionButton}
+                    onPress={() => handleViewAnalytics(sequence)}
+                  >
+                    <BarChart3 size={16} color="#6366F1" />
+                    <Text style={styles.actionButtonText}>Analytics</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.actionButton, styles.actionButtonPrimary]}
+                    onPress={() => handleEditSequence(sequence)}
+                  >
+                    <Edit size={16} color="#FFFFFF" />
+                    <Text style={[styles.actionButtonText, styles.actionButtonTextPrimary]}>Edit</Text>
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      )}
+    </View>
+  );
+
+  const renderTimelineView = () => {
+    if (!selectedSequence) return null;
+
+    return (
+      <View style={styles.timelineView}>
+        <View style={styles.timelineHeader}>
+          <View style={styles.timelineInfo}>
+            <Text style={styles.timelineTitle}>{selectedSequence.name}</Text>
+            <Text style={styles.timelineSubtitle}>{selectedSequence.description}</Text>
+          </View>
+          <TouchableOpacity 
+            style={styles.timelineSettings}
+            onPress={() => setShowSequenceSettings(true)}
+          >
+            <Settings size={20} color="#6B7280" />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView style={styles.timelineContent} showsVerticalScrollIndicator={false}>
+          {/* Sequence Info Cards */}
+          <View style={styles.sequenceInfoCards}>
+            <View style={styles.infoCard}>
+              <View style={styles.infoCardHeader}>
+                <Zap size={16} color="#3B82F6" />
+                <Text style={styles.infoCardTitle}>Trigger</Text>
+              </View>
+              <Text style={styles.infoCardText}>
+                {selectedSequence.trigger === 'created_in_stage' ? 'Created in stage' : 'Moved to stage'}
+              </Text>
+            </View>
+
+            <View style={styles.infoCard}>
+              <View style={styles.infoCardHeader}>
+                <Clock size={16} color="#10B981" />
+                <Text style={styles.infoCardTitle}>Timing</Text>
+              </View>
+              <Text style={styles.infoCardText}>
+                {selectedSequence.timingMode === 'previous_action' ? 'Sequential' : 'Absolute'}
+              </Text>
+            </View>
+
+            <View style={styles.infoCard}>
+              <View style={styles.infoCardHeader}>
+                <Send size={16} color="#F59E0B" />
+                <Text style={styles.infoCardTitle}>Status</Text>
+              </View>
+              <Text style={styles.infoCardText}>
+                {selectedSequence.status === 'active' ? 'Active' : 'Paused'}
+              </Text>
+            </View>
+          </View>
+
+          {/* Timeline Items */}
+          <View style={styles.timelineItems}>
+            <View style={styles.timelineItem}>
+              <View style={styles.timelineItemHeader}>
+                <View style={styles.timelineItemIcon}>
+                  <Zap size={20} color="#6366F1" />
+                </View>
+                <View style={styles.timelineItemInfo}>
+                  <Text style={styles.timelineItemTitle}>Sequence Start</Text>
+                  <Text style={styles.timelineItemSubtitle}>When contact enters stage</Text>
+                </View>
+                <View style={styles.timelineItemBadge}>
+                  <Text style={styles.timelineItemBadgeText}>Day 1</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Add Item Buttons */}
+            <View style={styles.addItemSection}>
+              <Text style={styles.addItemTitle}>Add to Sequence</Text>
+              <View style={styles.addItemButtons}>
+                <TouchableOpacity 
+                  style={styles.addItemButton}
+                  onPress={() => handleAddDripItem('add-item', 60)}
+                >
+                  <MessageSquare size={20} color="#3B82F6" />
+                  <Text style={styles.addItemButtonText}>Message</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.addItemButton}
+                  onPress={() => handleAddDripItem('add-item', 60)}
+                >
+                  <Zap size={20} color="#10B981" />
+                  <Text style={styles.addItemButtonText}>Automation</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.addItemButton}
+                  onPress={() => handleAddDripItem('add-delay', 1440)}
+                >
+                  <Clock size={20} color="#F59E0B" />
+                  <Text style={styles.addItemButtonText}>Delay</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Help Section */}
+            <View style={styles.timelineHelp}>
+              <View style={styles.timelineHelpHeader}>
+                <Info size={16} color="#6366F1" />
+                <Text style={styles.timelineHelpTitle}>Building Your Sequence</Text>
+              </View>
+              <Text style={styles.timelineHelpText}>
+                Start with a welcome message, then add follow-ups every 1-3 days. 
+                Use automations to create tasks for your team when leads show interest.
+              </Text>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  };
+
+  const renderAnalyticsView = () => {
+    if (!selectedSequence) return null;
+
+    const analytics = mockDripService.getSequenceAnalytics(selectedSequence.id);
+
+    return (
+      <View style={styles.analyticsView}>
+        <View style={styles.analyticsHeader}>
+          <Text style={styles.analyticsTitle}>Analytics: {selectedSequence.name}</Text>
+          <Text style={styles.analyticsSubtitle}>Comprehensive tracking and performance metrics</Text>
+        </View>
+
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {/* Key Metrics */}
+          <View style={styles.metricsGrid}>
+            <View style={styles.metricCard}>
+              <View style={styles.metricHeader}>
+                <Users size={20} color="#3B82F6" />
+                <Text style={styles.metricTitle}>Total Contacts</Text>
+              </View>
+              <Text style={styles.metricValue}>{analytics.totalContacts}</Text>
+              <Text style={styles.metricSubtext}>
+                {analytics.activeContacts} active, {analytics.completedContacts} completed
+              </Text>
+            </View>
+
+            <View style={styles.metricCard}>
+              <View style={styles.metricHeader}>
+                <Target size={20} color="#10B981" />
+                <Text style={styles.metricTitle}>Delivery Rate</Text>
+              </View>
+              <Text style={styles.metricValue}>{analytics.averageDeliveryRate.toFixed(1)}%</Text>
+              <Text style={styles.metricSubtext}>Average across all messages</Text>
+            </View>
+
+            <View style={styles.metricCard}>
+              <View style={styles.metricHeader}>
+                <BarChart3 size={20} color="#8B5CF6" />
+                <Text style={styles.metricTitle}>Open Rate</Text>
+              </View>
+              <Text style={styles.metricValue}>{analytics.averageOpenRate.toFixed(1)}%</Text>
+              <Text style={styles.metricSubtext}>Average across all messages</Text>
+            </View>
+
+            <View style={styles.metricCard}>
+              <View style={styles.metricHeader}>
+                <DollarSign size={20} color="#F59E0B" />
+                <Text style={styles.metricTitle}>Revenue</Text>
+              </View>
+              <Text style={styles.metricValue}>${analytics.totalRevenue.toLocaleString()}</Text>
+              <Text style={styles.metricSubtext}>${analytics.averageRevenuePerContact} per contact</Text>
+            </View>
+          </View>
+
+          {/* Performance Overview */}
+          <View style={styles.performanceOverview}>
+            <Text style={styles.sectionTitle}>Performance Overview</Text>
+            <View style={styles.performanceGrid}>
+              <View style={styles.performanceItem}>
+                <View style={styles.performanceItemHeader}>
+                  <View style={styles.performanceIcon}>
+                    <MessageSquare size={16} color="#10B981" />
+                  </View>
+                  <Text style={styles.performanceLabel}>Reply Rate</Text>
+                </View>
+                <Text style={styles.performanceValue}>{analytics.averageReplyRate.toFixed(1)}%</Text>
+              </View>
+
+              <View style={styles.performanceItem}>
+                <View style={styles.performanceItemHeader}>
+                  <View style={styles.performanceIcon}>
+                    <Send size={16} color="#3B82F6" />
+                  </View>
+                  <Text style={styles.performanceLabel}>Click Rate</Text>
+                </View>
+                <Text style={styles.performanceValue}>{analytics.averageClickRate.toFixed(1)}%</Text>
+              </View>
+
+              <View style={styles.performanceItem}>
+                <View style={styles.performanceItemHeader}>
+                  <View style={styles.performanceIcon}>
+                    <Target size={16} color="#8B5CF6" />
+                  </View>
+                  <Text style={styles.performanceLabel}>Conversion</Text>
+                </View>
+                <Text style={styles.performanceValue}>{analytics.conversionRate.toFixed(1)}%</Text>
+              </View>
+
+              <View style={styles.performanceItem}>
+                <View style={styles.performanceItemHeader}>
+                  <View style={styles.performanceIcon}>
+                    <Clock size={16} color="#F59E0B" />
+                  </View>
+                  <Text style={styles.performanceLabel}>Avg Time</Text>
+                </View>
+                <Text style={styles.performanceValue}>{Math.round(analytics.averageTimeToConversion / 24)}d</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Contact Status Breakdown */}
+          <View style={styles.contactStatus}>
+            <Text style={styles.sectionTitle}>Contact Status</Text>
+            <View style={styles.statusGrid}>
+              <View style={styles.statusItem}>
+                <View style={styles.statusItemHeader}>
+                  <View style={[styles.statusDot, { backgroundColor: '#3B82F6' }]} />
+                  <Text style={styles.statusLabel}>Active</Text>
+                </View>
+                <Text style={styles.statusValue}>{analytics.activeContacts}</Text>
+              </View>
+
+              <View style={styles.statusItem}>
+                <View style={styles.statusItemHeader}>
+                  <View style={[styles.statusDot, { backgroundColor: '#10B981' }]} />
+                  <Text style={styles.statusLabel}>Completed</Text>
+                </View>
+                <Text style={styles.statusValue}>{analytics.completedContacts}</Text>
+              </View>
+
+              <View style={styles.statusItem}>
+                <View style={styles.statusItemHeader}>
+                  <View style={[styles.statusDot, { backgroundColor: '#EF4444' }]} />
+                  <Text style={styles.statusLabel}>Opted Out</Text>
+                </View>
+                <Text style={styles.statusValue}>{analytics.optedOutContacts}</Text>
+              </View>
+
+              <View style={styles.statusItem}>
+                <View style={styles.statusItemHeader}>
+                  <View style={[styles.statusDot, { backgroundColor: '#8B5CF6' }]} />
+                  <Text style={styles.statusLabel}>Success Rate</Text>
+                </View>
+                <Text style={styles.statusValue}>
+                  {((analytics.completedContacts / analytics.totalContacts) * 100).toFixed(1)}%
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Quick Actions */}
+          <View style={styles.quickActions}>
+            <Text style={styles.sectionTitle}>Quick Actions</Text>
+            <View style={styles.actionButtons}>
+              <TouchableOpacity style={styles.actionButton}>
+                <BarChart3 size={16} color="#6366F1" />
+                <Text style={styles.actionButtonText}>Export Report</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.actionButton}>
+                <Settings size={16} color="#6366F1" />
+                <Text style={styles.actionButtonText}>Sequence Settings</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  };
+
+  const renderViewModeTabs = () => {
+    if (!selectedSequence) return null;
+
+    return (
+      <View style={styles.viewModeTabs}>
+        <TouchableOpacity
+          style={[
+            styles.viewModeTab,
+            viewMode === 'timeline' && styles.viewModeTabActive
+          ]}
+          onPress={() => setViewMode('timeline')}
+        >
+          <Text style={[
+            styles.viewModeTabText,
+            viewMode === 'timeline' && styles.viewModeTabTextActive
+          ]}>
+            Timeline
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.viewModeTab,
+            viewMode === 'analytics' && styles.viewModeTabActive
+          ]}
+          onPress={() => setViewMode('analytics')}
+        >
+          <Text style={[
+            styles.viewModeTabText,
+            viewMode === 'analytics' && styles.viewModeTabTextActive
+          ]}>
+            Analytics
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <LinearGradient
+        colors={['#F8FAFC', '#F1F5F9']}
+        style={styles.background}
+      >
+        {renderHeader()}
+        
+        {!selectedSequence && (
+          <>
+            {renderPipelineSelector()}
+            {renderStageSelector()}
+          </>
+        )}
+
+        {selectedSequence && renderViewModeTabs()}
+
+        <View style={styles.content}>
+          {selectedSequence ? (
+            viewMode === 'timeline' ? renderTimelineView() : 
+            viewMode === 'analytics' ? renderAnalyticsView() : 
+            renderSequencesList()
+          ) : renderSequencesList()}
+        </View>
+
+        {/* New Sequence Modal */}
+        <NewSequenceModal
+          isOpen={showNewSequenceModal}
+          onClose={() => setShowNewSequenceModal(false)}
+          onSave={handleSaveNewSequence}
+          initialPipeline={selectedPipeline}
+          initialStage={selectedStage}
+        />
+
+        {/* Drip Item Modal */}
+        <DripItemModal
+          isOpen={showDripItemModal}
+          onClose={() => setShowDripItemModal(false)}
+          onSave={handleSaveDripItem}
+          mode={dripItemModalMode}
+          prefillDelay={dripItemModalPrefillDelay}
+        />
+
+        {/* Sequence Settings Modal */}
+        <Modal
+          visible={showSequenceSettings}
+          animationType="slide"
+          presentationStyle="pageSheet"
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setShowSequenceSettings(false)}>
+                <Text style={styles.modalCancel}>Cancel</Text>
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Sequence Settings</Text>
+              <TouchableOpacity>
+                <Text style={styles.modalSave}>Save</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalPlaceholder}>Sequence settings form would go here</Text>
+            </View>
+          </View>
+        </Modal>
+      </LinearGradient>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  background: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  backButton: {
+    padding: 8,
+    marginRight: 12,
+  },
+  headerContent: {
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  addButton: {
+    backgroundColor: '#6366F1',
+    borderRadius: 12,
+    padding: 12,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  pipelineSelector: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 12,
+  },
+  pipelineScroll: {
+    flexDirection: 'row',
+  },
+  pipelineButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    marginRight: 8,
+  },
+  pipelineButtonActive: {
+    backgroundColor: '#6366F1',
+  },
+  pipelineButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  pipelineButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  stageSelector: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  stageScroll: {
+    flexDirection: 'row',
+  },
+  stageButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    marginRight: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  stageButtonActive: {
+    backgroundColor: '#6366F1',
+  },
+  stageButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  stageButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  stageBadge: {
+    backgroundColor: '#E5E7EB',
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginLeft: 6,
+  },
+  stageBadgeText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#374151',
+  },
+  content: {
+    flex: 1,
+  },
+  sequencesList: {
+    flex: 1,
+    padding: 20,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  emptyIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 32,
+  },
+  createFirstButton: {
+    backgroundColor: '#6366F1',
+    borderRadius: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  createFirstButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  sequenceCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  sequenceHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  sequenceInfo: {
+    flex: 1,
+  },
+  sequenceName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  sequenceBadges: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusBadgeActive: {
+    backgroundColor: '#D1FAE5',
+  },
+  statusBadgePaused: {
+    backgroundColor: '#FEF3C7',
+  },
+  statusBadgeText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  statusBadgeTextActive: {
+    color: '#065F46',
+  },
+  statusBadgeTextPaused: {
+    color: '#92400E',
+  },
+  defaultBadge: {
+    backgroundColor: '#6366F1',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  defaultBadgeText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#FFFFFF',
+  },
+  sequenceMenu: {
+    padding: 4,
+  },
+  sequenceDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  sequenceStats: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 16,
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  statText: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  analyticsPreview: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  analyticsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  analyticsLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  analyticsValue: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  sequenceActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    backgroundColor: '#FFFFFF',
+  },
+  actionButtonPrimary: {
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
+  },
+  actionButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6366F1',
+    marginLeft: 6,
+  },
+  actionButtonTextPrimary: {
+    color: '#FFFFFF',
+  },
+  viewModeTabs: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 20,
+    marginTop: 16,
+    borderRadius: 12,
+    padding: 4,
+  },
+  viewModeTab: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  viewModeTabActive: {
+    backgroundColor: '#6366F1',
+  },
+  viewModeTabText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  viewModeTabTextActive: {
+    color: '#FFFFFF',
+  },
+  timelineView: {
+    flex: 1,
+    padding: 20,
+  },
+  timelineHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  timelineInfo: {
+    flex: 1,
+  },
+  timelineTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  timelineSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  timelineSettings: {
+    padding: 8,
+  },
+  timelineContent: {
+    flex: 1,
+  },
+  sequenceInfoCards: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 24,
+  },
+  infoCard: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  infoCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  infoCardTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#374151',
+    marginLeft: 6,
+  },
+  infoCardText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#111827',
+  },
+  timelineItems: {
+    gap: 16,
+  },
+  timelineItem: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  timelineItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  timelineItemIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#EEF2FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  timelineItemInfo: {
+    flex: 1,
+  },
+  timelineItemTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  timelineItemSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  timelineItemBadge: {
+    backgroundColor: '#6366F1',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  timelineItemBadgeText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#FFFFFF',
+  },
+  addItemSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginBottom: 16,
+  },
+  addItemTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 12,
+  },
+  addItemButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  addItemButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    backgroundColor: '#FFFFFF',
+  },
+  addItemButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+    marginLeft: 6,
+  },
+  timelineHelp: {
+    backgroundColor: '#F0F9FF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+  },
+  timelineHelpHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  timelineHelpTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0369A1',
+    marginLeft: 6,
+  },
+  timelineHelpText: {
+    fontSize: 14,
+    color: '#0369A1',
+    lineHeight: 20,
+  },
+  analyticsView: {
+    flex: 1,
+    padding: 20,
+  },
+  analyticsHeader: {
+    marginBottom: 24,
+  },
+  analyticsTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  analyticsSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  metricsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 24,
+  },
+  metricCard: {
+    width: (screenWidth - 52) / 2,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  metricHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  metricTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+    marginLeft: 8,
+  },
+  metricValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  metricSubtext: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  performanceOverview: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  performanceGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  performanceItem: {
+    width: (screenWidth - 68) / 2,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  performanceItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  performanceIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  performanceLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  performanceValue: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  contactStatus: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  statusGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  statusItem: {
+    width: (screenWidth - 68) / 2,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  statusItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  statusLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  statusValue: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  quickActions: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    backgroundColor: '#FFFFFF',
+  },
+  actionButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6366F1',
+    marginLeft: 6,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalCancel: {
+    fontSize: 16,
+    color: '#6B7280',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  modalSave: {
+    fontSize: 16,
+    color: '#6366F1',
+    fontWeight: '600',
+  },
+  modalContent: {
+    flex: 1,
+    padding: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalPlaceholder: {
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+});

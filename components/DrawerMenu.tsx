@@ -48,17 +48,17 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
         { icon: FileText, label: 'Invoices', action: () => router.push('/invoices') },
         { icon: FileCheck, label: 'Proposals', action: () => router.push('/proposals') },
         { icon: Wrench, label: 'Work Orders', action: () => router.push('/(tabs)/work-orders') },
-        { icon: Star, label: 'Reviews', action: () => console.log('Reviews') },
+        { icon: Star, label: 'Reviews', action: () => router.push('/reviews') },
       ]
     },
-    {
-      title: 'Productivity',
-      items: [
-        { icon: CheckSquare, label: 'Tasks', action: () => router.push('/(tabs)/tasks') },
-        { icon: Activity, label: 'Metrics', action: () => router.push('/metrics') },
-        { icon: Droplets, label: 'Drips', action: () => console.log('Drips') },
-      ]
-    },
+        {
+          title: 'Productivity',
+          items: [
+            { icon: CheckSquare, label: 'Tasks', action: () => router.push('/(tabs)/tasks') },
+            { icon: Activity, label: 'Metrics', action: () => router.push('/metrics') },
+            { icon: Droplets, label: 'Drips', action: () => router.push('/drips') },
+          ]
+        },
     {
       title: 'System',
       items: [

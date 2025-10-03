@@ -1,9 +1,11 @@
 import DrawerMenu from '@/components/DrawerMenu';
 import FloatingActionMenu from '@/components/FloatingActionMenu';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
     Calendar,
     CheckCircle,
+    ChevronDown,
     ChevronRight,
     Filter,
     MessageSquare,
@@ -77,6 +79,26 @@ export default function Tasks() {
     assignedTo: [] as string[],
     tags: [] as string[]
   });
+
+  // Create Task Form State
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskDescription, setNewTaskDescription] = useState('');
+  const [newTaskPriority, setNewTaskPriority] = useState<TaskPriority>('medium');
+  const [newTaskAssignedTo, setNewTaskAssignedTo] = useState('');
+  const [newTaskDueDate, setNewTaskDueDate] = useState(new Date());
+  const [newTaskType, setNewTaskType] = useState('');
+  const [newTaskTags, setNewTaskTags] = useState<string[]>([]);
+  const [newTaskEstimatedHours, setNewTaskEstimatedHours] = useState('');
+  const [newTaskNotes, setNewTaskNotes] = useState('');
+  const [showDueDatePicker, setShowDueDatePicker] = useState(false);
+  const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
+  const [showTypeDropdown, setShowTypeDropdown] = useState(false);
+  const [newTaskContactId, setNewTaskContactId] = useState('');
+  const [newTaskContactName, setNewTaskContactName] = useState('');
+  const [contactSearchQuery, setContactSearchQuery] = useState('');
+  const [newTaskDealId, setNewTaskDealId] = useState('');
+  const [newTaskDealTitle, setNewTaskDealTitle] = useState('');
+  const [dealSearchQuery, setDealSearchQuery] = useState('');
 
   const currentUser = 'Tanner Mullen';
 
@@ -218,6 +240,76 @@ export default function Tasks() {
     'David Brown'
   ];
 
+  const taskTypes = [
+    'Follow Up',
+    'Call',
+    'Email',
+    'Meeting',
+    'Estimate',
+    'Proposal',
+    'Contract',
+    'Site Visit',
+    'Inspection',
+    'Materials',
+    'Scheduling',
+    'Documentation',
+    'Research',
+    'General'
+  ];
+
+  // Mock contacts data
+  const mockContacts = [
+    { id: '1', name: 'John Smith', phone: '(555) 123-4567' },
+    { id: '2', name: 'Sarah Johnson', phone: '(555) 234-5678' },
+    { id: '3', name: 'Mike Stewart', phone: '(555) 345-6789' },
+    { id: '4', name: 'Emily Davis', phone: '(555) 456-7890' },
+    { id: '5', name: 'David Wilson', phone: '(555) 567-8901' },
+    { id: '6', name: 'Lisa Anderson', phone: '(555) 678-9012' },
+  ];
+
+  // Mock deals data (related to contacts)
+  const mockDeals = [
+    { id: 'lead-1', contactId: '3', title: 'Bathroom Renovation Inquiry', type: 'lead', value: '$15,000' },
+    { id: 'opp-1', contactId: '2', title: 'Kitchen Renovation Estimate', type: 'opportunity', value: '$25,000' },
+    { id: 'opp-2', contactId: '1', title: 'Basement Finishing', type: 'opportunity', value: '$18,500' },
+    { id: 'prop-1', contactId: '5', title: 'Basement Finishing Proposal', type: 'proposal', value: '$22,000' },
+    { id: 'prop-2', contactId: '2', title: 'Kitchen Cabinet Refinishing', type: 'proposal', value: '$8,500' },
+    { id: 'job-1', contactId: '5', title: 'Basement Finishing Project', type: 'job', value: '$22,000' },
+    { id: 'job-2', contactId: '6', title: 'Exterior Painting', type: 'job', value: '$12,500' },
+    { id: 'lead-2', contactId: '4', title: 'Deck Renovation', type: 'lead', value: '$10,000' },
+    { id: 'opp-3', contactId: '1', title: 'Garage Conversion', type: 'opportunity', value: '$30,000' },
+  ];
+
+  // Get deals for selected contact
+  const getDealsForContact = (contactId: string) => {
+    if (!contactId) return [];
+    return mockDeals.filter(deal => deal.contactId === contactId);
+  };
+
+  // Filter contacts by search query
+  const getFilteredContacts = () => {
+    if (!contactSearchQuery.trim()) return [];
+    
+    const query = contactSearchQuery.toLowerCase();
+    return mockContacts.filter(contact =>
+      contact.name.toLowerCase().includes(query) ||
+      contact.phone.toLowerCase().includes(query)
+    );
+  };
+
+  // Filter deals by search query
+  const getFilteredDeals = () => {
+    if (!newTaskContactId) return [];
+    const contactDeals = getDealsForContact(newTaskContactId);
+    if (!dealSearchQuery.trim()) return contactDeals;
+    
+    const query = dealSearchQuery.toLowerCase();
+    return contactDeals.filter(deal =>
+      deal.title.toLowerCase().includes(query) ||
+      deal.type.toLowerCase().includes(query)
+    );
+  };
+
   const filterViews = [
     { key: 'my-tasks' as FilterView, label: 'My Tasks', count: mockTasks.filter(t => t.assignedTo === currentUser && t.status !== 'completed').length },
     { key: 'all' as FilterView, label: 'All', count: mockTasks.length },
@@ -300,6 +392,16 @@ export default function Tasks() {
     }
   };
 
+  const getDealTypeColor = (type: string) => {
+    switch (type) {
+      case 'lead': return '#3B82F6';
+      case 'opportunity': return '#10B981';
+      case 'proposal': return '#F59E0B';
+      case 'job': return '#8B5CF6';
+      default: return '#6B7280';
+    }
+  };
+
   const isOverdue = (task: Task) => {
     return task.status !== 'completed' && task.dueDate < new Date();
   };
@@ -341,6 +443,90 @@ export default function Tasks() {
       assignedTo: [],
       tags: []
     });
+  };
+
+  const resetCreateForm = () => {
+    setNewTaskTitle('');
+    setNewTaskDescription('');
+    setNewTaskPriority('medium');
+    setNewTaskAssignedTo('');
+    setNewTaskDueDate(new Date());
+    setNewTaskType('');
+    setNewTaskTags([]);
+    setNewTaskEstimatedHours('');
+    setNewTaskNotes('');
+    setNewTaskContactId('');
+    setNewTaskContactName('');
+    setContactSearchQuery('');
+    setNewTaskDealId('');
+    setNewTaskDealTitle('');
+    setDealSearchQuery('');
+  };
+
+  const handleContactSelect = (contactId: string, contactName: string) => {
+    setNewTaskContactId(contactId);
+    setNewTaskContactName(contactName);
+    setContactSearchQuery(contactName);
+    // Reset deal selection when contact changes
+    setNewTaskDealId('');
+    setNewTaskDealTitle('');
+    setDealSearchQuery('');
+  };
+
+  const handleDealSelect = (dealId: string, dealTitle: string) => {
+    setNewTaskDealId(dealId);
+    setNewTaskDealTitle(dealTitle);
+    setDealSearchQuery(dealTitle);
+  };
+
+  const handleSaveTask = () => {
+    // Validation
+    if (!newTaskTitle.trim()) {
+      alert('Please enter a task title');
+      return;
+    }
+    if (!newTaskAssignedTo) {
+      alert('Please select an assignee');
+      return;
+    }
+    if (!newTaskType) {
+      alert('Please select a task type');
+      return;
+    }
+
+    // In a real app, this would save to the database
+    console.log('Creating new task:', {
+      title: newTaskTitle,
+      description: newTaskDescription,
+      priority: newTaskPriority,
+      assignedTo: newTaskAssignedTo,
+      dueDate: newTaskDueDate,
+      type: newTaskType,
+      tags: newTaskTags,
+      estimatedHours: newTaskEstimatedHours ? parseFloat(newTaskEstimatedHours) : undefined,
+      notes: newTaskNotes,
+      contactId: newTaskContactId || null,
+      contactName: newTaskContactName || null,
+      dealId: newTaskDealId || null,
+      dealTitle: newTaskDealTitle || null,
+    });
+
+    // Reset form and close modal
+    resetCreateForm();
+    setShowCreateTask(false);
+  };
+
+  const handleCancelCreate = () => {
+    resetCreateForm();
+    setShowCreateTask(false);
+  };
+
+  const toggleTag = (tag: string) => {
+    setNewTaskTags(prev =>
+      prev.includes(tag)
+        ? prev.filter(t => t !== tag)
+        : [...prev, tag]
+    );
   };
 
   const filteredTasks = getFilteredTasks();
@@ -856,26 +1042,387 @@ export default function Tasks() {
         )}
       </Modal>
 
-      {/* Create Task Modal - Placeholder */}
+      {/* Create Task Modal */}
       <Modal
         visible={showCreateTask}
         animationType="slide"
         presentationStyle="pageSheet"
-        onRequestClose={() => setShowCreateTask(false)}
+        onRequestClose={handleCancelCreate}
       >
         <SafeAreaView style={styles.createModal}>
           <View style={styles.createHeader}>
-            <TouchableOpacity onPress={() => setShowCreateTask(false)}>
+            <TouchableOpacity onPress={handleCancelCreate}>
               <X size={24} color="#111827" />
             </TouchableOpacity>
             <Text style={styles.createHeaderTitle}>Create Task</Text>
-            <TouchableOpacity onPress={() => setShowCreateTask(false)}>
+            <TouchableOpacity onPress={handleSaveTask}>
               <Text style={styles.saveButtonText}>Save</Text>
             </TouchableOpacity>
           </View>
           
           <ScrollView style={styles.createContent}>
-            <Text style={styles.placeholderText}>Create task form coming soon...</Text>
+            {/* Title */}
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>
+                Title <Text style={styles.required}>*</Text>
+              </Text>
+              <TextInput
+                style={styles.formInput}
+                placeholder="Enter task title"
+                value={newTaskTitle}
+                onChangeText={setNewTaskTitle}
+                placeholderTextColor="#9CA3AF"
+              />
+            </View>
+
+            {/* Description */}
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>Description</Text>
+              <TextInput
+                style={[styles.formInput, styles.formTextArea]}
+                placeholder="Enter task description"
+                value={newTaskDescription}
+                onChangeText={setNewTaskDescription}
+                placeholderTextColor="#9CA3AF"
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
+            </View>
+
+            {/* Task Type */}
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>
+                Task Type <Text style={styles.required}>*</Text>
+              </Text>
+              <TouchableOpacity
+                style={styles.formDropdown}
+                onPress={() => setShowTypeDropdown(!showTypeDropdown)}
+              >
+                <Text style={[styles.formDropdownText, !newTaskType && styles.formDropdownPlaceholder]}>
+                  {newTaskType || 'Select task type'}
+                </Text>
+                <ChevronDown size={20} color="#6B7280" />
+              </TouchableOpacity>
+
+              {showTypeDropdown && (
+                <View style={styles.dropdownList}>
+                  {taskTypes.map((type) => (
+                    <TouchableOpacity
+                      key={type}
+                      style={styles.dropdownItem}
+                      onPress={() => {
+                        setNewTaskType(type);
+                        setShowTypeDropdown(false);
+                      }}
+                    >
+                      <Text style={[
+                        styles.dropdownItemText,
+                        newTaskType === type && styles.dropdownItemTextActive
+                      ]}>
+                        {type}
+                      </Text>
+                      {newTaskType === type && (
+                        <CheckCircle size={18} color="#6366F1" />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+
+            {/* Priority */}
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>Priority</Text>
+              <View style={styles.priorityOptions}>
+                {(['high', 'medium', 'low'] as TaskPriority[]).map((priority) => (
+                  <TouchableOpacity
+                    key={priority}
+                    style={[
+                      styles.priorityOption,
+                      newTaskPriority === priority && styles.priorityOptionActive
+                    ]}
+                    onPress={() => setNewTaskPriority(priority)}
+                  >
+                    <View
+                      style={[
+                        styles.priorityDot,
+                        { backgroundColor: getPriorityColor(priority) }
+                      ]}
+                    />
+                    <Text style={[
+                      styles.priorityOptionText,
+                      newTaskPriority === priority && styles.priorityOptionTextActive
+                    ]}>
+                      {priority.charAt(0).toUpperCase() + priority.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Assign To */}
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>
+                Assign To <Text style={styles.required}>*</Text>
+              </Text>
+              <TouchableOpacity
+                style={styles.formDropdown}
+                onPress={() => setShowAssigneeDropdown(!showAssigneeDropdown)}
+              >
+                <Text style={[styles.formDropdownText, !newTaskAssignedTo && styles.formDropdownPlaceholder]}>
+                  {newTaskAssignedTo || 'Select team member'}
+                </Text>
+                <ChevronDown size={20} color="#6B7280" />
+              </TouchableOpacity>
+
+              {showAssigneeDropdown && (
+                <View style={styles.dropdownList}>
+                  {availableUsers.map((user) => (
+                    <TouchableOpacity
+                      key={user}
+                      style={styles.dropdownItem}
+                      onPress={() => {
+                        setNewTaskAssignedTo(user);
+                        setShowAssigneeDropdown(false);
+                      }}
+                    >
+                      <View style={styles.userAvatar}>
+                        <Text style={styles.userAvatarText}>
+                          {user.split(' ').map(n => n[0]).join('')}
+                        </Text>
+                      </View>
+                      <Text style={[
+                        styles.dropdownItemText,
+                        newTaskAssignedTo === user && styles.dropdownItemTextActive
+                      ]}>
+                        {user}
+                      </Text>
+                      {newTaskAssignedTo === user && (
+                        <CheckCircle size={18} color="#6366F1" />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+
+            {/* Related Contact */}
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>Related Contact</Text>
+              <View style={styles.searchableField}>
+                <User size={18} color="#6B7280" />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search contacts..."
+                  value={contactSearchQuery}
+                  onChangeText={setContactSearchQuery}
+                  placeholderTextColor="#9CA3AF"
+                />
+                {contactSearchQuery && (
+                  <TouchableOpacity onPress={() => {
+                    setContactSearchQuery('');
+                    setNewTaskContactId('');
+                    setNewTaskContactName('');
+                    setNewTaskDealId('');
+                    setNewTaskDealTitle('');
+                    setDealSearchQuery('');
+                  }}>
+                    <X size={18} color="#9CA3AF" />
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* Contact Search Results */}
+              {contactSearchQuery.length > 0 && (
+                <View style={styles.dealResults}>
+                  {getFilteredContacts().length > 0 ? (
+                    getFilteredContacts().map((contact) => (
+                      <TouchableOpacity
+                        key={contact.id}
+                        style={[
+                          styles.dealResultItem,
+                          newTaskContactId === contact.id && styles.dealResultItemActive
+                        ]}
+                        onPress={() => handleContactSelect(contact.id, contact.name)}
+                      >
+                        <User size={18} color="#6366F1" />
+                        <View style={styles.dealResultLeft}>
+                          <Text style={styles.dealResultTitle}>{contact.name}</Text>
+                          <Text style={styles.dropdownItemSubtext}>{contact.phone}</Text>
+                        </View>
+                        {newTaskContactId === contact.id && (
+                          <CheckCircle size={18} color="#6366F1" />
+                        )}
+                      </TouchableOpacity>
+                    ))
+                  ) : (
+                    <View style={styles.noResults}>
+                      <Text style={styles.noResultsText}>No contacts found</Text>
+                    </View>
+                  )}
+                </View>
+              )}
+            </View>
+
+            {/* Related Deal (shows only when contact is selected) */}
+            {newTaskContactId && (
+              <View style={styles.formSection}>
+                <Text style={styles.formLabel}>Related Deal</Text>
+                <View style={styles.searchableField}>
+                  <Search size={18} color="#6B7280" />
+                  <TextInput
+                    style={styles.searchInput}
+                    placeholder="Search deals for this contact..."
+                    value={dealSearchQuery}
+                    onChangeText={setDealSearchQuery}
+                    placeholderTextColor="#9CA3AF"
+                  />
+                  {dealSearchQuery && (
+                    <TouchableOpacity onPress={() => {
+                      setDealSearchQuery('');
+                      setNewTaskDealId('');
+                      setNewTaskDealTitle('');
+                    }}>
+                      <X size={18} color="#9CA3AF" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                {/* Deal Results */}
+                {dealSearchQuery.length > 0 && (
+                  <View style={styles.dealResults}>
+                    {getFilteredDeals().length > 0 ? (
+                      getFilteredDeals().map((deal) => (
+                        <TouchableOpacity
+                          key={deal.id}
+                          style={[
+                            styles.dealResultItem,
+                            newTaskDealId === deal.id && styles.dealResultItemActive
+                          ]}
+                          onPress={() => handleDealSelect(deal.id, deal.title)}
+                        >
+                          <View style={styles.dealResultLeft}>
+                            <Text style={styles.dealResultTitle}>{deal.title}</Text>
+                            <View style={styles.dealResultMeta}>
+                              <View style={[
+                                styles.dealTypeBadge,
+                                { backgroundColor: getDealTypeColor(deal.type) }
+                              ]}>
+                                <Text style={styles.dealTypeBadgeText}>
+                                  {deal.type.charAt(0).toUpperCase() + deal.type.slice(1)}
+                                </Text>
+                              </View>
+                              <Text style={styles.dealResultValue}>{deal.value}</Text>
+                            </View>
+                          </View>
+                          {newTaskDealId === deal.id && (
+                            <CheckCircle size={18} color="#6366F1" />
+                          )}
+                        </TouchableOpacity>
+                      ))
+                    ) : (
+                      <View style={styles.noResults}>
+                        <Text style={styles.noResultsText}>No deals found</Text>
+                      </View>
+                    )}
+                  </View>
+                )}
+
+                {/* Show all deals when not searching */}
+                {!dealSearchQuery && getDealsForContact(newTaskContactId).length > 0 && (
+                  <View style={styles.dealHint}>
+                    <Text style={styles.dealHintText}>
+                      {getDealsForContact(newTaskContactId).length} {getDealsForContact(newTaskContactId).length === 1 ? 'deal' : 'deals'} available. Start typing to search.
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* Due Date */}
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>Due Date</Text>
+              <TouchableOpacity
+                style={styles.formDropdown}
+                onPress={() => setShowDueDatePicker(true)}
+              >
+                <Calendar size={18} color="#6B7280" />
+                <Text style={styles.formDropdownText}>
+                  {newTaskDueDate.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                  })}
+                </Text>
+              </TouchableOpacity>
+
+              {showDueDatePicker && (
+                <DateTimePicker
+                  value={newTaskDueDate}
+                  mode="date"
+                  display="spinner"
+                  onChange={(event, selectedDate) => {
+                    setShowDueDatePicker(false);
+                    if (selectedDate) {
+                      setNewTaskDueDate(selectedDate);
+                    }
+                  }}
+                />
+              )}
+            </View>
+
+            {/* Estimated Hours */}
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>Estimated Hours</Text>
+              <TextInput
+                style={styles.formInput}
+                placeholder="e.g., 2.5"
+                value={newTaskEstimatedHours}
+                onChangeText={setNewTaskEstimatedHours}
+                placeholderTextColor="#9CA3AF"
+                keyboardType="decimal-pad"
+              />
+            </View>
+
+            {/* Tags */}
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>Tags</Text>
+              <View style={styles.tagSelector}>
+                {allTags.map((tag) => (
+                  <TouchableOpacity
+                    key={tag}
+                    style={[
+                      styles.tagSelectorItem,
+                      newTaskTags.includes(tag) && styles.tagSelectorItemActive
+                    ]}
+                    onPress={() => toggleTag(tag)}
+                  >
+                    <Text style={[
+                      styles.tagSelectorText,
+                      newTaskTags.includes(tag) && styles.tagSelectorTextActive
+                    ]}>
+                      {tag}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Notes */}
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>Notes</Text>
+              <TextInput
+                style={[styles.formInput, styles.formTextArea]}
+                placeholder="Add any additional notes"
+                value={newTaskNotes}
+                onChangeText={setNewTaskNotes}
+                placeholderTextColor="#9CA3AF"
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+            </View>
           </ScrollView>
         </SafeAreaView>
       </Modal>
@@ -1429,11 +1976,234 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
   },
-  placeholderText: {
-    fontSize: 16,
+  // Form Styles
+  formSection: {
+    marginBottom: 24,
+  },
+  formLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  required: {
+    color: '#EF4444',
+  },
+  formInput: {
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: '#111827',
+  },
+  formTextArea: {
+    minHeight: 100,
+    paddingTop: 12,
+  },
+  formDropdown: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  formDropdownText: {
+    flex: 1,
+    fontSize: 15,
+    color: '#111827',
+  },
+  formDropdownPlaceholder: {
     color: '#9CA3AF',
-    textAlign: 'center',
-    marginTop: 40,
+  },
+  dropdownList: {
+    marginTop: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    maxHeight: 200,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    gap: 12,
+  },
+  dropdownItemText: {
+    flex: 1,
+    fontSize: 15,
+    color: '#374151',
+  },
+  dropdownItemTextActive: {
+    color: '#6366F1',
+    fontWeight: '600',
+  },
+  priorityOptions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  priorityOption: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  priorityOptionActive: {
+    backgroundColor: '#EEF2FF',
+    borderColor: '#6366F1',
+  },
+  priorityOptionText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+  },
+  priorityOptionTextActive: {
+    color: '#6366F1',
+    fontWeight: '600',
+  },
+  tagSelector: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  tagSelectorItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  tagSelectorItemActive: {
+    backgroundColor: '#EEF2FF',
+    borderColor: '#6366F1',
+  },
+  tagSelectorText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#374151',
+  },
+  tagSelectorTextActive: {
+    color: '#6366F1',
+    fontWeight: '600',
+  },
+  dropdownItemSubtext: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 2,
+  },
+  searchableField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#111827',
+    padding: 0,
+  },
+  dealResults: {
+    marginTop: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    maxHeight: 250,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  dealResultItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  dealResultItemActive: {
+    backgroundColor: '#EEF2FF',
+  },
+  dealResultLeft: {
+    flex: 1,
+    marginRight: 12,
+  },
+  dealResultTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 6,
+  },
+  dealResultMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  dealTypeBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  dealTypeBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  dealResultValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  noResults: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  noResultsText: {
+    fontSize: 14,
+    color: '#9CA3AF',
+  },
+  dealHint: {
+    marginTop: 8,
+    padding: 12,
+    backgroundColor: '#F0F9FF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+  },
+  dealHintText: {
+    fontSize: 13,
+    color: '#0369A1',
   },
 });
 

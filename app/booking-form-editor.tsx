@@ -5,7 +5,6 @@ import {
     CheckCircle,
     ChevronDown,
     ChevronLeft,
-    ChevronRight,
     Grid,
     List,
     Plus,
