@@ -6,14 +6,18 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
   BarChart3,
+  Building,
   Calendar,
   ChevronDown,
   ChevronLeft,
+  ChevronRight,
   DollarSign,
   Filter,
+  MapPin,
   Menu,
   Target,
   TrendingUp,
+  User,
   Users,
   X
 } from 'lucide-react-native';
@@ -30,6 +34,7 @@ import {
 
 type TimeRange = 'D' | 'W' | 'M' | 'Y';
 type MetricType = 'sales' | 'leads' | 'estimates' | 'appointments';
+type TabType = 'core' | 'insights';
 
 interface DetailItem {
   id: string;
@@ -48,6 +53,7 @@ export default function Metrics() {
   const [showStatDetail, setShowStatDetail] = useState(false);
   const [selectedStatType, setSelectedStatType] = useState<MetricType>('sales');
   const [selectedStatTitle, setSelectedStatTitle] = useState('');
+  const [activeTab, setActiveTab] = useState<TabType>('core');
 
   useEffect(() => {
     setIsTransparent(false);
@@ -185,17 +191,39 @@ export default function Metrics() {
         </View>
       </LinearGradient>
 
+      {/* Tab Navigation */}
+      <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'core' && styles.tabActive]}
+          onPress={() => setActiveTab('core')}
+        >
+          <Text style={[styles.tabText, activeTab === 'core' && styles.tabTextActive]}>
+            Core
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'insights' && styles.tabActive]}
+          onPress={() => setActiveTab('insights')}
+        >
+          <Text style={[styles.tabText, activeTab === 'insights' && styles.tabTextActive]}>
+            Insights
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <ScrollView 
         style={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* Key Performance Indicators */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Key Performance Indicators</Text>
-          <Text style={styles.sectionSubtitle}>
-            Track your business performance at a glance
-          </Text>
-        </View>
+        {activeTab === 'core' ? (
+          <>
+            {/* Key Performance Indicators */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Key Performance Indicators</Text>
+              <Text style={styles.sectionSubtitle}>
+                Track your business performance at a glance
+              </Text>
+            </View>
 
         {/* Primary Metrics */}
         <View style={styles.metricsGrid}>
@@ -278,7 +306,7 @@ export default function Metrics() {
                 icon={BarChart3}
                 iconColor="#10B981"
                 backgroundColor="#10B981"
-                onPress={() => handleStatPress('avg_job_size', 'Average Job Size')}
+                onPress={() => handleStatPress('sales', 'Average Job Size')}
               />
             </View>
           </View>
@@ -302,7 +330,7 @@ export default function Metrics() {
               icon={TrendingUp}
               iconColor="#EF4444"
               backgroundColor="#EF4444"
-              onPress={() => handleStatPress('closing_ratio', 'Closing Ratio')}
+              onPress={() => handleStatPress('sales', 'Closing Ratio')}
             />
           </View>
         </View>

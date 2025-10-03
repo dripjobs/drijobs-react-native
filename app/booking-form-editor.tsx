@@ -3,7 +3,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
     AlertCircle,
     CheckCircle,
+    ChevronDown,
     ChevronLeft,
+    ChevronRight,
     Grid,
     List,
     Plus,
@@ -65,7 +67,22 @@ export default function BookingFormEditor() {
     });
 
     const [showQuestionsModal, setShowQuestionsModal] = useState(false);
+    const [showLeadSourcePicker, setShowLeadSourcePicker] = useState(false);
+    const [showCustomLeadSourceInput, setShowCustomLeadSourceInput] = useState(false);
+    const [customLeadSourceValue, setCustomLeadSourceValue] = useState('');
     const [hasChanges, setHasChanges] = useState(false);
+
+    // Mock lead sources from settings - in real app, fetch from account settings
+    const availableLeadSources = [
+        'Website',
+        'Facebook',
+        'Google',
+        'Instagram',
+        'Referral',
+        'Yard Sign',
+        'Direct Mail',
+        'Other'
+    ];
 
     useEffect(() => {
         // Load form data if editing
@@ -103,6 +120,24 @@ export default function BookingFormEditor() {
     const handleUpdateField = (field: keyof BookingFormData, value: any) => {
         setFormData({ ...formData, [field]: value });
         setHasChanges(true);
+    };
+
+    const handleSelectLeadSource = (source: string) => {
+        handleUpdateField('assignedLeadSource', source);
+        setShowLeadSourcePicker(false);
+    };
+
+    const handleAddCustomLeadSource = () => {
+        if (customLeadSourceValue.trim()) {
+            handleUpdateField('assignedLeadSource', customLeadSourceValue.trim());
+            setCustomLeadSourceValue('');
+            setShowCustomLeadSourceInput(false);
+            setShowLeadSourcePicker(false);
+        }
+    };
+
+    const handleClearLeadSource = () => {
+        handleUpdateField('assignedLeadSource', '');
     };
 
     const handleQuestionsUpdate = (questions: CustomQuestion[]) => {
@@ -168,12 +203,35 @@ export default function BookingFormEditor() {
 
                     <View style={styles.inputGroup}>
                         <Text style={styles.inputLabel}>Assigned Lead Source (Optional)</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={formData.assignedLeadSource}
-                            onChangeText={(value) => handleUpdateField('assignedLeadSource', value)}
-                            placeholder="e.g., Website, Facebook, Google Ads"
-                        />
+                        <TouchableOpacity
+                            style={styles.leadSourceSelector}
+                            onPress={() => setShowLeadSourcePicker(true)}
+                        >
+                            <View style={styles.leadSourceSelectorContent}>
+                                {formData.assignedLeadSource ? (
+                                    <>
+                                        <Text style={styles.leadSourceSelectorIcon}>🎯</Text>
+                                        <Text style={styles.leadSourceSelectorText}>
+                                            {formData.assignedLeadSource}
+                                        </Text>
+                                    </>
+                                ) : (
+                                    <Text style={styles.leadSourceSelectorPlaceholder}>
+                                        Select or add custom lead source
+                                    </Text>
+                                )}
+                            </View>
+                            <ChevronDown size={20} color="#6B7280" />
+                        </TouchableOpacity>
+                        {formData.assignedLeadSource && (
+                            <TouchableOpacity
+                                style={styles.clearLeadSourceButton}
+                                onPress={handleClearLeadSource}
+                            >
+                                <X size={14} color="#EF4444" />
+                                <Text style={styles.clearLeadSourceText}>Clear</Text>
+                            </TouchableOpacity>
+                        )}
                         <Text style={styles.inputHint}>
                             This automatically assigns a lead source to all submissions. Lead source question will be hidden.
                         </Text>
@@ -350,6 +408,95 @@ export default function BookingFormEditor() {
                     onSave={handleQuestionsUpdate}
                 />
             )}
+
+            {/* Lead Source Picker Modal */}
+            <Modal
+                visible={showLeadSourcePicker}
+                animationType="slide"
+                transparent
+                onRequestClose={() => setShowLeadSourcePicker(false)}
+            >
+                <View style={styles.leadSourceModalOverlay}>
+                    <View style={styles.leadSourceModal}>
+                        <View style={styles.leadSourceModalHeader}>
+                            <Text style={styles.leadSourceModalTitle}>Select Lead Source</Text>
+                            <TouchableOpacity onPress={() => setShowLeadSourcePicker(false)}>
+                                <X size={24} color="#6B7280" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView style={styles.leadSourceModalContent}>
+                            {availableLeadSources.map((source) => (
+                                <TouchableOpacity
+                                    key={source}
+                                    style={[
+                                        styles.leadSourceOption,
+                                        formData.assignedLeadSource === source && styles.leadSourceOptionSelected
+                                    ]}
+                                    onPress={() => handleSelectLeadSource(source)}
+                                >
+                                    <Text style={styles.leadSourceOptionIcon}>🎯</Text>
+                                    <Text style={[
+                                        styles.leadSourceOptionText,
+                                        formData.assignedLeadSource === source && styles.leadSourceOptionTextSelected
+                                    ]}>
+                                        {source}
+                                    </Text>
+                                    {formData.assignedLeadSource === source && (
+                                        <CheckCircle size={20} color="#6366F1" />
+                                    )}
+                                </TouchableOpacity>
+                            ))}
+
+                            <TouchableOpacity
+                                style={styles.addCustomLeadSourceButton}
+                                onPress={() => setShowCustomLeadSourceInput(true)}
+                            >
+                                <Plus size={20} color="#6366F1" />
+                                <Text style={styles.addCustomLeadSourceText}>Add Custom Lead Source</Text>
+                            </TouchableOpacity>
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Custom Lead Source Input Modal */}
+            <Modal
+                visible={showCustomLeadSourceInput}
+                animationType="fade"
+                transparent
+                onRequestClose={() => setShowCustomLeadSourceInput(false)}
+            >
+                <View style={styles.customLeadSourceModalOverlay}>
+                    <View style={styles.customLeadSourceModal}>
+                        <Text style={styles.customLeadSourceModalTitle}>Add Custom Lead Source</Text>
+                        <TextInput
+                            style={styles.customLeadSourceInput}
+                            value={customLeadSourceValue}
+                            onChangeText={setCustomLeadSourceValue}
+                            placeholder="e.g., Trade Show, Partner Referral"
+                            autoFocus
+                        />
+                        <View style={styles.customLeadSourceModalButtons}>
+                            <TouchableOpacity
+                                style={[styles.customLeadSourceModalButton, styles.customLeadSourceModalButtonCancel]}
+                                onPress={() => {
+                                    setShowCustomLeadSourceInput(false);
+                                    setCustomLeadSourceValue('');
+                                }}
+                            >
+                                <Text style={styles.customLeadSourceModalButtonCancelText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.customLeadSourceModalButton, styles.customLeadSourceModalButtonAdd]}
+                                onPress={handleAddCustomLeadSource}
+                            >
+                                <Text style={styles.customLeadSourceModalButtonAddText}>Add</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -802,6 +949,51 @@ const styles = StyleSheet.create({
         marginTop: 6,
         lineHeight: 16,
     },
+    leadSourceSelector: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        borderRadius: 10,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+    },
+    leadSourceSelectorContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        flex: 1,
+    },
+    leadSourceSelectorIcon: {
+        fontSize: 18,
+    },
+    leadSourceSelectorText: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#111827',
+    },
+    leadSourceSelectorPlaceholder: {
+        fontSize: 15,
+        color: '#9CA3AF',
+    },
+    clearLeadSourceButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        marginTop: 8,
+        alignSelf: 'flex-start',
+        backgroundColor: '#FEE2E2',
+        borderRadius: 6,
+    },
+    clearLeadSourceText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#EF4444',
+    },
     switchRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -1218,6 +1410,138 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '600',
         color: '#6366F1',
+    },
+    // Lead Source Picker Modal
+    leadSourceModalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'flex-end',
+    },
+    leadSourceModal: {
+        backgroundColor: '#FFFFFF',
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        maxHeight: '70%',
+    },
+    leadSourceModalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E7EB',
+    },
+    leadSourceModalTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#111827',
+    },
+    leadSourceModalContent: {
+        padding: 16,
+    },
+    leadSourceOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        padding: 16,
+        backgroundColor: '#F9FAFB',
+        borderRadius: 12,
+        marginBottom: 8,
+        borderWidth: 2,
+        borderColor: 'transparent',
+    },
+    leadSourceOptionSelected: {
+        backgroundColor: '#EEF2FF',
+        borderColor: '#6366F1',
+    },
+    leadSourceOptionIcon: {
+        fontSize: 20,
+    },
+    leadSourceOptionText: {
+        flex: 1,
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#111827',
+    },
+    leadSourceOptionTextSelected: {
+        color: '#6366F1',
+    },
+    addCustomLeadSourceButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        padding: 16,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        marginTop: 8,
+        borderWidth: 2,
+        borderColor: '#6366F1',
+        borderStyle: 'dashed',
+    },
+    addCustomLeadSourceText: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#6366F1',
+    },
+    // Custom Lead Source Input Modal
+    customLeadSourceModalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    customLeadSourceModal: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        padding: 24,
+        width: '100%',
+        maxWidth: 400,
+    },
+    customLeadSourceModalTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#111827',
+        marginBottom: 16,
+        textAlign: 'center',
+    },
+    customLeadSourceInput: {
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        borderRadius: 10,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        fontSize: 15,
+        color: '#111827',
+        marginBottom: 20,
+    },
+    customLeadSourceModalButtons: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    customLeadSourceModalButton: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: 10,
+        alignItems: 'center',
+    },
+    customLeadSourceModalButtonCancel: {
+        backgroundColor: '#F3F4F6',
+    },
+    customLeadSourceModalButtonAdd: {
+        backgroundColor: '#6366F1',
+    },
+    customLeadSourceModalButtonCancelText: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#6B7280',
+    },
+    customLeadSourceModalButtonAddText: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#FFFFFF',
     },
 });
 
