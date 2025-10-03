@@ -2,20 +2,30 @@ import DrawerMenu from '@/components/DrawerMenu';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
+    Building,
     Calendar,
     CheckCircle,
+    ChevronDown,
     ChevronLeft,
     ChevronRight,
     Clock,
+    Copy,
     DollarSign,
     Edit,
     FileText,
     Filter,
+    Mail,
+    MapPin,
+    MessageSquare,
+    MoreVertical,
+    Navigation,
+    Phone,
     Plus,
     RefreshCw,
     Repeat,
     Search,
     TrendingUp,
+    User,
     Users,
     X,
     XCircle
@@ -39,7 +49,14 @@ const recurringJobData = [
     description: 'Pressure washing of building exterior and parking lot',
     statusColor: '#10B981',
     mrr: 70.83,
-    arr: 850.00
+    arr: 850.00,
+    customer: {
+      name: 'John Smith',
+      email: 'john.smith@sunshineplaza.com',
+      phone: '(352) 555-1234',
+      company: 'Sunshine Plaza',
+      address: '789 Commerce Blvd, Orlando FL 32801'
+    }
   },
   {
     id: 2,
@@ -500,25 +517,40 @@ const RecurringJobsScreen: React.FC = () => {
                   {/* Status Section */}
                   <View style={styles.statusSectionTop}>
                     <Text style={styles.statusLabel}>Status</Text>
-                    <View style={[styles.statusDropdown, { backgroundColor: selectedJob.statusColor }]}>
-                      <View style={styles.statusBadge}>
-                        {getStatusIcon(selectedJob.status)}
-                        <Text style={styles.statusDropdownText}>
-                          {selectedJob.status.charAt(0).toUpperCase() + selectedJob.status.slice(1)}
-                        </Text>
-                      </View>
-                    </View>
+                    <TouchableOpacity style={[styles.statusDropdown, { backgroundColor: selectedJob.statusColor }]}>
+                      <Text style={styles.statusDropdownText}>
+                        {selectedJob.status.charAt(0).toUpperCase() + selectedJob.status.slice(1)}
+                      </Text>
+                      <ChevronDown size={16} color="#FFFFFF" />
+                    </TouchableOpacity>
                   </View>
 
-                  {/* Service Information */}
-                  <View style={styles.serviceSection}>
-                    <View style={styles.serviceHeaderRow}>
-                      <Repeat size={20} color="#6366F1" />
-                      <Text style={styles.serviceLabelText}>Service</Text>
+                  {/* Service Location */}
+                  {selectedJob.customer && (
+                    <View style={styles.addressSection}>
+                      <View style={styles.addressHeaderRow}>
+                        <MapPin size={20} color="#EF4444" />
+                        <Text style={styles.addressLabelText}>Service Location</Text>
+                      </View>
+                      <Text style={styles.addressText}>{selectedJob.customer.address}</Text>
+                      <View style={styles.addressButtonsRow}>
+                        <TouchableOpacity 
+                          style={styles.navigateButton}
+                          onPress={() => console.log('Navigate')}
+                        >
+                          <Navigation size={16} color="#FFFFFF" />
+                          <Text style={styles.navigateButtonText}>Navigate</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                          style={styles.copyAddressButton}
+                          onPress={() => console.log('Copy')}
+                        >
+                          <Copy size={16} color="#6B7280" />
+                          <Text style={styles.copyAddressButtonText}>Copy</Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
-                    <Text style={styles.serviceTitle}>{selectedJob.serviceName}</Text>
-                    <Text style={styles.serviceDescription}>{selectedJob.description}</Text>
-                  </View>
+                  )}
 
                   {/* Edit Job Button */}
                   <View style={styles.editJobSection}>
@@ -532,14 +564,74 @@ const RecurringJobsScreen: React.FC = () => {
                   </View>
 
                   {/* Customer Information */}
-                  <View style={styles.modalSection}>
-                    <Text style={styles.modalSectionTitle}>Customer Information</Text>
-                    
-                    <View style={styles.contactItem}>
-                      <Users size={16} color="#6B7280" />
-                      <Text style={styles.contactItemText}>{selectedJob.customerName}</Text>
+                  {selectedJob.customer && (
+                    <View style={styles.modalSection}>
+                      <Text style={styles.modalSectionTitle}>Customer Information</Text>
+                      
+                      {/* Email */}
+                      <View style={styles.contactItem}>
+                        <Mail size={16} color="#6B7280" />
+                        <Text style={styles.contactItemText}>{selectedJob.customer.email}</Text>
+                        <TouchableOpacity style={styles.contactMenuButton}>
+                          <MoreVertical size={16} color="#6B7280" />
+                        </TouchableOpacity>
+                      </View>
+
+                      {/* Phone */}
+                      <View style={styles.contactItem}>
+                        <Phone size={16} color="#6B7280" />
+                        <Text style={styles.contactItemText}>{selectedJob.customer.phone}</Text>
+                        <TouchableOpacity style={styles.contactMenuButton}>
+                          <MoreVertical size={16} color="#6B7280" />
+                        </TouchableOpacity>
+                      </View>
+
+                      {/* Company */}
+                      <View style={styles.contactItem}>
+                        <Building size={16} color="#6B7280" />
+                        <Text style={styles.contactItemText}>{selectedJob.customer.company}</Text>
+                        <TouchableOpacity style={styles.contactMenuButton}>
+                          <MoreVertical size={16} color="#6B7280" />
+                        </TouchableOpacity>
+                      </View>
+
+                      {/* Address */}
+                      <View style={styles.contactItem}>
+                        <MapPin size={16} color="#6B7280" />
+                        <Text style={styles.contactItemText}>{selectedJob.customer.address}</Text>
+                        <TouchableOpacity style={styles.contactMenuButton}>
+                          <MoreVertical size={16} color="#6B7280" />
+                        </TouchableOpacity>
+                      </View>
+
+                      {/* Contact Name */}
+                      <View style={styles.contactItem}>
+                        <User size={16} color="#6B7280" />
+                        <Text style={styles.contactItemText}>{selectedJob.customer.name}</Text>
+                        <TouchableOpacity style={styles.contactMenuButton}>
+                          <MoreVertical size={16} color="#6B7280" />
+                        </TouchableOpacity>
+                      </View>
                     </View>
-                  </View>
+                  )}
+
+                  {/* Quick Actions - Contact Customer */}
+                  {selectedJob.customer && (
+                    <View style={styles.quickActionsRow}>
+                      <TouchableOpacity style={styles.quickActionCall}>
+                        <Phone size={20} color="#FFFFFF" />
+                        <Text style={styles.quickActionText}>Call</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.quickActionText2}>
+                        <MessageSquare size={20} color="#FFFFFF" />
+                        <Text style={styles.quickActionText}>Text</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.quickActionEmail}>
+                        <Mail size={20} color="#FFFFFF" />
+                        <Text style={styles.quickActionText}>Email</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
 
                   {/* Schedule Information */}
                   <View style={styles.modalSection}>
@@ -979,45 +1071,78 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   statusDropdown: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
+    gap: 8,
   },
   statusDropdownText: {
     fontSize: 15,
     fontWeight: '700',
     color: '#FFFFFF',
   },
-  serviceSection: {
+  addressSection: {
     paddingHorizontal: 20,
     paddingVertical: 20,
     backgroundColor: '#F9FAFB',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
-  serviceHeaderRow: {
+  addressHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     marginBottom: 12,
   },
-  serviceLabelText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6366F1',
-  },
-  serviceTitle: {
-    fontSize: 20,
+  addressLabelText: {
+    fontSize: 16,
     fontWeight: '700',
     color: '#111827',
-    marginBottom: 8,
   },
-  serviceDescription: {
-    fontSize: 15,
+  addressText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 16,
+  },
+  addressButtonsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  navigateButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EF4444',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    gap: 8,
+  },
+  navigateButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  copyAddressButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E5E7EB',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    gap: 8,
+  },
+  copyAddressButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
     color: '#6B7280',
-    lineHeight: 22,
   },
   editJobSection: {
     paddingHorizontal: 20,
@@ -1057,12 +1182,63 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
   contactItemText: {
     fontSize: 15,
     color: '#111827',
     fontWeight: '500',
     flex: 1,
+  },
+  contactMenuButton: {
+    padding: 4,
+  },
+  quickActionsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  quickActionCall: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#10B981',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    gap: 8,
+  },
+  quickActionText2: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#3B82F6',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    gap: 8,
+  },
+  quickActionEmail: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#8B5CF6',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    gap: 8,
+  },
+  quickActionText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   jobDetailRow: {
     flexDirection: 'row',
