@@ -343,8 +343,12 @@ const RecurringJobsScreen: React.FC = () => {
     };
     
     setSelectedInvoice(mockInvoice);
+    // Close all modals first, then open invoice detail with slight delay
     setShowInvoicesModal(false);
-    setShowInvoiceDetail(true);
+    setShowDetailModal(false);
+    setTimeout(() => {
+      setShowInvoiceDetail(true);
+    }, 300);
   };
 
   const handleDateChange = (event: any, date?: Date) => {
@@ -983,26 +987,33 @@ const RecurringJobsScreen: React.FC = () => {
         </SafeAreaView>
       </Modal>
 
-      {/* Invoice Detail Modal */}
-      {selectedInvoice && (
-        <Modal
-          visible={showInvoiceDetail}
-          animationType="slide"
-          onRequestClose={() => setShowInvoiceDetail(false)}
-        >
+      {/* Invoice Detail Modal - Render separately to ensure clean navigation */}
+      <Modal
+        visible={showInvoiceDetail && selectedInvoice !== null}
+        animationType="slide"
+        onRequestClose={() => {
+          setShowInvoiceDetail(false);
+          setSelectedInvoice(null);
+        }}
+      >
+        {selectedInvoice && (
           <InvoiceDetail
             invoice={selectedInvoice}
             onBack={() => {
               setShowInvoiceDetail(false);
-              setShowInvoicesModal(true);
+              setSelectedInvoice(null);
+              // Optionally reopen invoices modal
+              setTimeout(() => {
+                setShowInvoicesModal(true);
+              }, 300);
             }}
             onUpdate={() => {
               // Handle invoice update
               console.log('Invoice updated');
             }}
           />
-        </Modal>
-      )}
+        )}
+      </Modal>
 
       {/* Calendar Modal */}
       <Modal
