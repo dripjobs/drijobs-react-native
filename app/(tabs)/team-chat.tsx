@@ -807,13 +807,15 @@ export default function TeamChat() {
             style={styles.header}
           >
             <View style={styles.headerContent}>
-              <TouchableOpacity 
-                style={styles.menuButton}
-                onPress={() => setDrawerOpen(true)}
-              >
-                <View style={styles.menuIcon} />
-                <View style={styles.menuIcon} />
-                <View style={styles.menuIcon} />
+              <TouchableOpacity onPress={() => setDrawerOpen(true)} style={styles.pullOutMenu}>
+                <View style={styles.pullOutIndicator}>
+                  <View style={styles.pullOutDot} />
+                  <View style={styles.pullOutDot} />
+                  <View style={styles.pullOutDot} />
+                </View>
+                <View style={styles.pullOutArrow}>
+                  <ChevronRight size={16} color="#FFFFFF" />
+                </View>
               </TouchableOpacity>
               
               <Text style={styles.headerTitle}>Team Chat</Text>
@@ -2193,15 +2195,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  menuButton: {
-    flexDirection: 'column',
-    gap: 3,
+  pullOutMenu: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
-  menuIcon: {
-    width: 18,
-    height: 2,
+  pullOutIndicator: {
+    width: 6,
+    height: 24,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  pullOutDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: '#FFFFFF',
-    borderRadius: 1,
+  },
+  pullOutArrow: {
+    marginLeft: 4,
   },
   headerTitle: {
     fontSize: 20,

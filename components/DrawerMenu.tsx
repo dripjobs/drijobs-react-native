@@ -47,7 +47,7 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
       items: [
         { icon: FileText, label: 'Invoices', action: () => router.push('/invoices') },
         { icon: FileCheck, label: 'Proposals', action: () => router.push('/proposals') },
-        { icon: Wrench, label: 'Work Orders', action: () => console.log('Work Orders') },
+        { icon: Wrench, label: 'Work Orders', action: () => router.push('/(tabs)/work-orders') },
         { icon: Star, label: 'Reviews', action: () => console.log('Reviews') },
       ]
     },
@@ -62,7 +62,7 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
     {
       title: 'System',
       items: [
-        { icon: Bell, label: 'Notifications', action: () => console.log('Notifications') },
+        { icon: Bell, label: 'Notifications', action: () => router.push('/notifications') },
         { icon: Settings2, label: 'Settings', action: () => console.log('Settings') },
       ]
     }

@@ -1,6 +1,7 @@
 import DrawerMenu from '@/components/DrawerMenu';
 import FloatingActionMenu from '@/components/FloatingActionMenu';
 import NewAppointmentModal from '@/components/NewAppointmentModal';
+import NotificationModal from '@/components/NotificationModal';
 import StatCard from '@/components/StatCard';
 import StatDetailModal from '@/components/StatDetailModal';
 import { useTabBar } from '@/contexts/TabBarContext';
@@ -33,6 +34,8 @@ export default function Dashboard() {
   const [selectedStatTitle, setSelectedStatTitle] = useState<string>('');
   const [showFAB, setShowFAB] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [unreadNotifications] = useState(6); // This would come from your notification service
   const [appointments, setAppointments] = useState([
     { 
       id: 1, 
@@ -497,8 +500,18 @@ export default function Dashboard() {
             <TouchableOpacity style={styles.headerButton}>
               <Search size={24} color="#FFFFFF" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.headerButton}>
+            <TouchableOpacity 
+              style={styles.headerButton}
+              onPress={() => setShowNotificationModal(true)}
+            >
               <Bell size={24} color="#FFFFFF" />
+              {unreadNotifications > 0 && (
+                <View style={styles.notificationBadge}>
+                  <Text style={styles.notificationBadgeText}>
+                    {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -1168,6 +1181,12 @@ export default function Dashboard() {
           </PanGestureHandler>
         </View>
       </Modal>
+
+      {/* Notification Modal */}
+      <NotificationModal 
+        visible={showNotificationModal}
+        onClose={() => setShowNotificationModal(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -1193,32 +1212,22 @@ const styles = StyleSheet.create({
   pullOutMenu: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
+    gap: 8,
   },
   pullOutIndicator: {
-    flexDirection: 'row',
+    width: 6,
+    height: 24,
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 3,
-    marginRight: 6,
   },
   pullOutDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: '#FFFFFF',
   },
   pullOutArrow: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    marginLeft: 4,
   },
   greetingRow: {
     paddingHorizontal: 20,
@@ -1239,6 +1248,26 @@ const styles = StyleSheet.create({
     padding: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 10,
+    position: 'relative',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: '#EF4444',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 5,
+    borderWidth: 2,
+    borderColor: '#6366F1',
+  },
+  notificationBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
   },
   // Header Menu Toggle
   headerMenuToggle: {

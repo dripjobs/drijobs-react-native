@@ -1,42 +1,39 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Modal, Animated, Dimensions, TextInput, Platform } from 'react-native';
-import { PanGestureHandler, State } from 'react-native-gesture-handler';
-import { LinearGradient } from 'expo-linear-gradient';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import Toast from 'react-native-toast-message';
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  Calendar, 
-  Filter, 
-  User, 
-  Clock, 
-  Phone, 
-  Mail, 
-  Building, 
-  X, 
-  Plus,
-  Eye,
-  CheckCircle,
-  AlertCircle,
-  ChevronRight as ChevronRightIcon,
-  Navigation,
-  Copy,
-  Handshake,
-  MessageSquare,
-  ChevronDown,
-  FileText,
-  Edit,
-  Archive,
-  Trash2,
-  MapPin,
-  List,
-  Bell,
-  UserPlus
-} from 'lucide-react-native';
-import FloatingActionMenu from '@/components/FloatingActionMenu';
 import DrawerMenu from '@/components/DrawerMenu';
+import FloatingActionMenu from '@/components/FloatingActionMenu';
 import { useTabBar } from '@/contexts/TabBarContext';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { LinearGradient } from 'expo-linear-gradient';
+import {
+    AlertCircle,
+    Archive,
+    Calendar,
+    CheckCircle,
+    ChevronDown,
+    ChevronLeft,
+    ChevronRight,
+    ChevronRight as ChevronRightIcon,
+    Clock,
+    Copy,
+    Edit,
+    Eye,
+    FileText,
+    Filter,
+    Handshake,
+    List,
+    Mail,
+    MapPin,
+    MessageSquare,
+    Navigation,
+    Phone,
+    Trash2,
+    User,
+    UserPlus,
+    X
+} from 'lucide-react-native';
+import React, { useState } from 'react';
+import { Animated, Dimensions, Modal, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { PanGestureHandler, State } from 'react-native-gesture-handler';
+import Toast from 'react-native-toast-message';
 
 const { height: screenHeight } = Dimensions.get('window');
 
@@ -915,17 +912,14 @@ export default function Appointments() {
       
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.menuButton}
-          onPress={() => setDrawerOpen(true)}
-        >
+        <TouchableOpacity onPress={() => setDrawerOpen(true)} style={styles.pullOutMenu}>
           <View style={styles.pullOutIndicator}>
-            <View style={styles.pullOutDots}>
-              <View style={styles.pullOutDot} />
-              <View style={styles.pullOutDot} />
-              <View style={styles.pullOutDot} />
-            </View>
-            <ChevronRightIcon size={12} color="#6366F1" />
+            <View style={styles.pullOutDot} />
+            <View style={styles.pullOutDot} />
+            <View style={styles.pullOutDot} />
+          </View>
+          <View style={styles.pullOutArrow}>
+            <ChevronRightIcon size={16} color="#6366F1" />
           </View>
         </TouchableOpacity>
         
@@ -2087,28 +2081,25 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
-  menuButton: {
-    padding: 8,
+  pullOutMenu: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   pullOutIndicator: {
-    flexDirection: 'row',
+    width: 6,
+    height: 24,
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 10,
-  },
-  pullOutDots: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 8,
   },
   pullOutDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: '#6366F1',
-    marginHorizontal: 1,
+  },
+  pullOutArrow: {
+    marginLeft: 4,
   },
   headerContent: {
     flex: 1,

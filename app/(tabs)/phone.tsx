@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, TextInput, Alert, ScrollView, Modal, Animated } from 'react-native';
-import { PanGestureHandler } from 'react-native-gesture-handler';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Menu, Phone as PhoneIcon, PhoneCall, UserPlus, Clock, Search, X, MoveHorizontal as MoreHorizontal, Mic, MicOff, Pause, Play, PhoneOff, Settings, Volume2, FileText, Sparkles, MessageSquare, ChevronRight } from 'lucide-react-native';
-import FloatingActionMenu from '@/components/FloatingActionMenu';
 import DrawerMenu from '@/components/DrawerMenu';
-import { useTabBar } from '@/contexts/TabBarContext';
+import FloatingActionMenu from '@/components/FloatingActionMenu';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { useTabBar } from '@/contexts/TabBarContext';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ChevronRight, Clock, FileText, MessageSquare, Mic, MicOff, Pause, Phone as PhoneIcon, PhoneOff, Play, Search, Settings, Sparkles, UserPlus, Volume2 } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import { Alert, Animated, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { PanGestureHandler } from 'react-native-gesture-handler';
 
 export default function Phone() {
   const { setIsTransparent } = useTabBar();
@@ -1011,32 +1011,22 @@ const styles = StyleSheet.create({
   pullOutMenu: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
+    gap: 8,
   },
   pullOutIndicator: {
-    flexDirection: 'row',
+    width: 6,
+    height: 24,
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 3,
-    marginRight: 8,
   },
   pullOutDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: '#FFFFFF',
   },
   pullOutArrow: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    marginLeft: 4,
   },
   headerTitle: {
     fontSize: 20,

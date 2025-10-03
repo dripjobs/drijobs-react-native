@@ -2,15 +2,20 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
     BellRing,
     Building2,
+    CheckCircle,
     ChevronLeft,
+    Copy,
     CreditCard,
     DollarSign,
     Download,
     Edit,
+    Eye,
     FileText,
     Mail,
     MapPin,
     MessageSquare,
+    MoreVertical,
+    Navigation,
     Paperclip,
     Percent,
     Phone,
@@ -18,7 +23,8 @@ import {
     Send,
     Settings,
     Trash2,
-    User
+    User,
+    UserCircle
 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
@@ -108,6 +114,8 @@ export const InvoiceDetail: React.FC<InvoiceDetailProps> = ({ invoice, onBack, o
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [showActionsModal, setShowActionsModal] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [expandedActionItem, setExpandedActionItem] = useState<string | null>(null);
   
   const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('percentage');
   const [discountValue, setDiscountValue] = useState<string>(invoice.discountAmount.toString());
@@ -183,6 +191,10 @@ export const InvoiceDetail: React.FC<InvoiceDetailProps> = ({ invoice, onBack, o
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
+  const handleToggleActionMenu = (item: string) => {
+    setExpandedActionItem(expandedActionItem === item ? null : item);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -196,12 +208,10 @@ export const InvoiceDetail: React.FC<InvoiceDetailProps> = ({ invoice, onBack, o
             <Text style={styles.headerSubtitle}>{invoice.subject}</Text>
           </View>
           <TouchableOpacity 
-            style={styles.moreButton}
-            onPress={() => setShowActionsModal(true)}
+            style={styles.contactIconButton}
+            onPress={() => setShowContactModal(true)}
           >
-            <View style={styles.moreButtonDot} />
-            <View style={styles.moreButtonDot} />
-            <View style={styles.moreButtonDot} />
+            <UserCircle size={24} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
 
@@ -218,33 +228,195 @@ export const InvoiceDetail: React.FC<InvoiceDetailProps> = ({ invoice, onBack, o
             </Text>
           </View>
         </View>
-
-        {/* Tabs */}
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          style={styles.tabsContainer}
-          contentContainerStyle={styles.tabsContent}
-        >
-          {tabs.map((tab) => (
-            <TouchableOpacity
-              key={tab.id}
-              style={[styles.tab, activeTab === tab.id && styles.tabActive]}
-              onPress={() => setActiveTab(tab.id as any)}
-            >
-              <tab.icon size={16} color={activeTab === tab.id ? '#FFFFFF' : 'rgba(255, 255, 255, 0.7)'} />
-              <Text style={[styles.tabText, activeTab === tab.id && styles.tabTextActive]}>
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
       </LinearGradient>
+
+      {/* Tabs - White Bar */}
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        style={styles.tabBar}
+        contentContainerStyle={styles.tabBarContent}
+      >
+        {tabs.map((tab) => (
+          <TouchableOpacity
+            key={tab.id}
+            style={[styles.tab, activeTab === tab.id && styles.tabActive]}
+            onPress={() => setActiveTab(tab.id as any)}
+          >
+            <tab.icon size={16} color={activeTab === tab.id ? '#6366F1' : '#6B7280'} />
+            <Text style={[styles.tabText, activeTab === tab.id && styles.tabTextActive]}>
+              {tab.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
 
       {/* Content */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {activeTab === 'overview' && (
           <View style={styles.tabContentContainer}>
+            {/* Quick Actions */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Quick Actions</Text>
+              <View style={styles.quickActionsGrid}>
+                <TouchableOpacity 
+                  style={[styles.quickActionButton, styles.quickActionCollect]}
+                  onPress={() => setShowPaymentModal(true)}
+                >
+                  <CreditCard size={20} color="#FFFFFF" />
+                  <Text style={styles.quickActionText}>Collect Payment</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.quickActionButton, styles.quickActionReminder]}>
+                  <BellRing size={20} color="#FFFFFF" />
+                  <Text style={styles.quickActionText}>Send Reminder</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.quickActionButton, styles.quickActionProposal]}>
+                  <Eye size={20} color="#FFFFFF" />
+                  <Text style={styles.quickActionText}>View Proposal</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.quickActionButton, styles.quickActionRequest]}
+                  onPress={() => setShowSendModal(true)}
+                >
+                  <DollarSign size={20} color="#FFFFFF" />
+                  <Text style={styles.quickActionText}>Request Payment</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Customer Information */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Customer Information</Text>
+              
+              {/* Customer Name */}
+              <View style={styles.contactItem}>
+                <User size={16} color="#6B7280" />
+                <Text style={styles.contactItemText}>{invoice.contactName}</Text>
+                <TouchableOpacity 
+                  style={styles.contactMenuButton}
+                  onPress={() => handleToggleActionMenu('name')}
+                >
+                  <MoreVertical size={16} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
+              {expandedActionItem === 'name' && (
+                <View style={styles.inlineActionMenu}>
+                  <TouchableOpacity style={styles.inlineActionItem}>
+                    <Copy size={16} color="#6B7280" />
+                    <Text style={styles.inlineActionText}>Copy Name</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Business Name */}
+              {invoice.businessName && (
+                <>
+                  <View style={styles.contactItem}>
+                    <Building2 size={16} color="#6B7280" />
+                    <Text style={styles.contactItemText}>{invoice.businessName}</Text>
+                    <TouchableOpacity 
+                      style={styles.contactMenuButton}
+                      onPress={() => handleToggleActionMenu('business')}
+                    >
+                      <MoreVertical size={16} color="#6B7280" />
+                    </TouchableOpacity>
+                  </View>
+                  {expandedActionItem === 'business' && (
+                    <View style={styles.inlineActionMenu}>
+                      <TouchableOpacity style={styles.inlineActionItem}>
+                        <Copy size={16} color="#6B7280" />
+                        <Text style={styles.inlineActionText}>Copy Business Name</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </>
+              )}
+
+              {/* Email */}
+              <View style={styles.contactItem}>
+                <Mail size={16} color="#6B7280" />
+                <Text style={styles.contactItemText}>{invoice.contactEmail}</Text>
+                <TouchableOpacity 
+                  style={styles.contactMenuButton}
+                  onPress={() => handleToggleActionMenu('email')}
+                >
+                  <MoreVertical size={16} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
+              {expandedActionItem === 'email' && (
+                <View style={styles.inlineActionMenu}>
+                  <TouchableOpacity style={styles.inlineActionItem}>
+                    <Mail size={16} color="#6366F1" />
+                    <Text style={styles.inlineActionText}>Send Email</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.inlineActionItem}>
+                    <Copy size={16} color="#6B7280" />
+                    <Text style={styles.inlineActionText}>Copy Email</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Phone */}
+              {invoice.contactPhone && (
+                <>
+                  <View style={styles.contactItem}>
+                    <Phone size={16} color="#6B7280" />
+                    <Text style={styles.contactItemText}>{invoice.contactPhone}</Text>
+                    <TouchableOpacity 
+                      style={styles.contactMenuButton}
+                      onPress={() => handleToggleActionMenu('phone')}
+                    >
+                      <MoreVertical size={16} color="#6B7280" />
+                    </TouchableOpacity>
+                  </View>
+                  {expandedActionItem === 'phone' && (
+                    <View style={styles.inlineActionMenu}>
+                      <TouchableOpacity style={styles.inlineActionItem}>
+                        <Phone size={16} color="#10B981" />
+                        <Text style={styles.inlineActionText}>Call</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.inlineActionItem}>
+                        <MessageSquare size={16} color="#3B82F6" />
+                        <Text style={styles.inlineActionText}>Text</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.inlineActionItem}>
+                        <Copy size={16} color="#6B7280" />
+                        <Text style={styles.inlineActionText}>Copy Phone</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </>
+              )}
+
+              {/* Address */}
+              {invoice.businessAddress && (
+                <>
+                  <View style={styles.contactItem}>
+                    <MapPin size={16} color="#6B7280" />
+                    <Text style={styles.contactItemText}>{invoice.businessAddress}</Text>
+                    <TouchableOpacity 
+                      style={styles.contactMenuButton}
+                      onPress={() => handleToggleActionMenu('address')}
+                    >
+                      <MoreVertical size={16} color="#6B7280" />
+                    </TouchableOpacity>
+                  </View>
+                  {expandedActionItem === 'address' && (
+                    <View style={styles.inlineActionMenu}>
+                      <TouchableOpacity style={styles.inlineActionItem}>
+                        <Navigation size={16} color="#EF4444" />
+                        <Text style={styles.inlineActionText}>Navigate</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.inlineActionItem}>
+                        <Copy size={16} color="#6B7280" />
+                        <Text style={styles.inlineActionText}>Copy Address</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </>
+              )}
+            </View>
+
             {/* Invoice Items */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
@@ -387,29 +559,6 @@ export const InvoiceDetail: React.FC<InvoiceDetailProps> = ({ invoice, onBack, o
                     <Text style={styles.customerText}>{invoice.businessAddress}</Text>
                   </View>
                 )}
-              </View>
-            </View>
-
-            {/* Quick Actions */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Quick Actions</Text>
-              <View style={styles.actionsGrid}>
-                <TouchableOpacity style={styles.actionButton}>
-                  <CreditCard size={20} color="#6366F1" />
-                  <Text style={styles.actionButtonText}>Collect Payment</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.actionButton}>
-                  <BellRing size={20} color="#6366F1" />
-                  <Text style={styles.actionButtonText}>Send Reminder</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.actionButton}>
-                  <Download size={20} color="#6366F1" />
-                  <Text style={styles.actionButtonText}>Download PDF</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.actionButton}>
-                  <FileText size={20} color="#6366F1" />
-                  <Text style={styles.actionButtonText}>View Proposal</Text>
-                </TouchableOpacity>
               </View>
             </View>
           </View>
@@ -897,6 +1046,100 @@ export const InvoiceDetail: React.FC<InvoiceDetailProps> = ({ invoice, onBack, o
           </View>
         </View>
       </Modal>
+
+      {/* Contact Modal */}
+      <Modal
+        visible={showContactModal}
+        animationType="slide"
+        onRequestClose={() => setShowContactModal(false)}
+      >
+        <SafeAreaView style={styles.contactModalContainer}>
+          <LinearGradient colors={['#6366F1', '#8B5CF6']} style={styles.contactModalHeader}>
+            <TouchableOpacity onPress={() => setShowContactModal(false)} style={styles.backButton}>
+              <ChevronLeft size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <Text style={styles.contactModalTitle}>Customer Details</Text>
+            <View style={{ width: 40 }} />
+          </LinearGradient>
+
+          <ScrollView style={styles.contactModalContent}>
+            {/* Customer Information */}
+            <View style={styles.contactModalSection}>
+              <Text style={styles.contactModalSectionTitle}>Contact Information</Text>
+              <View style={styles.contactInfoCard}>
+                <View style={styles.contactInfoRow}>
+                  <User size={20} color="#6366F1" />
+                  <View style={styles.contactInfoTextContainer}>
+                    <Text style={styles.contactInfoLabel}>Name</Text>
+                    <Text style={styles.contactInfoValue}>{invoice.contactName}</Text>
+                  </View>
+                </View>
+                <View style={styles.contactInfoRow}>
+                  <Mail size={20} color="#6366F1" />
+                  <View style={styles.contactInfoTextContainer}>
+                    <Text style={styles.contactInfoLabel}>Email</Text>
+                    <Text style={styles.contactInfoValue}>{invoice.contactEmail}</Text>
+                  </View>
+                </View>
+                {invoice.contactPhone && (
+                  <View style={styles.contactInfoRow}>
+                    <Phone size={20} color="#6366F1" />
+                    <View style={styles.contactInfoTextContainer}>
+                      <Text style={styles.contactInfoLabel}>Phone</Text>
+                      <Text style={styles.contactInfoValue}>{invoice.contactPhone}</Text>
+                    </View>
+                  </View>
+                )}
+                {invoice.businessName && (
+                  <View style={styles.contactInfoRow}>
+                    <Building2 size={20} color="#6366F1" />
+                    <View style={styles.contactInfoTextContainer}>
+                      <Text style={styles.contactInfoLabel}>Business</Text>
+                      <Text style={styles.contactInfoValue}>{invoice.businessName}</Text>
+                    </View>
+                  </View>
+                )}
+                {invoice.businessAddress && (
+                  <View style={styles.contactInfoRow}>
+                    <MapPin size={20} color="#6366F1" />
+                    <View style={styles.contactInfoTextContainer}>
+                      <Text style={styles.contactInfoLabel}>Address</Text>
+                      <Text style={styles.contactInfoValue}>{invoice.businessAddress}</Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {/* Deal Information */}
+            <View style={styles.contactModalSection}>
+              <Text style={styles.contactModalSectionTitle}>Deal Information</Text>
+              <View style={styles.dealInfoCard}>
+                <View style={styles.dealInfoRow}>
+                  <Text style={styles.dealInfoLabel}>Invoice Number</Text>
+                  <Text style={styles.dealInfoValue}>{invoice.invoiceNumber}</Text>
+                </View>
+                <View style={styles.dealInfoRow}>
+                  <Text style={styles.dealInfoLabel}>Status</Text>
+                  <Text style={styles.dealInfoValue}>{invoice.status.toUpperCase()}</Text>
+                </View>
+                <View style={styles.dealInfoRow}>
+                  <Text style={styles.dealInfoLabel}>Issue Date</Text>
+                  <Text style={styles.dealInfoValue}>{formatDate(invoice.issueDate)}</Text>
+                </View>
+                <View style={styles.dealInfoRow}>
+                  <Text style={styles.dealInfoLabel}>Due Date</Text>
+                  <Text style={styles.dealInfoValue}>{formatDate(invoice.dueDate)}</Text>
+                </View>
+                <View style={styles.dealInfoRow}>
+                  <Text style={styles.dealInfoLabel}>Total Amount</Text>
+                  <Text style={[styles.dealInfoValue, { fontWeight: '700' }]}>{formatCurrency(invoice.totalAmount)}</Text>
+                </View>
+              </View>
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -934,16 +1177,8 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.9)',
     marginTop: 2,
   },
-  moreButton: {
+  contactIconButton: {
     padding: 8,
-    flexDirection: 'row',
-    gap: 3,
-  },
-  moreButtonDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#FFFFFF',
   },
   statusContainer: {
     flexDirection: 'row',
@@ -961,32 +1196,35 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
   },
-  tabsContainer: {
+  tabBar: {
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
     maxHeight: 48,
   },
-  tabsContent: {
-    paddingHorizontal: 20,
-    gap: 8,
+  tabBarContent: {
+    paddingHorizontal: 12,
+    gap: 4,
+    alignItems: 'center',
   },
   tab: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
   },
   tabActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: '#EEF2FF',
   },
   tabText: {
     fontSize: 13,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: '#6B7280',
   },
   tabTextActive: {
-    color: '#FFFFFF',
+    color: '#6366F1',
   },
   content: {
     flex: 1,
@@ -995,7 +1233,10 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   section: {
-    marginBottom: 24,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -1004,9 +1245,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     color: '#111827',
+    marginBottom: 12,
   },
   addButton: {
     flexDirection: 'row',
@@ -1718,6 +1960,161 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 100,
+  },
+  // Quick Actions
+  quickActionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  quickActionButton: {
+    flex: 1,
+    minWidth: '45%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  quickActionCollect: {
+    backgroundColor: '#10B981',
+  },
+  quickActionReminder: {
+    backgroundColor: '#F59E0B',
+  },
+  quickActionProposal: {
+    backgroundColor: '#6366F1',
+  },
+  quickActionRequest: {
+    backgroundColor: '#8B5CF6',
+  },
+  quickActionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  // Contact Items
+  contactItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  contactItemText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#111827',
+  },
+  contactMenuButton: {
+    padding: 4,
+  },
+  inlineActionMenu: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    padding: 8,
+    marginLeft: 28,
+    marginBottom: 8,
+  },
+  inlineActionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  inlineActionText: {
+    fontSize: 14,
+    color: '#111827',
+    fontWeight: '500',
+  },
+  // Contact Modal
+  contactModalContainer: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  contactModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 16,
+  },
+  contactModalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  contactModalContent: {
+    flex: 1,
+    padding: 20,
+  },
+  contactModalSection: {
+    marginBottom: 24,
+  },
+  contactModalSectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 12,
+  },
+  contactInfoCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+  },
+  contactInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  contactInfoTextContainer: {
+    flex: 1,
+  },
+  contactInfoLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  contactInfoValue: {
+    fontSize: 14,
+    color: '#111827',
+    fontWeight: '500',
+  },
+  dealInfoCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+  },
+  dealInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  dealInfoLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  dealInfoValue: {
+    fontSize: 14,
+    color: '#111827',
+    fontWeight: '500',
+    textAlign: 'right',
   },
 });
 
