@@ -24,9 +24,9 @@ import {
 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
-    Alert as RNAlert,
     Modal,
     Platform,
+    Alert as RNAlert,
     SafeAreaView,
     ScrollView,
     StyleSheet,
