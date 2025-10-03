@@ -63,7 +63,7 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
       title: 'System',
       items: [
         { icon: Bell, label: 'Notifications', action: () => router.push('/notifications') },
-        { icon: Settings2, label: 'Settings', action: () => console.log('Settings') },
+        { icon: Settings2, label: 'Settings', action: () => router.push('/account-settings') },
       ]
     }
   ];
