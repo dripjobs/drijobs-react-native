@@ -26,7 +26,6 @@ import {
     Search,
     TrendingUp,
     User,
-    Users,
     X,
     XCircle
 } from 'lucide-react-native';
@@ -243,6 +242,7 @@ const RecurringJobsScreen: React.FC = () => {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showCalendarModal, setShowCalendarModal] = useState(false);
+  const [showInvoicesModal, setShowInvoicesModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -695,13 +695,19 @@ const RecurringJobsScreen: React.FC = () => {
                     </View>
                     
                     <View style={styles.financialButtonsRow}>
-                      <TouchableOpacity style={styles.financialButton}>
+                      <TouchableOpacity 
+                        style={styles.financialButton}
+                        onPress={() => {
+                          setShowDetailModal(false);
+                          setShowInvoicesModal(true);
+                        }}
+                      >
                         <DollarSign size={18} color="#6366F1" />
                         <Text style={styles.financialButtonText}>View Invoices</Text>
                       </TouchableOpacity>
                       <TouchableOpacity style={styles.financialButton}>
                         <FileText size={18} color="#6366F1" />
-                        <Text style={styles.financialButtonText}>View History</Text>
+                        <Text style={styles.financialButtonText}>View Proposal</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -743,7 +749,13 @@ const RecurringJobsScreen: React.FC = () => {
                       <Text style={styles.invoiceHistoryAmount}>${selectedJob.amount.toFixed(2)}</Text>
                     </View>
 
-                    <TouchableOpacity style={styles.viewAllInvoicesButton}>
+                    <TouchableOpacity 
+                      style={styles.viewAllInvoicesButton}
+                      onPress={() => {
+                        setShowDetailModal(false);
+                        setShowInvoicesModal(true);
+                      }}
+                    >
                       <Text style={styles.viewAllInvoicesText}>View All Invoices</Text>
                       <ChevronRight size={16} color="#6366F1" />
                     </TouchableOpacity>
@@ -755,6 +767,155 @@ const RecurringJobsScreen: React.FC = () => {
             )}
           </View>
         </View>
+      </Modal>
+
+      {/* Invoices Modal */}
+      <Modal
+        visible={showInvoicesModal}
+        animationType="slide"
+        onRequestClose={() => setShowInvoicesModal(false)}
+      >
+        <SafeAreaView style={styles.invoicesModalContainer}>
+          <LinearGradient colors={['#6366F1', '#8B5CF6']} style={styles.invoicesHeaderGradient}>
+            <View style={styles.invoicesHeader}>
+              <TouchableOpacity onPress={() => {
+                setShowInvoicesModal(false);
+                setShowDetailModal(true);
+              }}>
+                <ChevronLeft size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+              <Text style={styles.invoicesHeaderTitle}>Invoices</Text>
+              <TouchableOpacity style={styles.addInvoiceButton}>
+                <Plus size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+
+            {selectedJob && (
+              <View style={styles.invoiceJobInfo}>
+                <Text style={styles.invoiceJobName}>{selectedJob.serviceName}</Text>
+                <Text style={styles.invoiceJobCustomer}>{selectedJob.customerName}</Text>
+              </View>
+            )}
+          </LinearGradient>
+
+          <ScrollView style={styles.invoicesContent} showsVerticalScrollIndicator={false}>
+            {/* Auto-Invoice Toggle */}
+            <View style={styles.autoInvoiceSection}>
+              <View style={styles.autoInvoiceHeader}>
+                <View style={styles.autoInvoiceInfo}>
+                  <Text style={styles.autoInvoiceTitle}>Automatic Invoicing</Text>
+                  <Text style={styles.autoInvoiceDescription}>
+                    Automatically create and send invoices based on service frequency
+                  </Text>
+                </View>
+                <View style={[styles.autoInvoiceToggle, styles.autoInvoiceToggleOn]}>
+                  <View style={styles.autoInvoiceToggleCircle} />
+                </View>
+              </View>
+              <View style={styles.autoInvoiceStatus}>
+                <CheckCircle size={16} color="#10B981" />
+                <Text style={styles.autoInvoiceStatusText}>Automatic invoicing is ON</Text>
+              </View>
+            </View>
+
+            {/* Most Recent Invoice */}
+            {selectedJob && (
+              <View style={styles.recentInvoiceSection}>
+                <Text style={styles.sectionTitle}>Most Recent Invoice</Text>
+                
+                <View style={styles.recentInvoiceCard}>
+                  <View style={styles.recentInvoiceHeader}>
+                    <View>
+                      <Text style={styles.recentInvoiceNumber}>INV-1245</Text>
+                      <Text style={styles.recentInvoiceDate}>October 1, 2025</Text>
+                    </View>
+                    <View style={styles.recentInvoiceStatusBadge}>
+                      <Text style={styles.recentInvoiceStatusText}>Paid</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.recentInvoiceDetails}>
+                    <View style={styles.recentInvoiceDetailRow}>
+                      <Text style={styles.recentInvoiceDetailLabel}>Amount</Text>
+                      <Text style={styles.recentInvoiceDetailValue}>
+                        ${selectedJob.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </Text>
+                    </View>
+                    <View style={styles.recentInvoiceDetailRow}>
+                      <Text style={styles.recentInvoiceDetailLabel}>Paid Date</Text>
+                      <Text style={styles.recentInvoiceDetailValue}>October 3, 2025</Text>
+                    </View>
+                    <View style={styles.recentInvoiceDetailRow}>
+                      <Text style={styles.recentInvoiceDetailLabel}>Payment Method</Text>
+                      <Text style={styles.recentInvoiceDetailValue}>Credit Card</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.recentInvoiceButtons}>
+                    <TouchableOpacity style={styles.recentInvoiceButtonPrimary}>
+                      <FileText size={18} color="#FFFFFF" />
+                      <Text style={styles.recentInvoiceButtonPrimaryText}>Open Invoice</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.recentInvoiceButtonSecondary}>
+                      <Mail size={18} color="#6366F1" />
+                      <Text style={styles.recentInvoiceButtonSecondaryText}>Send</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {/* All Invoices List */}
+            <View style={styles.allInvoicesSection}>
+              <Text style={styles.sectionTitle}>All Invoices</Text>
+
+              {selectedJob && [
+                { month: 'October 2025', date: 'Oct 1, 2025', status: 'paid', number: 'INV-1245', paidDate: 'Oct 3, 2025' },
+                { month: 'September 2025', date: 'Sep 1, 2025', status: 'paid', number: 'INV-1198', paidDate: 'Sep 2, 2025' },
+                { month: 'August 2025', date: 'Aug 1, 2025', status: 'paid', number: 'INV-1156', paidDate: 'Aug 5, 2025' },
+                { month: 'July 2025', date: 'Jul 1, 2025', status: 'paid', number: 'INV-1102', paidDate: 'Jul 1, 2025' },
+                { month: 'June 2025', date: 'Jun 1, 2025', status: 'paid', number: 'INV-1058', paidDate: 'Jun 3, 2025' },
+                { month: 'May 2025', date: 'May 1, 2025', status: 'overdue', number: 'INV-1012', paidDate: null },
+                { month: 'April 2025', date: 'Apr 1, 2025', status: 'paid', number: 'INV-965', paidDate: 'Apr 15, 2025' },
+              ].map((invoice, index) => (
+                <TouchableOpacity key={index} style={styles.invoiceListItem}>
+                  <View style={styles.invoiceListIcon}>
+                    {invoice.status === 'paid' ? (
+                      <CheckCircle size={20} color="#10B981" />
+                    ) : invoice.status === 'overdue' ? (
+                      <XCircle size={20} color="#EF4444" />
+                    ) : (
+                      <Clock size={20} color="#F59E0B" />
+                    )}
+                  </View>
+                  <View style={styles.invoiceListInfo}>
+                    <Text style={styles.invoiceListMonth}>{invoice.month}</Text>
+                    <Text style={styles.invoiceListNumber}>{invoice.number}</Text>
+                    <Text style={[
+                      styles.invoiceListStatus,
+                      invoice.status === 'paid' && styles.invoiceListStatusPaid,
+                      invoice.status === 'overdue' && styles.invoiceListStatusOverdue
+                    ]}>
+                      {invoice.status === 'paid' 
+                        ? `Paid • ${invoice.paidDate}` 
+                        : invoice.status === 'overdue'
+                        ? 'Overdue'
+                        : 'Pending'}
+                    </Text>
+                  </View>
+                  <View style={styles.invoiceListRight}>
+                    <Text style={styles.invoiceListAmount}>
+                      ${selectedJob.amount.toFixed(2)}
+                    </Text>
+                    <ChevronRight size={20} color="#9CA3AF" />
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <View style={styles.bottomSpacing} />
+          </ScrollView>
+        </SafeAreaView>
       </Modal>
 
       {/* Calendar Modal */}
@@ -1388,6 +1549,281 @@ const styles = StyleSheet.create({
     marginTop: 100,
     fontSize: 16,
     color: '#6B7280',
+  },
+  // Invoices Modal Styles
+  invoicesModalContainer: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  invoicesHeaderGradient: {
+    paddingBottom: 20,
+  },
+  invoicesHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 16,
+  },
+  invoicesHeaderTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  addInvoiceButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  invoiceJobInfo: {
+    paddingHorizontal: 20,
+    paddingBottom: 4,
+  },
+  invoiceJobName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  invoiceJobCustomer: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  invoicesContent: {
+    flex: 1,
+  },
+  autoInvoiceSection: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 16,
+    padding: 20,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  autoInvoiceHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  autoInvoiceInfo: {
+    flex: 1,
+    paddingRight: 16,
+  },
+  autoInvoiceTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  autoInvoiceDescription: {
+    fontSize: 13,
+    color: '#6B7280',
+    lineHeight: 18,
+  },
+  autoInvoiceToggle: {
+    width: 52,
+    height: 32,
+    borderRadius: 16,
+    padding: 2,
+    justifyContent: 'center',
+  },
+  autoInvoiceToggleOn: {
+    backgroundColor: '#10B981',
+    alignItems: 'flex-end',
+  },
+  autoInvoiceToggleCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+  },
+  autoInvoiceStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  autoInvoiceStatusText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#10B981',
+  },
+  recentInvoiceSection: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 12,
+  },
+  recentInvoiceCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  recentInvoiceHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  recentInvoiceNumber: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  recentInvoiceDate: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  recentInvoiceStatusBadge: {
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  recentInvoiceStatusText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#10B981',
+  },
+  recentInvoiceDetails: {
+    gap: 12,
+    marginBottom: 16,
+  },
+  recentInvoiceDetailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  recentInvoiceDetailLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  recentInvoiceDetailValue: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  recentInvoiceButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  recentInvoiceButtonPrimary: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#6366F1',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    gap: 8,
+  },
+  recentInvoiceButtonPrimaryText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  recentInvoiceButtonSecondary: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EEF2FF',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    gap: 8,
+  },
+  recentInvoiceButtonSecondaryText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#6366F1',
+  },
+  allInvoicesSection: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  invoiceListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  invoiceListIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F9FAFB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  invoiceListInfo: {
+    flex: 1,
+  },
+  invoiceListMonth: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  invoiceListNumber: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  invoiceListStatus: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  invoiceListStatusPaid: {
+    color: '#10B981',
+  },
+  invoiceListStatusOverdue: {
+    color: '#EF4444',
+  },
+  invoiceListRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  invoiceListAmount: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
   },
 });
 
