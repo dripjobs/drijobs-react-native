@@ -22,6 +22,7 @@ export default function RootLayout() {
               <Stack.Screen name="recurring-jobs" options={{ headerShown: false }} />
               <Stack.Screen name="account-settings" options={{ headerShown: false }} />
               <Stack.Screen name="booking-forms" options={{ headerShown: false }} />
+              <Stack.Screen name="booking-form-editor" options={{ headerShown: false }} />
               <Stack.Screen name="+not-found" />
             </Stack>
             <StatusBar style="auto" />
