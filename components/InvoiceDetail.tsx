@@ -5,7 +5,6 @@ import {
     Building2,
     CheckCircle2,
     ChevronLeft,
-    Clock,
     Copy,
     CreditCard,
     DollarSign,
@@ -1215,10 +1214,11 @@ const styles = StyleSheet.create({
   },
   statusContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingBottom: 16,
+    gap: 16,
   },
   statusBadgeWrapper: {
     flexDirection: 'row',

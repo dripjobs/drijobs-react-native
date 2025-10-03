@@ -1,5 +1,6 @@
 import DrawerMenu from '@/components/DrawerMenu';
 import { useTabBar } from '@/contexts/TabBarContext';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
@@ -7,9 +8,10 @@ import {
     Bell,
     Calendar,
     CheckCircle,
+    ChevronDown,
     ChevronLeft,
-    ChevronRight,
     DollarSign,
+    Filter,
     Mail,
     MessageSquare,
     Phone,
@@ -17,12 +19,13 @@ import {
     X
 } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 // Notification types
 interface Notification {
   id: string;
   type: 'message' | 'appointment' | 'payment' | 'reminder' | 'update' | 'alert';
+  category: 'deals' | 'team'; // deals = customer/deal related, team = internal team communications
   title: string;
   message: string;
   timestamp: Date;
@@ -40,9 +43,10 @@ const generateNotifications = (): Notification[] => {
     {
       id: '1',
       type: 'message',
+      category: 'deals',
       title: 'New message from Robert Johnson',
       message: 'Can we reschedule tomorrow\'s appointment to 2 PM?',
-      timestamp: new Date(now.getTime() - 15 * 60000), // 15 minutes ago
+      timestamp: new Date(now.getTime() - 15 * 60000),
       read: false,
       actionable: true,
       icon: MessageSquare,
@@ -52,9 +56,10 @@ const generateNotifications = (): Notification[] => {
     {
       id: '2',
       type: 'appointment',
+      category: 'deals',
       title: 'Appointment Starting Soon',
       message: 'Kitchen Renovation at 4214 SE 11 PL starts in 1 hour',
-      timestamp: new Date(now.getTime() - 45 * 60000), // 45 minutes ago
+      timestamp: new Date(now.getTime() - 45 * 60000),
       read: false,
       actionable: true,
       icon: Calendar,
@@ -64,9 +69,10 @@ const generateNotifications = (): Notification[] => {
     {
       id: '3',
       type: 'payment',
+      category: 'deals',
       title: 'Payment Received',
-      message: 'Sherry Williams paid $1,500.00 for Invoice #1234',
-      timestamp: new Date(now.getTime() - 2 * 3600000), // 2 hours ago
+      message: 'Sherry Williams paid $1,500.00',
+      timestamp: new Date(now.getTime() - 2 * 3600000),
       read: false,
       actionable: false,
       icon: DollarSign,
@@ -76,9 +82,10 @@ const generateNotifications = (): Notification[] => {
     {
       id: '4',
       type: 'reminder',
+      category: 'deals',
       title: 'Proposal Follow-up',
-      message: 'Follow up with Mike Stewart about the roofing proposal',
-      timestamp: new Date(now.getTime() - 4 * 3600000), // 4 hours ago
+      message: 'Follow up with Mike Stewart about roofing',
+      timestamp: new Date(now.getTime() - 4 * 3600000),
       read: true,
       actionable: true,
       icon: Bell,
@@ -88,9 +95,10 @@ const generateNotifications = (): Notification[] => {
     {
       id: '5',
       type: 'update',
+      category: 'deals',
       title: 'Job Status Updated',
-      message: 'Williams Property - Roof Replacement marked as completed',
-      timestamp: new Date(now.getTime() - 6 * 3600000), // 6 hours ago
+      message: 'Williams Property marked as completed',
+      timestamp: new Date(now.getTime() - 6 * 3600000),
       read: true,
       actionable: false,
       icon: CheckCircle,
@@ -100,9 +108,10 @@ const generateNotifications = (): Notification[] => {
     {
       id: '6',
       type: 'alert',
+      category: 'deals',
       title: 'Invoice Overdue',
       message: 'Invoice #1230 is 5 days overdue - $2,450.00',
-      timestamp: new Date(now.getTime() - 20 * 3600000), // 20 hours ago
+      timestamp: new Date(now.getTime() - 20 * 3600000),
       read: true,
       actionable: true,
       icon: AlertCircle,
@@ -112,9 +121,10 @@ const generateNotifications = (): Notification[] => {
     {
       id: '7',
       type: 'message',
+      category: 'deals',
       title: 'New SMS from (555) 123-4567',
       message: 'Thanks for the quote! When can you start?',
-      timestamp: new Date(now.getTime() - 1 * 86400000), // 1 day ago
+      timestamp: new Date(now.getTime() - 1 * 86400000),
       read: true,
       actionable: true,
       icon: Phone,
@@ -124,9 +134,10 @@ const generateNotifications = (): Notification[] => {
     {
       id: '8',
       type: 'appointment',
+      category: 'deals',
       title: 'New Appointment Request',
-      message: 'David Martinez requested an appointment for next Tuesday',
-      timestamp: new Date(now.getTime() - 2 * 86400000), // 2 days ago
+      message: 'David Martinez requested appointment',
+      timestamp: new Date(now.getTime() - 2 * 86400000),
       read: true,
       actionable: true,
       icon: Calendar,
@@ -136,9 +147,10 @@ const generateNotifications = (): Notification[] => {
     {
       id: '9',
       type: 'update',
+      category: 'team',
       title: 'Team Member Added',
       message: 'John Davis was added to Team A',
-      timestamp: new Date(now.getTime() - 3 * 86400000), // 3 days ago
+      timestamp: new Date(now.getTime() - 3 * 86400000),
       read: true,
       actionable: false,
       icon: Users,
@@ -148,9 +160,10 @@ const generateNotifications = (): Notification[] => {
     {
       id: '10',
       type: 'payment',
+      category: 'team',
       title: 'Payment Reminder Sent',
-      message: 'Payment reminder sent to 3 customers with outstanding invoices',
-      timestamp: new Date(now.getTime() - 5 * 86400000), // 5 days ago
+      message: 'Reminder sent to 3 customers',
+      timestamp: new Date(now.getTime() - 5 * 86400000),
       read: true,
       actionable: false,
       icon: Mail,
@@ -165,7 +178,12 @@ export default function Notifications() {
   const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [filter, setFilter] = useState<'all' | 'unread'>('all');
+  const [filter, setFilter] = useState<'all' | 'deals' | 'team'>('all');
+  const [showDateFilter, setShowDateFilter] = useState(false);
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
 
   useEffect(() => {
     setIsTransparent(false);
@@ -200,11 +218,25 @@ export default function Notifications() {
     setNotifications(notifications.filter(n => n.id !== id));
   };
 
-  const filteredNotifications = filter === 'unread' 
-    ? notifications.filter(n => !n.read)
-    : notifications;
+  const filteredNotifications = notifications.filter(n => {
+    // Filter by category
+    if (filter === 'deals' && n.category !== 'deals') return false;
+    if (filter === 'team' && n.category !== 'team') return false;
+    
+    // Filter by date range
+    if (startDate && n.timestamp < startDate) return false;
+    if (endDate) {
+      const endOfDay = new Date(endDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      if (n.timestamp > endOfDay) return false;
+    }
+    
+    return true;
+  });
 
   const unreadCount = notifications.filter(n => !n.read).length;
+  const dealsCount = notifications.filter(n => n.category === 'deals').length;
+  const teamCount = notifications.filter(n => n.category === 'team').length;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -225,15 +257,11 @@ export default function Notifications() {
             <ChevronLeft size={24} color="#FFFFFF" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Notifications</Text>
-          <TouchableOpacity onPress={() => setDrawerOpen(true)} style={styles.pullOutMenu}>
-            <View style={styles.pullOutIndicator}>
-              <View style={styles.pullOutDot} />
-              <View style={styles.pullOutDot} />
-              <View style={styles.pullOutDot} />
-            </View>
-            <View style={styles.pullOutArrow}>
-              <ChevronRight size={16} color="#FFFFFF" />
-            </View>
+          <TouchableOpacity 
+            onPress={() => setShowDateFilter(true)}
+            style={styles.backButton}
+          >
+            <Filter size={20} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
 
@@ -248,11 +276,19 @@ export default function Notifications() {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[styles.filterTab, filter === 'unread' && styles.filterTabActive]}
-            onPress={() => setFilter('unread')}
+            style={[styles.filterTab, filter === 'deals' && styles.filterTabActive]}
+            onPress={() => setFilter('deals')}
           >
-            <Text style={[styles.filterTabText, filter === 'unread' && styles.filterTabTextActive]}>
-              Unread ({unreadCount})
+            <Text style={[styles.filterTabText, filter === 'deals' && styles.filterTabTextActive]}>
+              Deals ({dealsCount})
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.filterTab, filter === 'team' && styles.filterTabActive]}
+            onPress={() => setFilter('team')}
+          >
+            <Text style={[styles.filterTabText, filter === 'team' && styles.filterTabTextActive]}>
+              Team ({teamCount})
             </Text>
           </TouchableOpacity>
         </View>
@@ -330,6 +366,102 @@ export default function Notifications() {
 
         <View style={styles.bottomSpacing} />
       </ScrollView>
+
+      {/* Date Filter Modal */}
+      <Modal
+        visible={showDateFilter}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDateFilter(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.dateFilterModal}>
+            <View style={styles.dateFilterHeader}>
+              <Text style={styles.dateFilterTitle}>Filter by Date</Text>
+              <TouchableOpacity onPress={() => setShowDateFilter(false)}>
+                <X size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.dateFilterContent}>
+              <TouchableOpacity 
+                style={styles.datePickerRow}
+                onPress={() => setShowStartPicker(true)}
+              >
+                <Text style={styles.datePickerLabel}>Start Date</Text>
+                <View style={styles.datePickerValue}>
+                  <Calendar size={16} color="#6366F1" />
+                  <Text style={styles.datePickerText}>
+                    {startDate ? startDate.toLocaleDateString() : 'Select date'}
+                  </Text>
+                  <ChevronDown size={16} color="#9CA3AF" />
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.datePickerRow}
+                onPress={() => setShowEndPicker(true)}
+              >
+                <Text style={styles.datePickerLabel}>End Date</Text>
+                <View style={styles.datePickerValue}>
+                  <Calendar size={16} color="#6366F1" />
+                  <Text style={styles.datePickerText}>
+                    {endDate ? endDate.toLocaleDateString() : 'Select date'}
+                  </Text>
+                  <ChevronDown size={16} color="#9CA3AF" />
+                </View>
+              </TouchableOpacity>
+
+              {(startDate || endDate) && (
+                <TouchableOpacity 
+                  style={styles.clearDatesButton}
+                  onPress={() => {
+                    setStartDate(null);
+                    setEndDate(null);
+                  }}
+                >
+                  <Text style={styles.clearDatesText}>Clear Dates</Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity 
+                style={styles.applyFilterButton}
+                onPress={() => setShowDateFilter(false)}
+              >
+                <Text style={styles.applyFilterText}>Apply Filter</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Date Pickers */}
+      {showStartPicker && (
+        <DateTimePicker
+          value={startDate || new Date()}
+          mode="date"
+          display="default"
+          onChange={(event, selectedDate) => {
+            setShowStartPicker(false);
+            if (selectedDate) {
+              setStartDate(selectedDate);
+            }
+          }}
+        />
+      )}
+      {showEndPicker && (
+        <DateTimePicker
+          value={endDate || new Date()}
+          mode="date"
+          display="default"
+          onChange={(event, selectedDate) => {
+            setShowEndPicker(false);
+            if (selectedDate) {
+              setEndDate(selectedDate);
+            }
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -448,17 +580,12 @@ const styles = StyleSheet.create({
   notificationCard: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginTop: 12,
-    padding: 16,
-    borderRadius: 12,
+    marginHorizontal: 12,
+    marginTop: 8,
+    padding: 10,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
   },
   notificationCardUnread: {
     borderLeftWidth: 3,
@@ -466,12 +593,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFF',
   },
   notificationIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 10,
   },
   notificationContent: {
     flex: 1,
@@ -480,56 +607,136 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   notificationTitle: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '600',
     color: '#111827',
     flex: 1,
     marginRight: 8,
   },
   notificationTime: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#9CA3AF',
   },
   notificationMessage: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#6B7280',
-    lineHeight: 20,
-    marginBottom: 8,
+    lineHeight: 16,
   },
   notificationActions: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 4,
+    gap: 6,
+    marginTop: 6,
   },
   actionButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     backgroundColor: '#EEF2FF',
-    borderRadius: 6,
+    borderRadius: 4,
   },
   actionButtonText: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '600',
     color: '#6366F1',
   },
   deleteButton: {
-    padding: 4,
-    marginLeft: 8,
+    padding: 2,
+    marginLeft: 4,
   },
   unreadDot: {
     position: 'absolute',
-    top: 16,
-    right: 16,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    top: 12,
+    right: 12,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: '#6366F1',
   },
   bottomSpacing: {
     height: 40,
+  },
+  // Date Filter Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dateFilterModal: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    width: '85%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  dateFilterHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  dateFilterTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  dateFilterContent: {
+    padding: 20,
+  },
+  datePickerRow: {
+    marginBottom: 16,
+  },
+  datePickerLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  datePickerValue: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    gap: 8,
+  },
+  datePickerText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#374151',
+  },
+  clearDatesButton: {
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  clearDatesText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#EF4444',
+  },
+  applyFilterButton: {
+    backgroundColor: '#6366F1',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  applyFilterText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });
 
