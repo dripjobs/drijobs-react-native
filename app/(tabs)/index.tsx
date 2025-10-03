@@ -2394,7 +2394,7 @@ const styles = StyleSheet.create({
   },
   // Stats Content Styles
   statsContent: {
-    padding: 24,
+    paddingTop: 8,
     gap: 20,
   },
   // AI Summary Card - Purple Gradient like Next Up
