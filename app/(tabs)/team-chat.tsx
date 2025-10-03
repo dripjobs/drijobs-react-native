@@ -7,6 +7,7 @@ import {
     BellOff,
     Briefcase,
     ChevronDown,
+    ChevronRight,
     DollarSign,
     FileText,
     Hash,
