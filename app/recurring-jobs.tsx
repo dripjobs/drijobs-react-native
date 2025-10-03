@@ -1,4 +1,5 @@
 import DrawerMenu from '@/components/DrawerMenu';
+import { InvoiceDetail } from '@/components/InvoiceDetail';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
@@ -243,7 +244,9 @@ const RecurringJobsScreen: React.FC = () => {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showCalendarModal, setShowCalendarModal] = useState(false);
   const [showInvoicesModal, setShowInvoicesModal] = useState(false);
+  const [showInvoiceDetail, setShowInvoiceDetail] = useState(false);
   const [selectedJob, setSelectedJob] = useState<any>(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [dateFilterType, setDateFilterType] = useState<'nextService' | 'lastService'>('nextService');
@@ -287,6 +290,61 @@ const RecurringJobsScreen: React.FC = () => {
       // Navigate to edit screen (to be implemented)
       console.log('Edit job:', selectedJob.jobNumber);
     }
+  };
+
+  const handleOpenInvoice = (invoiceNumber: string) => {
+    // Create mock invoice data based on the selected job and invoice
+    const mockInvoice = {
+      id: invoiceNumber,
+      invoiceNumber: invoiceNumber,
+      subject: selectedJob?.serviceName || 'Recurring Service',
+      status: 'paid',
+      paymentStatus: 'paid',
+      issueDate: '2025-10-01',
+      dueDate: '2025-10-15',
+      createdBy: 'System',
+      sentAt: '2025-10-01',
+      items: [
+        {
+          description: selectedJob?.serviceName || 'Recurring Service',
+          quantity: 1,
+          unitPrice: selectedJob?.amount || 0,
+        }
+      ],
+      subtotal: selectedJob?.amount || 0,
+      taxAmount: 0,
+      discountAmount: 0,
+      totalAmount: selectedJob?.amount || 0,
+      amountPaid: selectedJob?.amount || 0,
+      balanceDue: 0,
+      payments: [
+        {
+          amount: selectedJob?.amount || 0,
+          method: 'Credit Card',
+          status: 'completed',
+          processedAt: '2025-10-03',
+          transactionId: 'TXN-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+        }
+      ],
+      attachments: [],
+      notes: [],
+      settings: {
+        allowCardPayment: true,
+        waiveCardConvenienceFee: false,
+        allowBankPayment: true,
+        alternativePayment: false,
+        lineItemQuantityOnly: false,
+      },
+      contactName: selectedJob?.customer?.name || selectedJob?.customerName || 'Customer',
+      contactEmail: selectedJob?.customer?.email || 'customer@email.com',
+      contactPhone: selectedJob?.customer?.phone || '',
+      businessName: selectedJob?.customer?.company || selectedJob?.customerName || '',
+      businessAddress: selectedJob?.customer?.address || '',
+    };
+    
+    setSelectedInvoice(mockInvoice);
+    setShowInvoicesModal(false);
+    setShowInvoiceDetail(true);
   };
 
   const handleDateChange = (event: any, date?: Date) => {
@@ -852,7 +910,10 @@ const RecurringJobsScreen: React.FC = () => {
                   </View>
 
                   <View style={styles.recentInvoiceButtons}>
-                    <TouchableOpacity style={styles.recentInvoiceButtonPrimary}>
+                    <TouchableOpacity 
+                      style={styles.recentInvoiceButtonPrimary}
+                      onPress={() => handleOpenInvoice('INV-1245')}
+                    >
                       <FileText size={18} color="#FFFFFF" />
                       <Text style={styles.recentInvoiceButtonPrimaryText}>Open Invoice</Text>
                     </TouchableOpacity>
@@ -878,7 +939,11 @@ const RecurringJobsScreen: React.FC = () => {
                 { month: 'May 2025', date: 'May 1, 2025', status: 'overdue', number: 'INV-1012', paidDate: null },
                 { month: 'April 2025', date: 'Apr 1, 2025', status: 'paid', number: 'INV-965', paidDate: 'Apr 15, 2025' },
               ].map((invoice, index) => (
-                <TouchableOpacity key={index} style={styles.invoiceListItem}>
+                <TouchableOpacity 
+                  key={index} 
+                  style={styles.invoiceListItem}
+                  onPress={() => handleOpenInvoice(invoice.number)}
+                >
                   <View style={styles.invoiceListIcon}>
                     {invoice.status === 'paid' ? (
                       <CheckCircle size={20} color="#10B981" />
@@ -917,6 +982,27 @@ const RecurringJobsScreen: React.FC = () => {
           </ScrollView>
         </SafeAreaView>
       </Modal>
+
+      {/* Invoice Detail Modal */}
+      {selectedInvoice && (
+        <Modal
+          visible={showInvoiceDetail}
+          animationType="slide"
+          onRequestClose={() => setShowInvoiceDetail(false)}
+        >
+          <InvoiceDetail
+            invoice={selectedInvoice}
+            onBack={() => {
+              setShowInvoiceDetail(false);
+              setShowInvoicesModal(true);
+            }}
+            onUpdate={() => {
+              // Handle invoice update
+              console.log('Invoice updated');
+            }}
+          />
+        </Modal>
+      )}
 
       {/* Calendar Modal */}
       <Modal

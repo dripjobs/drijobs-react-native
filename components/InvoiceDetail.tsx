@@ -1,42 +1,37 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-  Modal,
-  TextInput,
-  SafeAreaView,
-  Alert,
-} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
-  ChevronLeft,
-  DollarSign,
-  Calendar,
-  User,
-  FileText,
-  CreditCard,
-  MessageSquare,
-  Paperclip,
-  Settings,
-  Edit,
-  Send,
-  BellRing,
-  Plus,
-  Trash2,
-  Download,
-  CheckCircle,
-  AlertCircle,
-  XCircle,
-  Clock,
-  Building2,
-  Percent,
-  Mail,
-  Phone,
-  MapPin,
+    BellRing,
+    Building2,
+    ChevronLeft,
+    CreditCard,
+    DollarSign,
+    Download,
+    Edit,
+    FileText,
+    Mail,
+    MapPin,
+    MessageSquare,
+    Paperclip,
+    Percent,
+    Phone,
+    Plus,
+    Send,
+    Settings,
+    Trash2,
+    User
 } from 'lucide-react-native';
+import React, { useState } from 'react';
+import {
+    Alert,
+    Modal,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 
 interface InvoiceItem {
   description: string;
