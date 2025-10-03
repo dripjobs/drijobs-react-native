@@ -3,7 +3,6 @@ import { useRouter } from 'expo-router';
 import {
     AlertCircle,
     CheckCircle,
-    ChevronDown,
     ChevronLeft,
     ChevronRight,
     Copy,
@@ -14,7 +13,6 @@ import {
     MoreVertical,
     Plus,
     Save,
-    Settings,
     Trash2,
     X
 } from 'lucide-react-native';
@@ -65,7 +63,12 @@ export default function BookingForms() {
     const [editingForm, setEditingForm] = useState<BookingForm | null>(null);
     const [showPreview, setShowPreview] = useState(false);
     const [showQuestionModal, setShowQuestionModal] = useState(false);
+    const [showEditQuestionModal, setShowEditQuestionModal] = useState(false);
     const [selectedQuestionType, setSelectedQuestionType] = useState<QuestionType>('text');
+    const [editingQuestion, setEditingQuestion] = useState<CustomQuestion | null>(null);
+    const [questionLabel, setQuestionLabel] = useState('');
+    const [questionRequired, setQuestionRequired] = useState(false);
+    const [questionOptions, setQuestionOptions] = useState<string[]>([]);
 
     const [forms, setForms] = useState<BookingForm[]>([
         {
@@ -195,19 +198,83 @@ export default function BookingForms() {
     };
 
     const handleAddQuestion = (type: QuestionType) => {
-        const newQuestion: CustomQuestion = {
-            id: Date.now().toString(),
-            type,
-            label: `New ${type} question`,
-            required: false,
-            options: type === 'dropdown' || type === 'checkbox' ? ['Option 1', 'Option 2'] : undefined
+        setSelectedQuestionType(type);
+        setEditingQuestion(null);
+        
+        // Set default label based on type
+        const defaultLabels: Record<QuestionType, string> = {
+            text: 'Your question here',
+            shortAnswer: 'Short answer question',
+            projectDescription: 'Describe your project',
+            dropdown: 'Select an option',
+            checkbox: 'Choose all that apply',
+            leadSource: 'How did you hear about us?',
+            image: 'Upload an image'
+        };
+        
+        setQuestionLabel(defaultLabels[type]);
+        setQuestionRequired(false);
+        setQuestionOptions(type === 'dropdown' || type === 'checkbox' ? ['Option 1', 'Option 2'] : []);
+        setShowQuestionModal(false);
+        setShowEditQuestionModal(true);
+    };
+
+    const handleEditQuestion = (question: CustomQuestion) => {
+        setEditingQuestion(question);
+        setSelectedQuestionType(question.type);
+        setQuestionLabel(question.label);
+        setQuestionRequired(question.required);
+        setQuestionOptions(question.options || []);
+        setShowEditQuestionModal(true);
+    };
+
+    const handleSaveQuestion = () => {
+        if (!questionLabel.trim()) {
+            Alert.alert('Error', 'Please enter a question label');
+            return;
+        }
+
+        const questionData: CustomQuestion = {
+            id: editingQuestion?.id || Date.now().toString(),
+            type: selectedQuestionType,
+            label: questionLabel,
+            required: questionRequired,
+            options: (selectedQuestionType === 'dropdown' || selectedQuestionType === 'checkbox') 
+                ? questionOptions.filter(opt => opt.trim() !== '')
+                : undefined
         };
 
-        setCurrentForm({
-            ...currentForm,
-            customQuestions: [...(currentForm.customQuestions || []), newQuestion]
-        });
-        setShowQuestionModal(false);
+        if (editingQuestion) {
+            // Update existing question
+            setCurrentForm({
+                ...currentForm,
+                customQuestions: currentForm.customQuestions?.map(q => 
+                    q.id === editingQuestion.id ? questionData : q
+                )
+            });
+        } else {
+            // Add new question
+            setCurrentForm({
+                ...currentForm,
+                customQuestions: [...(currentForm.customQuestions || []), questionData]
+            });
+        }
+
+        setShowEditQuestionModal(false);
+    };
+
+    const handleAddOption = () => {
+        setQuestionOptions([...questionOptions, `Option ${questionOptions.length + 1}`]);
+    };
+
+    const handleUpdateOption = (index: number, value: string) => {
+        const newOptions = [...questionOptions];
+        newOptions[index] = value;
+        setQuestionOptions(newOptions);
+    };
+
+    const handleRemoveOption = (index: number) => {
+        setQuestionOptions(questionOptions.filter((_, i) => i !== index));
     };
 
     const handleRemoveQuestion = (questionId: string) => {
@@ -459,20 +526,36 @@ export default function BookingForms() {
 
                             {currentForm.customQuestions && currentForm.customQuestions.length > 0 ? (
                                 currentForm.customQuestions.map((question, index) => (
-                                    <View key={question.id} style={styles.questionCard}>
+                                    <TouchableOpacity 
+                                        key={question.id} 
+                                        style={styles.questionCard}
+                                        onPress={() => handleEditQuestion(question)}
+                                    >
                                         <View style={styles.questionHeader}>
                                             <Text style={styles.questionType}>
                                                 {questionTypes.find(t => t.value === question.type)?.icon} {questionTypes.find(t => t.value === question.type)?.label}
                                             </Text>
-                                            <TouchableOpacity onPress={() => handleRemoveQuestion(question.id)}>
+                                            <TouchableOpacity 
+                                                onPress={(e) => {
+                                                    e.stopPropagation();
+                                                    handleRemoveQuestion(question.id);
+                                                }}
+                                            >
                                                 <X size={18} color="#EF4444" />
                                             </TouchableOpacity>
                                         </View>
                                         <Text style={styles.questionLabel}>{question.label}</Text>
-                                        {question.required && (
-                                            <Text style={styles.requiredBadge}>Required</Text>
-                                        )}
-                                    </View>
+                                        <View style={styles.questionFooter}>
+                                            {question.required && (
+                                                <View style={styles.requiredTag}>
+                                                    <Text style={styles.requiredBadge}>Required</Text>
+                                                </View>
+                                            )}
+                                            {question.options && question.options.length > 0 && (
+                                                <Text style={styles.optionsCount}>{question.options.length} options</Text>
+                                            )}
+                                        </View>
+                                    </TouchableOpacity>
                                 ))
                             ) : (
                                 <View style={styles.emptyState}>
@@ -547,7 +630,7 @@ export default function BookingForms() {
                 </SafeAreaView>
             </Modal>
 
-            {/* Add Question Modal */}
+            {/* Add Question Type Modal */}
             <Modal
                 visible={showQuestionModal}
                 animationType="slide"
@@ -557,7 +640,7 @@ export default function BookingForms() {
                 <View style={styles.questionModalOverlay}>
                     <View style={styles.questionModal}>
                         <View style={styles.questionModalHeader}>
-                            <Text style={styles.questionModalTitle}>Add Custom Question</Text>
+                            <Text style={styles.questionModalTitle}>Select Question Type</Text>
                             <TouchableOpacity onPress={() => setShowQuestionModal(false)}>
                                 <X size={24} color="#6B7280" />
                             </TouchableOpacity>
@@ -577,6 +660,99 @@ export default function BookingForms() {
                         </ScrollView>
                     </View>
                 </View>
+            </Modal>
+
+            {/* Edit Question Modal */}
+            <Modal
+                visible={showEditQuestionModal}
+                animationType="slide"
+                onRequestClose={() => setShowEditQuestionModal(false)}
+            >
+                <SafeAreaView style={styles.modalContainer}>
+                    <View style={styles.modalHeader}>
+                        <TouchableOpacity onPress={() => setShowEditQuestionModal(false)}>
+                            <X size={24} color="#6B7280" />
+                        </TouchableOpacity>
+                        <Text style={styles.modalTitle}>
+                            {editingQuestion ? 'Edit Question' : 'Add Question'}
+                        </Text>
+                        <TouchableOpacity onPress={handleSaveQuestion}>
+                            <Save size={24} color="#6366F1" />
+                        </TouchableOpacity>
+                    </View>
+
+                    <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+                        <View style={styles.section}>
+                            <View style={styles.questionTypeDisplay}>
+                                <Text style={styles.questionTypeDisplayIcon}>
+                                    {questionTypes.find(t => t.value === selectedQuestionType)?.icon}
+                                </Text>
+                                <Text style={styles.questionTypeDisplayLabel}>
+                                    {questionTypes.find(t => t.value === selectedQuestionType)?.label}
+                                </Text>
+                            </View>
+
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Question Label *</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    value={questionLabel}
+                                    onChangeText={setQuestionLabel}
+                                    placeholder="Enter your question"
+                                />
+                            </View>
+
+                            <View style={styles.switchRow}>
+                                <View style={styles.switchLabel}>
+                                    <Text style={styles.switchLabelText}>Required Field</Text>
+                                    <Text style={styles.switchLabelSubtext}>Customers must answer this question</Text>
+                                </View>
+                                <Switch
+                                    value={questionRequired}
+                                    onValueChange={setQuestionRequired}
+                                    trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
+                                    thumbColor={questionRequired ? '#3B82F6' : '#F3F4F6'}
+                                />
+                            </View>
+
+                            {(selectedQuestionType === 'dropdown' || selectedQuestionType === 'checkbox') && (
+                                <View style={styles.optionsSection}>
+                                    <View style={styles.optionsHeader}>
+                                        <Text style={styles.optionsTitle}>Options</Text>
+                                        <TouchableOpacity 
+                                            style={styles.addOptionButton}
+                                            onPress={handleAddOption}
+                                        >
+                                            <Plus size={14} color="#6366F1" />
+                                            <Text style={styles.addOptionButtonText}>Add Option</Text>
+                                        </TouchableOpacity>
+                                    </View>
+
+                                    {questionOptions.map((option, index) => (
+                                        <View key={index} style={styles.optionRow}>
+                                            <TextInput
+                                                style={styles.optionInput}
+                                                value={option}
+                                                onChangeText={(value) => handleUpdateOption(index, value)}
+                                                placeholder={`Option ${index + 1}`}
+                                            />
+                                            {questionOptions.length > 1 && (
+                                                <TouchableOpacity 
+                                                    style={styles.removeOptionButton}
+                                                    onPress={() => handleRemoveOption(index)}
+                                                >
+                                                    <X size={16} color="#EF4444" />
+                                                </TouchableOpacity>
+                                            )}
+                                        </View>
+                                    ))}
+                                </View>
+                            )}
+                        </View>
+
+                        <View style={styles.bottomSpacing} />
+                    </ScrollView>
+                </SafeAreaView>
             </Modal>
 
             {/* Preview Modal */}
@@ -948,10 +1124,24 @@ const styles = StyleSheet.create({
         color: '#111827',
         marginBottom: 6,
     },
+    questionFooter: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        marginTop: 6,
+    },
+    requiredTag: {
+        flexDirection: 'row',
+    },
     requiredBadge: {
         fontSize: 11,
         fontWeight: '600',
         color: '#EF4444',
+    },
+    optionsCount: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: '#6366F1',
     },
     emptyState: {
         paddingVertical: 24,
@@ -960,6 +1150,76 @@ const styles = StyleSheet.create({
     emptyStateText: {
         fontSize: 14,
         color: '#9CA3AF',
+    },
+    questionTypeDisplay: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        padding: 16,
+        backgroundColor: '#EEF2FF',
+        borderRadius: 12,
+        marginBottom: 20,
+    },
+    questionTypeDisplayIcon: {
+        fontSize: 28,
+    },
+    questionTypeDisplayLabel: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#4338CA',
+    },
+    optionsSection: {
+        marginTop: 20,
+        paddingTop: 20,
+        borderTopWidth: 1,
+        borderTopColor: '#F3F4F6',
+    },
+    optionsHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    optionsTitle: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#111827',
+    },
+    addOptionButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        backgroundColor: '#EEF2FF',
+        borderRadius: 8,
+    },
+    addOptionButtonText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#6366F1',
+    },
+    optionRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 12,
+    },
+    optionInput: {
+        flex: 1,
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        borderRadius: 10,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        fontSize: 15,
+        color: '#111827',
+    },
+    removeOptionButton: {
+        padding: 8,
+        backgroundColor: '#FEE2E2',
+        borderRadius: 8,
     },
     statusSelector: {
         gap: 12,
