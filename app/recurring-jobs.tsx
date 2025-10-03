@@ -582,7 +582,7 @@ const RecurringJobsScreen: React.FC = () => {
         </SafeAreaView>
       </Modal>
 
-      <DrawerMenu visible={menuVisible} onClose={() => setMenuVisible(false)} />
+      <DrawerMenu isOpen={menuVisible} onClose={() => setMenuVisible(false)} />
     </SafeAreaView>
   );
 };
