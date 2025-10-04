@@ -4060,7 +4060,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingTop: 12,
-    maxHeight: '80%',
+    height: '95%',
   },
   searchModalHandle: {
     width: 40,

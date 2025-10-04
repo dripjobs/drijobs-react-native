@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
   container: {
     position: 'absolute',
     bottom: 100,
-    right: 20,
+    right: 70,
     alignItems: 'flex-end',
     zIndex: 999,
     elevation: 999,
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     right: 0,
-    paddingRight: 8,
+    paddingRight: 12,
   },
   menuItemTouchable: {
     flexDirection: 'row',
@@ -202,19 +202,19 @@ const styles = StyleSheet.create({
   },
   labelContainer: {
     backgroundColor: 'rgba(17, 24, 39, 0.95)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,
     elevation: 4,
-    maxWidth: 120,
+    maxWidth: 105,
   },
   labelText: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
   },
   menuButton: {
