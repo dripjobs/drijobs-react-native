@@ -130,7 +130,7 @@ export default function FloatingActionMenu({ onNewAppointment, isVisible = true 
             }}
           >
             <View style={styles.labelContainer}>
-              <Text style={styles.labelText} numberOfLines={1}>{item.label}</Text>
+              <Text style={styles.labelText}>{item.label}</Text>
             </View>
             <LinearGradient
               colors={item.colors}

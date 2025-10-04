@@ -11,6 +11,7 @@ import {
     Copy,
     CreditCard,
     Edit,
+    ExternalLink,
     FileText,
     Mail,
     Palette,
@@ -20,7 +21,8 @@ import {
     Settings,
     Trash2,
     Upload,
-    X
+    X,
+    Zap
 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
@@ -958,6 +960,19 @@ export default function AccountSettings() {
                                     numberOfLines={3}
                                     placeholder="Facebook, Google, Website"
                                 />
+                                <TouchableOpacity 
+                                    style={styles.leadCenterButton}
+                                    onPress={() => router.push('/lead-center')}
+                                >
+                                    <Zap size={20} color="#6366F1" />
+                                    <View style={styles.leadCenterButtonContent}>
+                                        <Text style={styles.leadCenterButtonTitle}>Open Lead Center</Text>
+                                        <Text style={styles.leadCenterButtonText}>
+                                            Connect and configure your lead sources with API keys and automation
+                                        </Text>
+                                    </View>
+                                    <ExternalLink size={18} color="#9CA3AF" />
+                                </TouchableOpacity>
                             </View>
                         </View>
 
@@ -2101,5 +2116,30 @@ const styles = StyleSheet.create({
         lineHeight: 18,
         fontStyle: 'italic',
         marginTop: 8,
+    },
+    leadCenterButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        backgroundColor: '#EEF2FF',
+        borderWidth: 1,
+        borderColor: '#E0E7FF',
+        borderRadius: 12,
+        padding: 16,
+        marginTop: 12,
+    },
+    leadCenterButtonContent: {
+        flex: 1,
+    },
+    leadCenterButtonTitle: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#6366F1',
+        marginBottom: 4,
+    },
+    leadCenterButtonText: {
+        fontSize: 13,
+        color: '#6B7280',
+        lineHeight: 18,
     },
 });
