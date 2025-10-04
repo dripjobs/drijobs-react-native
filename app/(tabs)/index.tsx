@@ -7,7 +7,7 @@ import StatDetailModal from '@/components/StatDetailModal';
 import { useTabBar } from '@/contexts/TabBarContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { Bell, Calendar, CheckSquare, ChevronDown, ChevronRight, Clock, Copy, FileText, Handshake, Lightbulb, Mail, MapPin, MessageSquare, Navigation, Phone, Search, Target, TrendingUp, Users, X } from 'lucide-react-native';
+import { Bell, Calendar, CheckSquare, ChevronDown, ChevronRight, Clock, Copy, FileText, Handshake, Lightbulb, Mail, MapPin, MessageSquare, Navigation, Phone, Search, Target, TrendingUp, User, Users, X } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Alert, Animated, Dimensions, Linking, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
@@ -22,7 +22,7 @@ export default function Dashboard() {
   const [showMeetingDetails, setShowMeetingDetails] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState<any>(null);
   const [meetingDetailsTranslateY] = useState(new Animated.Value(screenHeight));
-  const [activeMenu, setActiveMenu] = useState('myDay'); // 'myDay', 'stats', or 'updates'
+  const [activeMenu, setActiveMenu] = useState('myDay'); // 'myDay', 'stats', 'updates', or 'jobs'
   const [showStatusDropdown, setShowStatusDropdown] = useState(null);
   const [showTaskStatusDropdown, setShowTaskStatusDropdown] = useState(null);
   const [nextItem, setNextItem] = useState<any>(null);
@@ -149,6 +149,85 @@ export default function Dashboard() {
       actionType: 'reminder',
       actionLabel: 'Set Reminder'
     }
+  ]);
+
+  // Jobs data with start and end dates
+  const [jobs] = useState([
+    {
+      id: 1,
+      customer: 'Anderson Residence',
+      projectType: 'Kitchen Renovation',
+      startDate: new Date(), // Today
+      endDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days from now
+      address: '1234 Oak Street, Orlando FL 32801',
+      phone: '(407) 555-0123',
+      projectManager: 'Chris Palmer',
+      crew: 'Team A - Dan',
+      value: '$45,000',
+      progress: 0,
+      status: 'starting',
+      notes: 'Initial demo and prep work. Customer will be out of town.',
+    },
+    {
+      id: 2,
+      customer: 'Thompson Commercial',
+      projectType: 'Office Renovation',
+      startDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
+      endDate: new Date(Date.now() + 9 * 24 * 60 * 60 * 1000), // 9 days from now
+      address: '567 Business Blvd, Orlando FL 32803',
+      phone: '(407) 555-0456',
+      projectManager: 'Tanner Mullen',
+      crew: 'Team B - Beau',
+      value: '$75,000',
+      progress: 35,
+      status: 'in-progress',
+      notes: 'On schedule. Electrical work completed, starting drywall.',
+    },
+    {
+      id: 3,
+      customer: 'Martinez Residence',
+      projectType: 'Bathroom Remodel',
+      startDate: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000), // 12 days ago
+      endDate: new Date(), // Today
+      address: '890 Pine Ave, Orlando FL 32804',
+      phone: '(407) 555-0789',
+      projectManager: 'Mike Wilson',
+      crew: 'Team C - Mitch',
+      value: '$28,500',
+      progress: 95,
+      status: 'finishing',
+      notes: 'Final walkthrough scheduled for 3 PM. Touch-ups completed.',
+    },
+    {
+      id: 4,
+      customer: 'Wilson Estate',
+      projectType: 'Exterior Painting',
+      startDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+      endDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000), // 4 days from now
+      address: '234 Sunset Drive, Winter Park FL 32789',
+      phone: '(407) 555-0234',
+      projectManager: 'Sarah Johnson',
+      crew: 'Team D - Shemel',
+      value: '$18,900',
+      progress: 45,
+      status: 'in-progress',
+      notes: 'Weather permitting. Second coat application in progress.',
+    },
+    {
+      id: 5,
+      customer: 'Davis Property',
+      projectType: 'Deck Construction',
+      startDate: new Date(), // Today
+      endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+      address: '456 Lake View Court, Orlando FL 32805',
+      phone: '(407) 555-0345',
+      projectManager: 'Chris Palmer',
+      crew: 'Team A - Dan',
+      value: '$22,000',
+      progress: 0,
+      status: 'starting',
+      notes: 'Materials delivered yesterday. Foundation prep today.',
+    },
   ]);
   
   const [statusOptions] = useState([
@@ -562,6 +641,12 @@ export default function Dashboard() {
             <Text style={[styles.headerMenuButtonText, activeMenu === 'stats' && styles.headerActiveMenuButtonText]}>Stats</Text>
           </TouchableOpacity>
           <TouchableOpacity 
+            style={[styles.headerMenuButton, activeMenu === 'jobs' && styles.headerActiveMenuButton]}
+            onPress={() => setActiveMenu('jobs')}
+          >
+            <Text style={[styles.headerMenuButtonText, activeMenu === 'jobs' && styles.headerActiveMenuButtonText]}>Jobs</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
             style={[styles.headerMenuButton, activeMenu === 'updates' && styles.headerActiveMenuButton]}
             onPress={() => setActiveMenu('updates')}
           >
@@ -889,6 +974,261 @@ export default function Dashboard() {
                   />
                 </View>
               </View>
+            </View>
+          ) : activeMenu === 'jobs' ? (
+            <View style={styles.jobsContent}>
+              {/* Jobs Starting Today */}
+              {jobs.filter(job => {
+                const today = new Date();
+                const startDate = new Date(job.startDate);
+                return startDate.toDateString() === today.toDateString();
+              }).length > 0 && (
+                <>
+                  <View style={styles.jobsSectionHeader}>
+                    <Text style={styles.jobsSectionTitle}>Starting Today</Text>
+                    <View style={styles.jobsSectionBadge}>
+                      <Text style={styles.jobsSectionBadgeText}>
+                        {jobs.filter(job => {
+                          const today = new Date();
+                          const startDate = new Date(job.startDate);
+                          return startDate.toDateString() === today.toDateString();
+                        }).length}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {jobs.filter(job => {
+                    const today = new Date();
+                    const startDate = new Date(job.startDate);
+                    return startDate.toDateString() === today.toDateString();
+                  }).map(job => (
+                    <View key={job.id} style={styles.jobCard}>
+                      <View style={styles.jobCardHeader}>
+                        <View style={styles.jobCardHeaderLeft}>
+                          <View style={[styles.jobStatusIndicator, { backgroundColor: '#10B981' }]} />
+                          <View>
+                            <Text style={styles.jobCustomerName}>{job.customer}</Text>
+                            <Text style={styles.jobProjectType}>{job.projectType}</Text>
+                          </View>
+                        </View>
+                        <View style={styles.jobValue}>
+                          <Text style={styles.jobValueText}>{job.value}</Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.jobDetails}>
+                        <View style={styles.jobDetailRow}>
+                          <User size={14} color="#6B7280" />
+                          <Text style={styles.jobDetailText}>{job.projectManager}</Text>
+                        </View>
+                        <View style={styles.jobDetailRow}>
+                          <Users size={14} color="#6B7280" />
+                          <Text style={styles.jobDetailText}>{job.crew}</Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.jobActions}>
+                        <TouchableOpacity 
+                          style={[styles.jobActionButton, styles.jobActionPrimary]}
+                          onPress={() => handlePhoneCall(job.phone)}
+                        >
+                          <Phone size={16} color="#FFFFFF" />
+                          <Text style={styles.jobActionPrimaryText}>Call Customer</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                          style={styles.jobActionButton}
+                          onPress={() => handleGPSNavigation(job.address)}
+                        >
+                          <Navigation size={16} color="#6366F1" />
+                          <Text style={styles.jobActionSecondaryText}>Navigate</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ))}
+                </>
+              )}
+
+              {/* Jobs In Progress */}
+              {jobs.filter(job => {
+                const today = new Date();
+                const startDate = new Date(job.startDate);
+                const endDate = new Date(job.endDate);
+                return today > startDate && today < endDate;
+              }).length > 0 && (
+                <>
+                  <View style={styles.jobsSectionHeader}>
+                    <Text style={styles.jobsSectionTitle}>In Progress</Text>
+                    <View style={[styles.jobsSectionBadge, { backgroundColor: '#FEF3C7' }]}>
+                      <Text style={[styles.jobsSectionBadgeText, { color: '#92400E' }]}>
+                        {jobs.filter(job => {
+                          const today = new Date();
+                          const startDate = new Date(job.startDate);
+                          const endDate = new Date(job.endDate);
+                          return today > startDate && today < endDate;
+                        }).length}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {jobs.filter(job => {
+                    const today = new Date();
+                    const startDate = new Date(job.startDate);
+                    const endDate = new Date(job.endDate);
+                    return today > startDate && today < endDate;
+                  }).map(job => (
+                    <View key={job.id} style={styles.jobCard}>
+                      <View style={styles.jobCardHeader}>
+                        <View style={styles.jobCardHeaderLeft}>
+                          <View style={[styles.jobStatusIndicator, { backgroundColor: '#F59E0B' }]} />
+                          <View>
+                            <Text style={styles.jobCustomerName}>{job.customer}</Text>
+                            <Text style={styles.jobProjectType}>{job.projectType}</Text>
+                          </View>
+                        </View>
+                        <View style={styles.jobValue}>
+                          <Text style={styles.jobValueText}>{job.value}</Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.jobProgressSection}>
+                        <View style={styles.jobProgressHeader}>
+                          <Text style={styles.jobProgressLabel}>Progress</Text>
+                          <Text style={styles.jobProgressPercent}>{job.progress}%</Text>
+                        </View>
+                        <View style={styles.jobProgressBar}>
+                          <View style={[styles.jobProgressFill, { width: `${job.progress}%` }]} />
+                        </View>
+                      </View>
+
+                      <View style={styles.jobDetails}>
+                        <View style={styles.jobDetailRow}>
+                          <User size={14} color="#6B7280" />
+                          <Text style={styles.jobDetailText}>{job.projectManager}</Text>
+                        </View>
+                        <View style={styles.jobDetailRow}>
+                          <Users size={14} color="#6B7280" />
+                          <Text style={styles.jobDetailText}>{job.crew}</Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.jobActions}>
+                        <TouchableOpacity 
+                          style={[styles.jobActionButton, styles.jobActionPrimary]}
+                          onPress={() => router.push('/job-schedule')}
+                        >
+                          <Calendar size={16} color="#FFFFFF" />
+                          <Text style={styles.jobActionPrimaryText}>View Schedule</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                          style={styles.jobActionButton}
+                          onPress={() => handlePhoneCall(job.phone)}
+                        >
+                          <Phone size={16} color="#6366F1" />
+                          <Text style={styles.jobActionSecondaryText}>Call</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ))}
+                </>
+              )}
+
+              {/* Jobs Finishing Today */}
+              {jobs.filter(job => {
+                const today = new Date();
+                const endDate = new Date(job.endDate);
+                return endDate.toDateString() === today.toDateString();
+              }).length > 0 && (
+                <>
+                  <View style={styles.jobsSectionHeader}>
+                    <Text style={styles.jobsSectionTitle}>Finishing Today</Text>
+                    <View style={[styles.jobsSectionBadge, { backgroundColor: '#DBEAFE' }]}>
+                      <Text style={[styles.jobsSectionBadgeText, { color: '#1E40AF' }]}>
+                        {jobs.filter(job => {
+                          const today = new Date();
+                          const endDate = new Date(job.endDate);
+                          return endDate.toDateString() === today.toDateString();
+                        }).length}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {jobs.filter(job => {
+                    const today = new Date();
+                    const endDate = new Date(job.endDate);
+                    return endDate.toDateString() === today.toDateString();
+                  }).map(job => (
+                    <View key={job.id} style={styles.jobCard}>
+                      <View style={styles.jobCardHeader}>
+                        <View style={styles.jobCardHeaderLeft}>
+                          <View style={[styles.jobStatusIndicator, { backgroundColor: '#3B82F6' }]} />
+                          <View>
+                            <Text style={styles.jobCustomerName}>{job.customer}</Text>
+                            <Text style={styles.jobProjectType}>{job.projectType}</Text>
+                          </View>
+                        </View>
+                        <View style={styles.jobValue}>
+                          <Text style={styles.jobValueText}>{job.value}</Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.jobProgressSection}>
+                        <View style={styles.jobProgressHeader}>
+                          <Text style={styles.jobProgressLabel}>Progress</Text>
+                          <Text style={styles.jobProgressPercent}>{job.progress}%</Text>
+                        </View>
+                        <View style={styles.jobProgressBar}>
+                          <View style={[styles.jobProgressFill, { width: `${job.progress}%`, backgroundColor: '#3B82F6' }]} />
+                        </View>
+                      </View>
+
+                      <View style={styles.jobDetails}>
+                        <View style={styles.jobDetailRow}>
+                          <User size={14} color="#6B7280" />
+                          <Text style={styles.jobDetailText}>{job.projectManager}</Text>
+                        </View>
+                        <View style={styles.jobDetailRow}>
+                          <Clock size={14} color="#6B7280" />
+                          <Text style={styles.jobDetailText}>{job.notes}</Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.jobActions}>
+                        <TouchableOpacity 
+                          style={[styles.jobActionButton, styles.jobActionPrimary]}
+                        >
+                          <CheckSquare size={16} color="#FFFFFF" />
+                          <Text style={styles.jobActionPrimaryText}>Final Walkthrough</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                          style={styles.jobActionButton}
+                          onPress={() => handlePhoneCall(job.phone)}
+                        >
+                          <Phone size={16} color="#6366F1" />
+                          <Text style={styles.jobActionSecondaryText}>Call</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ))}
+                </>
+              )}
+
+              {/* Empty State */}
+              {jobs.filter(job => {
+                const today = new Date();
+                const startDate = new Date(job.startDate);
+                const endDate = new Date(job.endDate);
+                return startDate.toDateString() === today.toDateString() || 
+                       endDate.toDateString() === today.toDateString() ||
+                       (today > startDate && today < endDate);
+              }).length === 0 && (
+                <View style={styles.jobsEmptyState}>
+                  <CheckSquare size={48} color="#D1D5DB" />
+                  <Text style={styles.jobsEmptyTitle}>No Active Jobs Today</Text>
+                  <Text style={styles.jobsEmptyText}>
+                    You have no jobs starting, finishing, or in progress today.
+                  </Text>
+                </View>
+              )}
             </View>
           ) : (
             <View style={styles.updatesContent}>
@@ -2782,5 +3122,178 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#6366F1',
+  },
+  // Jobs Content Styles
+  jobsContent: {
+    paddingTop: 8,
+    gap: 20,
+  },
+  jobsSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 24,
+    marginBottom: 16,
+  },
+  jobsSectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  jobsSectionBadge: {
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  jobsSectionBadgeText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#065F46',
+  },
+  jobCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  jobCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  jobCardHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    flex: 1,
+  },
+  jobStatusIndicator: {
+    width: 4,
+    height: 44,
+    borderRadius: 2,
+  },
+  jobCustomerName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  jobProjectType: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  jobValue: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  jobValueText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  jobProgressSection: {
+    marginBottom: 12,
+  },
+  jobProgressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  jobProgressLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  jobProgressPercent: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  jobProgressBar: {
+    height: 8,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  jobProgressFill: {
+    height: '100%',
+    backgroundColor: '#F59E0B',
+    borderRadius: 4,
+  },
+  jobDetails: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 12,
+  },
+  jobDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  jobDetailText: {
+    fontSize: 13,
+    color: '#6B7280',
+    flex: 1,
+  },
+  jobActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 4,
+  },
+  jobActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    gap: 6,
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  jobActionPrimary: {
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
+  },
+  jobActionPrimaryText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  jobActionSecondaryText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  jobsEmptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 32,
+  },
+  jobsEmptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  jobsEmptyText: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
