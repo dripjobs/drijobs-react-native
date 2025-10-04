@@ -122,6 +122,9 @@ export default function FloatingActionMenu({ onNewAppointment, isVisible = true 
     <Animated.View style={[styles.container, containerStyle]}>
       {menuItems.map((item, index) => (
         <Animated.View key={index} style={[styles.menuItem, getButtonStyle(index)]}>
+          <View style={styles.labelContainer} pointerEvents="none">
+            <Text style={styles.labelText}>{item.label}</Text>
+          </View>
           <TouchableOpacity
             style={styles.menuItemTouchable}
             onPress={() => {
@@ -129,9 +132,6 @@ export default function FloatingActionMenu({ onNewAppointment, isVisible = true 
               toggleMenu();
             }}
           >
-            <View style={styles.labelContainer}>
-              <Text style={styles.labelText}>{item.label}</Text>
-            </View>
             <LinearGradient
               colors={item.colors}
               start={{ x: 0, y: 0 }}

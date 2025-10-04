@@ -39,7 +39,7 @@ import {
     View
 } from 'react-native';
 
-type SettingsTab = 'company' | 'brand' | 'email' | 'general' | 'events' | 'payments' | 'reminders';
+type SettingsTab = 'company' | 'brand' | 'email' | 'general' | 'leads' | 'events' | 'payments' | 'reminders';
 
 interface EventType {
     id: string;
@@ -201,6 +201,7 @@ export default function AccountSettings() {
         { id: 'brand', label: 'Brand Settings', icon: Palette },
         { id: 'email', label: 'Email Settings', icon: Mail },
         { id: 'general', label: 'General', icon: Settings },
+        { id: 'leads', label: 'Lead Center', icon: Zap },
         { id: 'events', label: 'Event Types', icon: Calendar },
         { id: 'payments', label: 'Payments', icon: CreditCard },
         { id: 'reminders', label: 'Reminders', icon: Bell },
@@ -960,19 +961,6 @@ export default function AccountSettings() {
                                     numberOfLines={3}
                                     placeholder="Facebook, Google, Website"
                                 />
-                                <TouchableOpacity 
-                                    style={styles.leadCenterButton}
-                                    onPress={() => router.push('/lead-center')}
-                                >
-                                    <Zap size={20} color="#6366F1" />
-                                    <View style={styles.leadCenterButtonContent}>
-                                        <Text style={styles.leadCenterButtonTitle}>Open Lead Center</Text>
-                                        <Text style={styles.leadCenterButtonText}>
-                                            Connect and configure your lead sources with API keys and automation
-                                        </Text>
-                                    </View>
-                                    <ExternalLink size={18} color="#9CA3AF" />
-                                </TouchableOpacity>
                             </View>
                         </View>
 
@@ -1090,6 +1078,150 @@ export default function AccountSettings() {
                                     trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
                                     thumbColor={generalSettings.enableCountersign ? '#3B82F6' : '#F3F4F6'}
                                 />
+                            </View>
+                        </View>
+                    </View>
+                );
+
+            case 'leads':
+                return (
+                    <View style={styles.tabContent}>
+                        <View style={styles.leadCenterInfo}>
+                            <View style={styles.leadCenterHeader}>
+                                <Zap size={32} color="#6366F1" />
+                                <View style={styles.leadCenterHeaderText}>
+                                    <Text style={styles.leadCenterTitle}>Lead Center</Text>
+                                    <Text style={styles.leadCenterDescription}>
+                                        Connect your lead generation channels to automatically import leads into DripJobs
+                                    </Text>
+                                </View>
+                            </View>
+                        </View>
+
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Available Lead Sources</Text>
+                            <Text style={styles.sectionDescription}>
+                                Click "Open Lead Center" to configure API keys, pipeline stages, and auto-response messages for each source.
+                            </Text>
+                            
+                            <TouchableOpacity 
+                                style={styles.leadCenterNavigateButton}
+                                onPress={() => router.push('/lead-center')}
+                            >
+                                <Zap size={24} color="#FFFFFF" />
+                                <Text style={styles.leadCenterNavigateText}>Open Lead Center</Text>
+                                <ExternalLink size={20} color="#FFFFFF" />
+                            </TouchableOpacity>
+
+                            <View style={styles.leadSourcesList}>
+                                <View style={styles.leadSourceItem}>
+                                    <View style={[styles.leadSourceIcon, { backgroundColor: '#4285F420' }]}>
+                                        <Text style={styles.leadSourceEmoji}>🌐</Text>
+                                    </View>
+                                    <View style={styles.leadSourceInfo}>
+                                        <Text style={styles.leadSourceName}>Google LSA</Text>
+                                        <Text style={styles.leadSourceDesc}>Local Services Ads integration</Text>
+                                    </View>
+                                    <View style={styles.leadSourceBadge}>
+                                        <Text style={styles.leadSourceBadgeText}>Available</Text>
+                                    </View>
+                                </View>
+
+                                <View style={styles.leadSourceItem}>
+                                    <View style={[styles.leadSourceIcon, { backgroundColor: '#1877F220' }]}>
+                                        <Text style={styles.leadSourceEmoji}>💬</Text>
+                                    </View>
+                                    <View style={styles.leadSourceInfo}>
+                                        <Text style={styles.leadSourceName}>Facebook Leads</Text>
+                                        <Text style={styles.leadSourceDesc}>Import from Lead Ads</Text>
+                                    </View>
+                                    <View style={styles.leadSourceBadge}>
+                                        <Text style={styles.leadSourceBadgeText}>Available</Text>
+                                    </View>
+                                </View>
+
+                                <View style={styles.leadSourceItem}>
+                                    <View style={[styles.leadSourceIcon, { backgroundColor: '#FF6F6120' }]}>
+                                        <Text style={styles.leadSourceEmoji}>⭐</Text>
+                                    </View>
+                                    <View style={styles.leadSourceInfo}>
+                                        <Text style={styles.leadSourceName}>Angi Leads</Text>
+                                        <Text style={styles.leadSourceDesc}>Angie's List integration</Text>
+                                    </View>
+                                    <View style={styles.leadSourceBadge}>
+                                        <Text style={styles.leadSourceBadgeText}>Available</Text>
+                                    </View>
+                                </View>
+
+                                <View style={styles.leadSourceItem}>
+                                    <View style={[styles.leadSourceIcon, { backgroundColor: '#009FD420' }]}>
+                                        <Text style={styles.leadSourceEmoji}>⚡</Text>
+                                    </View>
+                                    <View style={styles.leadSourceInfo}>
+                                        <Text style={styles.leadSourceName}>Thumbtack</Text>
+                                        <Text style={styles.leadSourceDesc}>Real-time lead notifications</Text>
+                                    </View>
+                                    <View style={styles.leadSourceBadge}>
+                                        <Text style={styles.leadSourceBadgeText}>Available</Text>
+                                    </View>
+                                </View>
+
+                                <View style={styles.leadSourceItem}>
+                                    <View style={[styles.leadSourceIcon, { backgroundColor: '#10B98120' }]}>
+                                        <Text style={styles.leadSourceEmoji}>🌍</Text>
+                                    </View>
+                                    <View style={styles.leadSourceInfo}>
+                                        <Text style={styles.leadSourceName}>Website Forms</Text>
+                                        <Text style={styles.leadSourceDesc}>Embed forms on your site</Text>
+                                    </View>
+                                    <View style={[styles.leadSourceBadge, styles.leadSourceBadgeConnected]}>
+                                        <Text style={[styles.leadSourceBadgeText, styles.leadSourceBadgeTextConnected]}>Active</Text>
+                                    </View>
+                                </View>
+
+                                <View style={styles.leadSourceItem}>
+                                    <View style={[styles.leadSourceIcon, { backgroundColor: '#8B5CF620' }]}>
+                                        <Text style={styles.leadSourceEmoji}>📞</Text>
+                                    </View>
+                                    <View style={styles.leadSourceInfo}>
+                                        <Text style={styles.leadSourceName}>Phone Calls</Text>
+                                        <Text style={styles.leadSourceDesc}>Call tracking integration</Text>
+                                    </View>
+                                    <View style={styles.leadSourceBadge}>
+                                        <Text style={styles.leadSourceBadgeText}>Available</Text>
+                                    </View>
+                                </View>
+                            </View>
+                        </View>
+
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Quick Settings</Text>
+                            
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Default Pipeline Stage for New Leads</Text>
+                                <TextInput
+                                    style={[styles.input, !isEditing && styles.inputDisabled]}
+                                    value="New Leads"
+                                    editable={false}
+                                    placeholder="New Leads"
+                                />
+                                <Text style={styles.inputHint}>
+                                    Configure individual stages per source in Lead Center
+                                </Text>
+                            </View>
+
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Default Auto-Response Message</Text>
+                                <TextInput
+                                    style={[styles.textArea, !isEditing && styles.inputDisabled]}
+                                    value="Thanks for reaching out! We received your request and one of our team members will be in touch within 24 hours to discuss your project."
+                                    editable={false}
+                                    multiline
+                                    numberOfLines={3}
+                                />
+                                <Text style={styles.inputHint}>
+                                    Customize per source in Lead Center
+                                </Text>
                             </View>
                         </View>
                     </View>
@@ -2117,29 +2249,110 @@ const styles = StyleSheet.create({
         fontStyle: 'italic',
         marginTop: 8,
     },
-    leadCenterButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
+    leadCenterInfo: {
         backgroundColor: '#EEF2FF',
+        borderRadius: 16,
+        padding: 20,
+        marginBottom: 16,
         borderWidth: 1,
         borderColor: '#E0E7FF',
-        borderRadius: 12,
-        padding: 16,
-        marginTop: 12,
     },
-    leadCenterButtonContent: {
+    leadCenterHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 16,
+    },
+    leadCenterHeaderText: {
         flex: 1,
     },
-    leadCenterButtonTitle: {
-        fontSize: 15,
+    leadCenterTitle: {
+        fontSize: 20,
         fontWeight: '700',
-        color: '#6366F1',
+        color: '#1F2937',
         marginBottom: 4,
     },
-    leadCenterButtonText: {
+    leadCenterDescription: {
+        fontSize: 14,
+        color: '#6B7280',
+        lineHeight: 20,
+    },
+    leadCenterNavigateButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 12,
+        backgroundColor: '#6366F1',
+        paddingVertical: 16,
+        borderRadius: 12,
+        marginBottom: 20,
+        shadowColor: '#6366F1',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    leadCenterNavigateText: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#FFFFFF',
+    },
+    leadSourcesList: {
+        gap: 12,
+    },
+    leadSourceItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+    },
+    leadSourceIcon: {
+        width: 48,
+        height: 48,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+    },
+    leadSourceEmoji: {
+        fontSize: 24,
+    },
+    leadSourceInfo: {
+        flex: 1,
+    },
+    leadSourceName: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#111827',
+        marginBottom: 2,
+    },
+    leadSourceDesc: {
         fontSize: 13,
         color: '#6B7280',
-        lineHeight: 18,
+    },
+    leadSourceBadge: {
+        backgroundColor: '#F3F4F6',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 8,
+    },
+    leadSourceBadgeText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#6B7280',
+    },
+    leadSourceBadgeConnected: {
+        backgroundColor: '#DCFCE7',
+    },
+    leadSourceBadgeTextConnected: {
+        color: '#059669',
+    },
+    inputHint: {
+        fontSize: 12,
+        color: '#9CA3AF',
+        marginTop: 6,
+        fontStyle: 'italic',
     },
 });
