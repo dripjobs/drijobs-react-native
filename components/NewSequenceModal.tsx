@@ -12,13 +12,54 @@ import {
     View,
 } from 'react-native';
 
+// Mock pipeline configs - in real app this would come from a service
+const pipelineConfigs = {
+  leads: {
+    title: 'Lead Pipeline',
+    stageLabels: {
+      new_leads: 'New Leads',
+      qualified_leads: 'Qualified Leads', 
+      hot_leads: 'Hot Leads'
+    }
+  },
+  opportunities: {
+    title: 'Opportunities',
+    stageLabels: {
+      new_opportunities: 'New Opportunities',
+      prospecting: 'Prospecting',
+      negotiating: 'Negotiating',
+      closed_won: 'Closed Won',
+      closed_lost: 'Closed Lost'
+    }
+  },
+  proposals: {
+    title: 'Proposals',
+    stageLabels: {
+      draft: 'Draft',
+      sent: 'Sent',
+      reviewed: 'Reviewed',
+      accepted: 'Accepted',
+      rejected: 'Rejected'
+    }
+  },
+  jobs: {
+    title: 'Jobs',
+    stageLabels: {
+      scheduled: 'Scheduled',
+      in_progress: 'In Progress',
+      completed: 'Completed',
+      cancelled: 'Cancelled'
+    }
+  }
+};
+
 interface NewSequenceModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (sequenceData: {
     name: string;
     description: string;
-    trigger: 'created_in_stage' | 'moved_to_stage';
+    trigger: 'moved_to_stage';
     timingMode: 'previous_action' | 'time_in_stage';
     pipeline: string;
     stage: string;
@@ -36,7 +77,6 @@ export default function NewSequenceModal({
 }: NewSequenceModalProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [trigger, setTrigger] = useState<'created_in_stage' | 'moved_to_stage'>('created_in_stage');
   const [timingMode, setTimingMode] = useState<'previous_action' | 'time_in_stage'>('previous_action');
   const [pipeline, setPipeline] = useState(initialPipeline);
   const [stage, setStage] = useState(initialStage);
@@ -50,7 +90,7 @@ export default function NewSequenceModal({
     onSave({
       name: name.trim(),
       description: description.trim(),
-      trigger,
+      trigger: 'moved_to_stage', // Always trigger when moved to or created in stage
       timingMode,
       pipeline,
       stage,
@@ -59,7 +99,6 @@ export default function NewSequenceModal({
     // Reset form
     setName('');
     setDescription('');
-    setTrigger('created_in_stage');
     setTimingMode('previous_action');
     setPipeline(initialPipeline);
     setStage(initialStage);
@@ -114,62 +153,17 @@ export default function NewSequenceModal({
             </View>
           </View>
 
-          {/* Trigger Settings */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>When to Trigger</Text>
-            
-            <View style={styles.optionGroup}>
-              <TouchableOpacity
-                style={[
-                  styles.optionButton,
-                  trigger === 'created_in_stage' && styles.optionButtonActive
-                ]}
-                onPress={() => setTrigger('created_in_stage')}
-              >
-                <View style={styles.optionContent}>
-                  <Text style={[
-                    styles.optionTitle,
-                    trigger === 'created_in_stage' && styles.optionTitleActive
-                  ]}>
-                    Created in Stage
-                  </Text>
-                  <Text style={[
-                    styles.optionDescription,
-                    trigger === 'created_in_stage' && styles.optionDescriptionActive
-                  ]}>
-                    Start when contact is first created in this stage
-                  </Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.optionButton,
-                  trigger === 'moved_to_stage' && styles.optionButtonActive
-                ]}
-                onPress={() => setTrigger('moved_to_stage')}
-              >
-                <View style={styles.optionContent}>
-                  <Text style={[
-                    styles.optionTitle,
-                    trigger === 'moved_to_stage' && styles.optionTitleActive
-                  ]}>
-                    Moved to Stage
-                  </Text>
-                  <Text style={[
-                    styles.optionDescription,
-                    trigger === 'moved_to_stage' && styles.optionDescriptionActive
-                  ]}>
-                    Start when contact moves from another stage to this one
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-          </View>
 
           {/* Timing Settings */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Timing Mode</Text>
+            
+            {/* Trigger Info */}
+            <View style={styles.triggerInfo}>
+              <Text style={styles.triggerInfoText}>
+                This sequence will trigger whenever a contact is moved to or created in the selected stage.
+              </Text>
+            </View>
             
             <View style={styles.optionGroup}>
               <TouchableOpacity
@@ -224,17 +218,24 @@ export default function NewSequenceModal({
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Pipeline & Stage</Text>
             
+            <View style={styles.pipelineStageInfo}>
+              <Text style={styles.pipelineStageText}>
+                This sequence will be configured for the <Text style={styles.pipelineStageHighlight}>{pipelineConfigs[pipeline]?.title}</Text> pipeline, 
+                specifically for the <Text style={styles.pipelineStageHighlight}>{pipelineConfigs[pipeline]?.stageLabels[stage]}</Text> stage.
+              </Text>
+            </View>
+            
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Pipeline</Text>
               <View style={styles.pickerContainer}>
-                <Text style={styles.pickerText}>Lead Pipeline</Text>
+                <Text style={styles.pickerText}>{pipelineConfigs[pipeline]?.title}</Text>
               </View>
             </View>
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Stage</Text>
               <View style={styles.pickerContainer}>
-                <Text style={styles.pickerText}>New Leads</Text>
+                <Text style={styles.pickerText}>{pipelineConfigs[pipeline]?.stageLabels[stage]}</Text>
               </View>
             </View>
           </View>
@@ -270,8 +271,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '90%',
-    minHeight: '70%',
+    maxHeight: '95%',
+    minHeight: '85%',
   },
   header: {
     flexDirection: 'row',
@@ -316,6 +317,36 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#374151',
     marginBottom: 16,
+  },
+  triggerInfo: {
+    backgroundColor: '#F0F9FF',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+  },
+  triggerInfoText: {
+    fontSize: 14,
+    color: '#0369A1',
+    lineHeight: 20,
+  },
+  pipelineStageInfo: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  pipelineStageText: {
+    fontSize: 14,
+    color: '#374151',
+    lineHeight: 20,
+  },
+  pipelineStageHighlight: {
+    fontWeight: '600',
+    color: '#6366F1',
   },
   inputGroup: {
     marginBottom: 16,

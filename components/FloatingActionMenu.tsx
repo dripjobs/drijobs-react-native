@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { Calendar, SquareCheck as CheckSquare, Handshake, Plus, TrendingUp, Users } from 'lucide-react-native';
+import { Calendar, SquareCheck as CheckSquare, FileText, MessageSquare, Plus, Send, UserPlus } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { Animated, StyleSheet, TouchableOpacity } from 'react-native';
+import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface FloatingActionMenuProps {
   onNewAppointment?: () => void;
@@ -71,11 +71,36 @@ export default function FloatingActionMenu({ onNewAppointment, isVisible = true 
   };
 
   const menuItems = [
-    { icon: Calendar, colors: ['#F59E0B', '#D97706'], action: () => onNewAppointment?.() },
-    { icon: Users, colors: ['#6366F1', '#8B5CF6'], action: () => console.log('Add Contact') },
-    { icon: TrendingUp, colors: ['#8B5CF6', '#A855F7'], action: () => console.log('New Lead') },
-    { icon: Handshake, colors: ['#10B981', '#059669'], action: () => console.log('Create Deal') },
-    { icon: CheckSquare, colors: ['#F59E0B', '#D97706'], action: () => console.log('Add Task') },
+    { 
+      icon: Calendar, 
+      label: 'Create Appt',
+      colors: ['#F59E0B', '#D97706'], 
+      action: () => onNewAppointment?.() 
+    },
+    { 
+      icon: CheckSquare, 
+      label: 'Create Task',
+      colors: ['#8B5CF6', '#A855F7'], 
+      action: () => console.log('Create Task') 
+    },
+    { 
+      icon: Send, 
+      label: 'Send Request',
+      colors: ['#6366F1', '#8B5CF6'], 
+      action: () => console.log('Send Request') 
+    },
+    { 
+      icon: FileText, 
+      label: 'Create Proposal',
+      colors: ['#10B981', '#059669'], 
+      action: () => console.log('Create Proposal') 
+    },
+    { 
+      icon: UserPlus, 
+      label: 'Create Lead',
+      colors: ['#EF4444', '#DC2626'], 
+      action: () => console.log('Create Lead') 
+    },
   ];
 
   const containerStyle = {
@@ -98,18 +123,22 @@ export default function FloatingActionMenu({ onNewAppointment, isVisible = true 
       {menuItems.map((item, index) => (
         <Animated.View key={index} style={[styles.menuItem, getButtonStyle(index)]}>
           <TouchableOpacity
+            style={styles.menuItemTouchable}
             onPress={() => {
               item.action();
               toggleMenu();
             }}
           >
+            <View style={styles.labelContainer}>
+              <Text style={styles.labelText}>{item.label}</Text>
+            </View>
             <LinearGradient
               colors={item.colors}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.menuButton}
             >
-              <item.icon size={24} color="#FFFFFF" />
+              <item.icon size={22} color="#FFFFFF" />
             </LinearGradient>
           </TouchableOpacity>
         </Animated.View>
@@ -136,7 +165,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 100,
     right: 20,
-    alignItems: 'center',
+    alignItems: 'flex-end',
     zIndex: 999,
     elevation: 999,
   },
@@ -160,6 +189,30 @@ const styles = StyleSheet.create({
   menuItem: {
     position: 'absolute',
     bottom: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  menuItemTouchable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  labelContainer: {
+    backgroundColor: 'rgba(17, 24, 39, 0.95)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  labelText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+    whiteSpace: 'nowrap',
   },
   menuButton: {
     width: 48,

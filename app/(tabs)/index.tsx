@@ -150,6 +150,7 @@ export default function Dashboard() {
       actionLabel: 'Set Reminder'
     }
   ]);
+  
   const [statusOptions] = useState([
     { value: 'scheduled', label: 'Scheduled', color: '#3B82F6' },
     { value: 'confirmed', label: 'Confirmed', color: '#10B981' },
@@ -180,6 +181,26 @@ export default function Dashboard() {
   const getRandomGreeting = () => {
     const randomIndex = Math.floor(Math.random() * greetings.length);
     return greetings[randomIndex];
+  };
+
+  const getFormattedDate = () => {
+    const date = new Date();
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    
+    const dayName = days[date.getDay()];
+    const monthName = months[date.getMonth()];
+    const day = date.getDate();
+    const year = date.getFullYear();
+    
+    // Add ordinal suffix
+    const getOrdinalSuffix = (n: number) => {
+      const s = ["th", "st", "nd", "rd"];
+      const v = n % 100;
+      return n + (s[(v - 20) % 10] || s[v] || s[0]);
+    };
+    
+    return `${dayName}, ${monthName} ${getOrdinalSuffix(day)} ${year}`;
   };
 
   useEffect(() => {
@@ -282,7 +303,6 @@ export default function Dashboard() {
   };
 
   // Today's appointments data
-  // Using appointments and tasks state defined above
   const todaysAppointments = appointments;
   const todaysTasks = tasks;
 
@@ -496,8 +516,14 @@ export default function Dashboard() {
               <ChevronRight size={16} color="#FFFFFF" />
             </View>
           </TouchableOpacity>
+          
+          <Text style={styles.headerDateText}>{getFormattedDate()}</Text>
+          
           <View style={styles.headerActions}>
-            <TouchableOpacity style={styles.headerButton}>
+            <TouchableOpacity 
+              style={styles.headerButton}
+              onPress={() => router.push('/search')}
+            >
               <Search size={24} color="#FFFFFF" />
             </TouchableOpacity>
             <TouchableOpacity 
@@ -543,7 +569,6 @@ export default function Dashboard() {
           </TouchableOpacity>
         </View>
       </LinearGradient>
-
 
       <ScrollView 
         style={styles.content} 
@@ -1239,6 +1264,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
     letterSpacing: 0.5,
+  },
+  headerDateText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.9)',
+    flex: 1,
+    textAlign: 'center',
   },
   headerActions: {
     flexDirection: 'row',
@@ -2625,6 +2657,7 @@ const styles = StyleSheet.create({
   // Updates Content Styles
   updatesContent: {
     gap: 16,
+    paddingTop: 20,
   },
   updateCard: {
     backgroundColor: '#FFFFFF',

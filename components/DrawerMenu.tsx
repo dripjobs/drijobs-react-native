@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { Activity, BarChart3, Bell, Calendar, Calendar as CalendarIcon, CheckSquare, CircleUser, Clock, Droplets, FileCheck, FileText, Home, Mail, MessageCircle, MessageSquare, Mic, RotateCcw, Settings2, Star, Users, Wrench, X } from 'lucide-react-native';
+import { Activity, BarChart3, Bell, Building2, Calendar, Calendar as CalendarIcon, CheckSquare, CircleUser, Clock, Droplets, FileCheck, FileText, Home, Mail, MessageCircle, MessageSquare, Mic, RotateCcw, Settings2, Star, Users, Wrench, X } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Animated, Dimensions, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { PanGestureHandler } from 'react-native-gesture-handler';
@@ -21,6 +21,7 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
       items: [
         { icon: Home, label: 'Dashboard', action: () => router.push('/(tabs)/'), primary: true },
         { icon: Users, label: 'Contacts', action: () => router.push('/(tabs)/contacts'), primary: true },
+        { icon: Building2, label: 'Businesses', action: () => router.push('/(tabs)/businesses'), primary: true },
         { icon: BarChart3, label: 'Pipeline', action: () => router.push('/(tabs)/pipeline'), primary: true },
       ]
     },

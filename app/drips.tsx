@@ -140,6 +140,58 @@ const pipelineConfigs = {
       qualified_leads: 'Leads that have shown interest',
       hot_leads: 'High-priority leads ready to convert'
     }
+  },
+  opportunities: {
+    title: 'Opportunities',
+    stages: ['new_opportunities', 'prospecting', 'negotiating', 'closed_won', 'closed_lost'],
+    stageLabels: {
+      new_opportunities: 'New Opportunities',
+      prospecting: 'Prospecting',
+      negotiating: 'Negotiating',
+      closed_won: 'Closed Won',
+      closed_lost: 'Closed Lost'
+    },
+    stageDescriptions: {
+      new_opportunities: 'New business opportunities identified',
+      prospecting: 'Actively prospecting and qualifying',
+      negotiating: 'In negotiation phase',
+      closed_won: 'Successfully closed deals',
+      closed_lost: 'Lost opportunities'
+    }
+  },
+  proposals: {
+    title: 'Proposals',
+    stages: ['draft', 'sent', 'reviewed', 'accepted', 'rejected'],
+    stageLabels: {
+      draft: 'Draft',
+      sent: 'Sent',
+      reviewed: 'Reviewed',
+      accepted: 'Accepted',
+      rejected: 'Rejected'
+    },
+    stageDescriptions: {
+      draft: 'Proposal being drafted',
+      sent: 'Proposal sent to client',
+      reviewed: 'Client is reviewing',
+      accepted: 'Proposal accepted',
+      rejected: 'Proposal rejected'
+    }
+  },
+  jobs: {
+    title: 'Jobs',
+    stages: ['scheduled', 'in_progress', 'completed', 'cancelled'],
+    stageLabels: {
+      scheduled: 'Scheduled',
+      in_progress: 'In Progress',
+      completed: 'Completed',
+      cancelled: 'Cancelled'
+    },
+    stageDescriptions: {
+      scheduled: 'Jobs scheduled for future',
+      in_progress: 'Jobs currently being worked on',
+      completed: 'Successfully completed jobs',
+      cancelled: 'Cancelled jobs'
+    }
   }
 };
 
@@ -233,61 +285,73 @@ export default function DripsScreen() {
     <View style={styles.pipelineSelector}>
       <Text style={styles.sectionTitle}>Pipeline</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pipelineScroll}>
-        {Object.entries(pipelineConfigs).map(([key, config]) => (
-          <TouchableOpacity
-            key={key}
-            onPress={() => {
-              setSelectedPipeline(key);
-              setSelectedSequence(null);
-              setViewMode('sequences');
-            }}
-            style={[
-              styles.pipelineButton,
-              selectedPipeline === key && styles.pipelineButtonActive
-            ]}
-          >
-            <Text style={[
-              styles.pipelineButtonText,
-              selectedPipeline === key && styles.pipelineButtonTextActive
-            ]}>
-              {config.title}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </View>
-  );
+        {Object.entries(pipelineConfigs).map(([key, config]) => {
+          const getPipelineStyle = (pipelineKey: string, isSelected: boolean) => {
+            switch (pipelineKey) {
+              case 'leads':
+                return {
+                  borderColor: isSelected ? '#3B82F6' : '#93C5FD',
+                  backgroundColor: isSelected ? '#DBEAFE' : '#EFF6FF',
+                  textColor: isSelected ? '#1E40AF' : '#3B82F6'
+                };
+              case 'opportunities':
+                return {
+                  borderColor: isSelected ? '#10B981' : '#6EE7B7',
+                  backgroundColor: isSelected ? '#D1FAE5' : '#ECFDF5',
+                  textColor: isSelected ? '#047857' : '#10B981'
+                };
+              case 'proposals':
+                return {
+                  borderColor: isSelected ? '#8B5CF6' : '#A78BFA',
+                  backgroundColor: isSelected ? '#EDE9FE' : '#F3F4F6',
+                  textColor: isSelected ? '#6D28D9' : '#8B5CF6'
+                };
+              case 'jobs':
+                return {
+                  borderColor: isSelected ? '#F59E0B' : '#FCD34D',
+                  backgroundColor: isSelected ? '#FEF3C7' : '#FFFBEB',
+                  textColor: isSelected ? '#D97706' : '#F59E0B'
+                };
+              default:
+                return {
+                  borderColor: isSelected ? '#6B7280' : '#D1D5DB',
+                  backgroundColor: isSelected ? '#F3F4F6' : '#F9FAFB',
+                  textColor: isSelected ? '#374151' : '#6B7280'
+                };
+            }
+          };
 
-  const renderStageSelector = () => (
-    <View style={styles.stageSelector}>
-      <Text style={styles.sectionTitle}>Stage</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.stageScroll}>
-        {pipelineConfigs[selectedPipeline]?.stages.map(stage => {
-          const stageLabel = pipelineConfigs[selectedPipeline]?.stageLabels[stage];
-          const stageSequences = mockDripService.getSequencesByStage(selectedPipeline, stage);
+          const isSelected = selectedPipeline === key;
+          const pipelineStyle = getPipelineStyle(key, isSelected);
           
           return (
             <TouchableOpacity
-              key={stage}
+              key={key}
               onPress={() => {
-                setSelectedStage(stage);
+                setSelectedPipeline(key);
                 setSelectedSequence(null);
                 setViewMode('sequences');
+                // Reset to first stage of selected pipeline
+                const firstStage = config.stages[0];
+                setSelectedStage(firstStage);
               }}
               style={[
-                styles.stageButton,
-                selectedStage === stage && styles.stageButtonActive
+                styles.pipelineButton,
+                {
+                  borderColor: pipelineStyle.borderColor,
+                  backgroundColor: pipelineStyle.backgroundColor,
+                }
               ]}
             >
               <Text style={[
-                styles.stageButtonText,
-                selectedStage === stage && styles.stageButtonTextActive
+                styles.pipelineButtonText,
+                {
+                  color: pipelineStyle.textColor,
+                  fontWeight: isSelected ? '600' : '500'
+                }
               ]}>
-                {stageLabel}
+                {config.title}
               </Text>
-              <View style={styles.stageBadge}>
-                <Text style={styles.stageBadgeText}>{stageSequences.length}</Text>
-              </View>
             </TouchableOpacity>
           );
         })}
@@ -295,8 +359,80 @@ export default function DripsScreen() {
     </View>
   );
 
+  const renderStageSelector = () => {
+    const currentPipeline = pipelineConfigs[selectedPipeline];
+    if (!currentPipeline) return null;
+
+    return (
+      <View style={styles.stageSelector}>
+        <Text style={styles.sectionTitle}>
+          {currentPipeline.title} Stages
+        </Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.stageScroll}>
+          {currentPipeline.stages.map(stage => {
+            const stageLabel = currentPipeline.stageLabels[stage];
+            const stageDescription = currentPipeline.stageDescriptions[stage];
+            const stageSequences = mockDripService.getSequencesByStage(selectedPipeline, stage);
+            
+            return (
+              <TouchableOpacity
+                key={stage}
+                onPress={() => {
+                  setSelectedStage(stage);
+                  setSelectedSequence(null);
+                  setViewMode('sequences');
+                }}
+                style={[
+                  styles.stageButton,
+                  selectedStage === stage && styles.stageButtonActive
+                ]}
+              >
+                <View style={styles.stageButtonContent}>
+                  <Text style={[
+                    styles.stageButtonText,
+                    selectedStage === stage && styles.stageButtonTextActive
+                  ]}>
+                    {stageLabel}
+                  </Text>
+                  <View style={styles.stageBadge}>
+                    <Text style={styles.stageBadgeText}>{stageSequences.length}</Text>
+                  </View>
+                </View>
+                <Text style={[
+                  styles.stageDescription,
+                  selectedStage === stage && styles.stageDescriptionActive
+                ]} numberOfLines={1}>
+                  {stageDescription}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+    );
+  };
+
   const renderSequencesList = () => (
     <View style={styles.sequencesList}>
+      {/* Sequences Header */}
+      <View style={styles.sequencesHeader}>
+        <View style={styles.sequencesHeaderContent}>
+          <Text style={styles.sequencesTitle}>
+            {pipelineConfigs[selectedPipeline]?.stageLabels[selectedStage]} Sequences
+          </Text>
+          <Text style={styles.sequencesSubtitle}>
+            {sequences.length} sequences configured
+          </Text>
+        </View>
+        <TouchableOpacity 
+          style={styles.newSequenceButton}
+          onPress={handleCreateNewSequence}
+        >
+          <Plus size={20} color="#FFFFFF" />
+          <Text style={styles.newSequenceButtonText}>New Sequence</Text>
+        </TouchableOpacity>
+      </View>
+
       {sequences.length === 0 ? (
         <View style={styles.emptyState}>
           <View style={styles.emptyIcon}>
@@ -882,23 +1018,40 @@ const styles = StyleSheet.create({
   },
   stageButton: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
     backgroundColor: '#F3F4F6',
     marginRight: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
+    minWidth: 120,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   stageButtonActive: {
     backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
+  },
+  stageButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
   },
   stageButtonText: {
     fontSize: 14,
     fontWeight: '500',
     color: '#6B7280',
+    flex: 1,
   },
   stageButtonTextActive: {
     color: '#FFFFFF',
+  },
+  stageDescription: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    lineHeight: 16,
+  },
+  stageDescriptionActive: {
+    color: '#E0E7FF',
   },
   stageBadge: {
     backgroundColor: '#E5E7EB',
@@ -918,6 +1071,47 @@ const styles = StyleSheet.create({
   sequencesList: {
     flex: 1,
     padding: 20,
+  },
+  sequencesHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  sequencesHeaderContent: {
+    flex: 1,
+  },
+  sequencesTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  sequencesSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  newSequenceButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#6366F1',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  newSequenceButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
   },
   emptyState: {
     flex: 1,
