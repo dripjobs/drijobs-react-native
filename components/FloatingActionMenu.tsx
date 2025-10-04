@@ -207,12 +207,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 4,
     elevation: 4,
+    flexShrink: 0,
   },
   labelText: {
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '600',
-    whiteSpace: 'nowrap',
   },
   menuButton: {
     width: 48,

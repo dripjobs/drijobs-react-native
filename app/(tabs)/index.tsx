@@ -1644,12 +1644,12 @@ const styles = StyleSheet.create({
   // Header Menu Toggle
   headerMenuToggle: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
     paddingVertical: 16,
-    gap: 12,
+    gap: 8,
   },
   headerMenuButton: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -1671,7 +1671,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   headerMenuButtonText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: 'rgba(255, 255, 255, 0.9)',
     textTransform: 'uppercase',
