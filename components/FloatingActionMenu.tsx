@@ -48,7 +48,7 @@ export default function FloatingActionMenu({ onNewAppointment, isVisible = true 
   const getButtonStyle = (index: number) => {
     const translateY = animation.interpolate({
       inputRange: [0, 1],
-      outputRange: [0, -72 * (index + 1)],
+      outputRange: [0, -66 * (index + 1)],
     });
 
     const scale = animation.interpolate({
@@ -138,7 +138,7 @@ export default function FloatingActionMenu({ onNewAppointment, isVisible = true 
               end={{ x: 1, y: 1 }}
               style={styles.menuButton}
             >
-              <item.icon size={24} color="#FFFFFF" />
+              <item.icon size={22} color="#FFFFFF" />
             </LinearGradient>
           </TouchableOpacity>
         </Animated.View>
@@ -217,9 +217,9 @@ const styles = StyleSheet.create({
     maxWidth: 100,
   },
   menuButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -227,5 +227,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 4,
     elevation: 4,
+    marginRight: '15%',
   },
 });
