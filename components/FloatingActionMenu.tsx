@@ -130,7 +130,7 @@ export default function FloatingActionMenu({ onNewAppointment, isVisible = true 
             }}
           >
             <View style={styles.labelContainer}>
-              <Text style={styles.labelText}>{item.label}</Text>
+              <Text style={styles.labelText} numberOfLines={1}>{item.label}</Text>
             </View>
             <LinearGradient
               colors={item.colors}
@@ -207,12 +207,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 4,
     elevation: 4,
+    flexDirection: 'row',
+    flexWrap: 'nowrap',
     flexShrink: 0,
   },
   labelText: {
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '600',
+    flexShrink: 0,
   },
   menuButton: {
     width: 48,
