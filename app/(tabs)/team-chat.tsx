@@ -136,6 +136,8 @@ export default function TeamChat() {
   const [jobChannelSearchQuery, setJobChannelSearchQuery] = useState('');
   const [showAllJobChannels, setShowAllJobChannels] = useState(false);
   const [jobChannelFilter, setJobChannelFilter] = useState<'all' | 'active' | 'unread'>('active');
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [searchModalQuery, setSearchModalQuery] = useState('');
   const [channelView, setChannelView] = useState<'job' | 'team'>('job');
   const [showDealInfo, setShowDealInfo] = useState(false);
   const [showChannelSettings, setShowChannelSettings] = useState(false);
@@ -758,16 +760,6 @@ export default function TeamChat() {
   const getFilteredJobChannels = () => {
     let filtered = channels.filter(c => c.channelType === 'job');
     
-    // Apply search filter
-    if (jobChannelSearchQuery) {
-      filtered = filtered.filter(channel =>
-        channel.name.toLowerCase().includes(jobChannelSearchQuery.toLowerCase()) ||
-        channel.description?.toLowerCase().includes(jobChannelSearchQuery.toLowerCase()) ||
-        channel.jobNumber?.toLowerCase().includes(jobChannelSearchQuery.toLowerCase()) ||
-        channel.jobAddress?.toLowerCase().includes(jobChannelSearchQuery.toLowerCase())
-      );
-    }
-    
     // Apply status filter
     if (jobChannelFilter === 'unread') {
       filtered = filtered.filter(c => c.unreadCount > 0);
@@ -779,7 +771,7 @@ export default function TeamChat() {
     }
     
     // Limit display if not showing all
-    if (!showAllJobChannels && !jobChannelSearchQuery) {
+    if (!showAllJobChannels) {
       return filtered.slice(0, 5);
     }
     
@@ -828,7 +820,10 @@ export default function TeamChat() {
                 >
                   <MessageCircle size={20} color="#FFFFFF" />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.headerButton}>
+                <TouchableOpacity 
+                  style={styles.headerButton}
+                  onPress={() => setShowSearchModal(true)}
+                >
                   <Search size={20} color="#FFFFFF" />
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.headerButton}>
@@ -922,23 +917,6 @@ export default function TeamChat() {
                 </TouchableOpacity>
               </View>
 
-              {/* Search Bar */}
-              <View style={styles.jobSearchContainer}>
-                <Search size={16} color="#9CA3AF" />
-                <TextInput
-                  style={styles.jobSearchInput}
-                  placeholder="Search jobs by name, number, or address..."
-                  value={jobChannelSearchQuery}
-                  onChangeText={setJobChannelSearchQuery}
-                  placeholderTextColor="#9CA3AF"
-                />
-                {jobChannelSearchQuery.length > 0 && (
-                  <TouchableOpacity onPress={() => setJobChannelSearchQuery('')}>
-                    <X size={16} color="#9CA3AF" />
-                  </TouchableOpacity>
-                )}
-              </View>
-
               {/* Filter Tabs */}
               <View style={styles.jobFilterTabs}>
                 <TouchableOpacity
@@ -1022,7 +1000,7 @@ export default function TeamChat() {
               ))}
 
               {/* Show More/Less Button */}
-              {!jobChannelSearchQuery && totalJobChannels > 5 && (
+              {totalJobChannels > 5 && (
                 <TouchableOpacity
                   style={styles.showMoreButton}
                   onPress={() => setShowAllJobChannels(!showAllJobChannels)}
@@ -1104,6 +1082,144 @@ export default function TeamChat() {
           </ScrollView>
 
           <FloatingActionMenu isVisible={showFAB} />
+
+          {/* Search Modal */}
+          <Modal
+            visible={showSearchModal}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setShowSearchModal(false)}
+          >
+            <View style={styles.searchModalOverlay}>
+              <TouchableOpacity 
+                style={styles.searchModalBackdrop}
+                activeOpacity={1}
+                onPress={() => {
+                  setShowSearchModal(false);
+                  setSearchModalQuery('');
+                }}
+              />
+              <View style={styles.searchModalContainer}>
+                <View style={styles.searchModalHandle} />
+                
+                <View style={styles.searchModalHeader}>
+                  <Text style={styles.searchModalTitle}>Search Channels</Text>
+                  <TouchableOpacity 
+                    onPress={() => {
+                      setShowSearchModal(false);
+                      setSearchModalQuery('');
+                    }}
+                    style={styles.searchModalCloseButton}
+                  >
+                    <X size={24} color="#6B7280" />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.searchModalInputContainer}>
+                  <Search size={20} color="#6B7280" />
+                  <TextInput
+                    style={styles.searchModalInput}
+                    placeholder="Search in team and job channels..."
+                    value={searchModalQuery}
+                    onChangeText={setSearchModalQuery}
+                    autoFocus={true}
+                    placeholderTextColor="#9CA3AF"
+                  />
+                  {searchModalQuery.length > 0 && (
+                    <TouchableOpacity onPress={() => setSearchModalQuery('')}>
+                      <X size={20} color="#6B7280" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                <ScrollView style={styles.searchModalResults}>
+                  {searchModalQuery.length === 0 ? (
+                    <View style={styles.searchModalEmptyState}>
+                      <Search size={48} color="#D1D5DB" />
+                      <Text style={styles.searchModalEmptyTitle}>Search channels</Text>
+                      <Text style={styles.searchModalEmptyText}>
+                        Find team channels, job channels, and conversations
+                      </Text>
+                    </View>
+                  ) : (
+                    <>
+                      {(() => {
+                        const query = searchModalQuery.toLowerCase();
+                        const results = channels.filter(channel =>
+                          channel.name.toLowerCase().includes(query) ||
+                          channel.description?.toLowerCase().includes(query) ||
+                          channel.jobNumber?.toLowerCase().includes(query) ||
+                          channel.jobAddress?.toLowerCase().includes(query)
+                        );
+
+                        if (results.length === 0) {
+                          return (
+                            <View style={styles.searchModalEmptyState}>
+                              <Search size={48} color="#D1D5DB" />
+                              <Text style={styles.searchModalEmptyTitle}>No results found</Text>
+                              <Text style={styles.searchModalEmptyText}>
+                                Try searching with different keywords
+                              </Text>
+                            </View>
+                          );
+                        }
+
+                        return (
+                          <>
+                            <Text style={styles.searchModalResultsCount}>
+                              {results.length} {results.length === 1 ? 'result' : 'results'} found
+                            </Text>
+                            {results.map((channel) => (
+                              <TouchableOpacity
+                                key={channel.id}
+                                style={styles.searchModalResultItem}
+                                onPress={() => {
+                                  setSelectedChannel(channel);
+                                  setSelectedDM(null);
+                                  setShowSearchModal(false);
+                                  setSearchModalQuery('');
+                                }}
+                              >
+                                <View style={styles.searchModalResultIcon}>
+                                  {channel.type === 'private' ? (
+                                    <Lock size={18} color="#6B7280" />
+                                  ) : channel.channelType === 'job' ? (
+                                    <Briefcase size={18} color="#6366F1" />
+                                  ) : (
+                                    <Hash size={18} color="#6B7280" />
+                                  )}
+                                </View>
+                                <View style={styles.searchModalResultContent}>
+                                  <Text style={styles.searchModalResultName}>{channel.name}</Text>
+                                  {channel.description && (
+                                    <Text style={styles.searchModalResultDescription} numberOfLines={1}>
+                                      {channel.description}
+                                    </Text>
+                                  )}
+                                  {channel.channelType === 'job' && channel.jobAddress && (
+                                    <Text style={styles.searchModalResultJob}>
+                                      {channel.jobNumber && `#${channel.jobNumber} • `}{channel.jobAddress}
+                                    </Text>
+                                  )}
+                                </View>
+                                {channel.unreadCount > 0 && (
+                                  <View style={styles.searchModalResultBadge}>
+                                    <Text style={styles.searchModalResultBadgeText}>
+                                      {channel.unreadCount}
+                                    </Text>
+                                  </View>
+                                )}
+                              </TouchableOpacity>
+                            ))}
+                          </>
+                        );
+                      })()}
+                    </>
+                  )}
+                </ScrollView>
+              </View>
+            </View>
+          </Modal>
 
           {/* Create Channel Modal */}
           <Modal
@@ -3929,5 +4045,138 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#9CA3AF',
     textAlign: 'center',
+  },
+  // Search Modal Styles
+  searchModalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  searchModalBackdrop: {
+    flex: 1,
+  },
+  searchModalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 12,
+    maxHeight: '80%',
+  },
+  searchModalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  searchModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+  },
+  searchModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  searchModalCloseButton: {
+    padding: 4,
+  },
+  searchModalInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginHorizontal: 20,
+    marginBottom: 16,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  searchModalInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#111827',
+  },
+  searchModalResults: {
+    flex: 1,
+  },
+  searchModalResultsCount: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  searchModalResultItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  searchModalResultIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: '#F9FAFB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  searchModalResultContent: {
+    flex: 1,
+  },
+  searchModalResultName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  searchModalResultDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 2,
+  },
+  searchModalResultJob: {
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
+  searchModalResultBadge: {
+    backgroundColor: '#6366F1',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    minWidth: 24,
+    alignItems: 'center',
+  },
+  searchModalResultBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  searchModalEmptyState: {
+    paddingVertical: 80,
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  searchModalEmptyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  searchModalEmptyText: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });

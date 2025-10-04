@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { Calendar, SquareCheck as CheckSquare, FileText, MessageSquare, Plus, Send, UserPlus } from 'lucide-react-native';
+import { Calendar, SquareCheck as CheckSquare, FileText, Plus, Send, UserPlus } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -48,7 +48,7 @@ export default function FloatingActionMenu({ onNewAppointment, isVisible = true 
   const getButtonStyle = (index: number) => {
     const translateY = animation.interpolate({
       inputRange: [0, 1],
-      outputRange: [0, -70 * (index + 1)],
+      outputRange: [0, -64 * (index + 1)],
     });
 
     const scale = animation.interpolate({
@@ -138,7 +138,7 @@ export default function FloatingActionMenu({ onNewAppointment, isVisible = true 
               end={{ x: 1, y: 1 }}
               style={styles.menuButton}
             >
-              <item.icon size={22} color="#FFFFFF" />
+              <item.icon size={20} color="#FFFFFF" />
             </LinearGradient>
           </TouchableOpacity>
         </Animated.View>
@@ -168,6 +168,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     zIndex: 999,
     elevation: 999,
+    maxWidth: '100%',
   },
   mainButton: {
     width: 56,
@@ -191,33 +192,35 @@ const styles = StyleSheet.create({
     bottom: 0,
     flexDirection: 'row',
     alignItems: 'center',
+    right: 0,
+    paddingRight: 8,
   },
   menuItemTouchable: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   labelContainer: {
     backgroundColor: 'rgba(17, 24, 39, 0.95)',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,
     elevation: 4,
+    maxWidth: 120,
   },
   labelText: {
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
-    whiteSpace: 'nowrap',
   },
   menuButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
