@@ -191,7 +191,8 @@ const styles = StyleSheet.create({
     bottom: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    right: 6,
+    right: 0,
+    justifyContent: 'flex-end',
   },
   menuItemTouchable: {
     flexDirection: 'row',
