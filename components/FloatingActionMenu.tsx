@@ -168,6 +168,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 999,
     elevation: 999,
+    overflow: 'visible',
   },
   mainButton: {
     width: 56,
@@ -189,6 +190,7 @@ const styles = StyleSheet.create({
   menuItem: {
     position: 'absolute',
     bottom: 0,
+    overflow: 'visible',
   },
   menuItemTouchable: {
     position: 'relative',
