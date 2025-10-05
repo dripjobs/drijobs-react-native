@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { Building, Check, Info, Search, User as UserIcon, X } from 'lucide-react-native';
+import { Building, Check, FileText, Info, Search, User as UserIcon, X } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Dimensions, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -14,6 +14,7 @@ export default function NewProposalModal({ visible, onClose }: NewProposalModalP
   const router = useRouter();
   const [proposalStep, setProposalStep] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
+  const [templateSearchQuery, setTemplateSearchQuery] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [proposalData, setProposalData] = useState({
     customerType: '', // 'individual' or 'business'
@@ -44,7 +45,12 @@ export default function NewProposalModal({ visible, onClose }: NewProposalModalP
     // Salesperson & sources
     salesperson: '',
     leadSource: '',
-    jobSource: ''
+    jobSource: '',
+    // Template selection
+    proposalType: '', // 'blank' or 'template'
+    // Recurring job settings
+    jobFrequency: '', // 'one-time' or 'recurring'
+    createDealForRecurring: false
   });
 
   // Sample data
@@ -90,48 +96,70 @@ export default function NewProposalModal({ visible, onClose }: NewProposalModalP
     { id: '3', name: 'Upgrade/Add-on', category: 'Expansion' }
   ];
 
+  const proposalTemplates = [
+    { id: '1', name: 'Standard Pressure Washing', description: 'Basic pressure washing service template', lastUsed: '2 days ago' },
+    { id: '2', name: 'Roof Cleaning Package', description: 'Complete roof cleaning with warranty', lastUsed: '1 week ago' },
+    { id: '3', name: 'Commercial Building Wash', description: 'Multi-story commercial building service', lastUsed: '3 weeks ago' },
+    { id: '4', name: 'Driveway & Sidewalk', description: 'Concrete surface cleaning', lastUsed: '1 month ago' },
+    { id: '5', name: 'Fleet Vehicle Washing', description: 'Commercial vehicle cleaning service', lastUsed: '2 months ago' }
+  ];
+
   const [selectedAddress, setSelectedAddress] = useState<any>(null);
   const [selectedSalesperson, setSelectedSalesperson] = useState<any>(null);
   const [selectedSource, setSelectedSource] = useState<any>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
 
   const canProceedToNext = () => {
     switch (proposalStep) {
       case 1:
         return proposalData.customerType && proposalData.customerStatus;
       case 2:
+        // Validate customer info
+        let hasCustomerInfo = false;
         if (proposalData.customerStatus === 'existing') {
-          return selectedCustomer !== null;
+          hasCustomerInfo = selectedCustomer !== null;
         } else {
           if (proposalData.customerType === 'business') {
-            return proposalData.businessName.trim() !== '' &&
+            hasCustomerInfo = proposalData.businessName.trim() !== '' &&
                    proposalData.contactFirstName.trim() !== '' &&
                    proposalData.contactLastName.trim() !== '' &&
                    proposalData.contactEmail.trim() !== '' &&
                    proposalData.contactPhone.trim() !== '';
           } else {
-            return proposalData.firstName.trim() !== '' &&
+            hasCustomerInfo = proposalData.firstName.trim() !== '' &&
                    proposalData.lastName.trim() !== '';
           }
         }
-      case 3:
+        
+        // Validate job address
         const hasJobAddress = proposalData.jobStreet.trim() !== '' && proposalData.jobCity.trim() !== '';
+        
+        // Validate billing address if different
         if (proposalData.useDifferentBilling) {
           const hasBillingAddress = proposalData.billingStreet.trim() !== '' &&
                                    proposalData.billingCity.trim() !== '' &&
                                    proposalData.billingState.trim() !== '' &&
                                    proposalData.billingZip.trim() !== '';
-          return hasJobAddress && hasBillingAddress;
+          return hasCustomerInfo && hasJobAddress && hasBillingAddress;
         }
-        return hasJobAddress;
-      case 4:
+        
+        return hasCustomerInfo && hasJobAddress;
+      case 3:
         return selectedSalesperson !== null && selectedSource !== null;
+      case 4:
+        if (proposalData.proposalType === 'template') {
+          return selectedTemplate !== null;
+        }
+        return proposalData.proposalType !== '';
+      case 5:
+        return proposalData.jobFrequency !== '';
       default:
         return false;
     }
   };
 
   const handleNext = () => {
-    if (canProceedToNext() && proposalStep < 4) {
+    if (canProceedToNext() && proposalStep < 5) {
       setProposalStep(proposalStep + 1);
     }
   };
@@ -146,10 +174,12 @@ export default function NewProposalModal({ visible, onClose }: NewProposalModalP
     onClose();
     setProposalStep(1);
     setSearchQuery('');
+    setTemplateSearchQuery('');
     setSelectedCustomer(null);
     setSelectedAddress(null);
     setSelectedSalesperson(null);
     setSelectedSource(null);
+    setSelectedTemplate(null);
     setProposalData({
       customerType: '',
       customerStatus: '',
@@ -174,7 +204,10 @@ export default function NewProposalModal({ visible, onClose }: NewProposalModalP
       billingZip: '',
       salesperson: '',
       leadSource: '',
-      jobSource: ''
+      jobSource: '',
+      proposalType: '',
+      jobFrequency: '',
+      createDealForRecurring: false
     });
   };
 
@@ -202,12 +235,21 @@ export default function NewProposalModal({ visible, onClose }: NewProposalModalP
     });
   };
 
+  const filterTemplates = () => {
+    if (!templateSearchQuery) return proposalTemplates;
+    return proposalTemplates.filter(template =>
+      template.name.toLowerCase().includes(templateSearchQuery.toLowerCase()) ||
+      template.description.toLowerCase().includes(templateSearchQuery.toLowerCase())
+    );
+  };
+
   const getStepTitle = () => {
     switch (proposalStep) {
       case 1: return 'Select Proposal Type';
-      case 2: return proposalData.customerType === 'business' ? 'Business Information' : 'Customer Information';
-      case 3: return 'Job Address';
-      case 4: return 'Salesperson & Sources';
+      case 2: return 'Customer Information & Job Address';
+      case 3: return 'Salesperson & Sources';
+      case 4: return 'Proposal Setup';
+      case 5: return 'Job Frequency';
       default: return '';
     }
   };
@@ -215,11 +257,10 @@ export default function NewProposalModal({ visible, onClose }: NewProposalModalP
   const getStepDescription = () => {
     switch (proposalStep) {
       case 1: return 'Choose whether this proposal is for a business or individual customer';
-      case 2: return proposalData.customerType === 'business'
-        ? 'Enter business details or select from your database'
-        : 'Enter customer details or select from your database';
-      case 3: return 'Specify the job address where the work will be performed';
-      case 4: return 'Assign a salesperson and select the appropriate source';
+      case 2: return 'Enter customer details and job address';
+      case 3: return 'Assign a salesperson and select the appropriate source';
+      case 4: return 'Choose to start from scratch or use a template';
+      case 5: return 'Specify if this is a one-time or recurring job';
       default: return '';
     }
   };
@@ -333,188 +374,188 @@ export default function NewProposalModal({ visible, onClose }: NewProposalModalP
 
       case 2:
         return (
-          <View style={styles.stepContent}>
-            {proposalData.customerStatus === 'new' ? (
-              proposalData.customerType === 'business' ? (
-                <ScrollView>
-                  {/* Business Name */}
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Business Name *</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={proposalData.businessName}
-                      onChangeText={(text) => setProposalData({...proposalData, businessName: text})}
-                      placeholder="Enter business name"
-                      placeholderTextColor="#9CA3AF"
-                    />
-                  </View>
-
-                  {/* Primary Contact Section */}
-                  <View style={styles.sectionDivider}>
-                    <Text style={styles.sectionTitle}>Primary Contact</Text>
-                    <Text style={styles.sectionDescription}>
-                      This contact will receive all communications for this proposal
-                    </Text>
-                  </View>
-
-                  <View style={styles.inputRow}>
-                    <View style={[styles.inputGroup, styles.inputHalf]}>
-                      <Text style={styles.inputLabel}>First Name *</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={proposalData.contactFirstName}
-                        onChangeText={(text) => setProposalData({...proposalData, contactFirstName: text})}
-                        placeholder="First name"
-                        placeholderTextColor="#9CA3AF"
-                      />
-                    </View>
-                    <View style={[styles.inputGroup, styles.inputHalf]}>
-                      <Text style={styles.inputLabel}>Last Name *</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={proposalData.contactLastName}
-                        onChangeText={(text) => setProposalData({...proposalData, contactLastName: text})}
-                        placeholder="Last name"
-                        placeholderTextColor="#9CA3AF"
-                      />
-                    </View>
-                  </View>
-
-                  <View style={styles.inputRow}>
-                    <View style={[styles.inputGroup, styles.inputHalf]}>
-                      <Text style={styles.inputLabel}>Email *</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={proposalData.contactEmail}
-                        onChangeText={(text) => setProposalData({...proposalData, contactEmail: text})}
-                        placeholder="contact@email.com"
-                        placeholderTextColor="#9CA3AF"
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                      />
-                    </View>
-                    <View style={[styles.inputGroup, styles.inputHalf]}>
-                      <Text style={styles.inputLabel}>Phone *</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={proposalData.contactPhone}
-                        onChangeText={(text) => setProposalData({...proposalData, contactPhone: text})}
-                        placeholder="(555) 123-4567"
-                        placeholderTextColor="#9CA3AF"
-                        keyboardType="phone-pad"
-                      />
-                    </View>
-                  </View>
-
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Title (Optional)</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={proposalData.contactTitle}
-                      onChangeText={(text) => setProposalData({...proposalData, contactTitle: text})}
-                      placeholder="e.g., CEO, Manager, Owner"
-                      placeholderTextColor="#9CA3AF"
-                    />
-                  </View>
-                </ScrollView>
-              ) : (
-                <ScrollView>
-                  <View style={styles.inputRow}>
-                    <View style={[styles.inputGroup, styles.inputHalf]}>
-                      <Text style={styles.inputLabel}>First Name *</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={proposalData.firstName}
-                        onChangeText={(text) => setProposalData({...proposalData, firstName: text})}
-                        placeholder="First name"
-                        placeholderTextColor="#9CA3AF"
-                      />
-                    </View>
-                    <View style={[styles.inputGroup, styles.inputHalf]}>
-                      <Text style={styles.inputLabel}>Last Name *</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={proposalData.lastName}
-                        onChangeText={(text) => setProposalData({...proposalData, lastName: text})}
-                        placeholder="Last name"
-                        placeholderTextColor="#9CA3AF"
-                      />
-                    </View>
-                  </View>
-
-                  <View style={styles.inputRow}>
-                    <View style={[styles.inputGroup, styles.inputHalf]}>
-                      <Text style={styles.inputLabel}>Email</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={proposalData.email}
-                        onChangeText={(text) => setProposalData({...proposalData, email: text})}
-                        placeholder="customer@email.com"
-                        placeholderTextColor="#9CA3AF"
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                      />
-                    </View>
-                    <View style={[styles.inputGroup, styles.inputHalf]}>
-                      <Text style={styles.inputLabel}>Phone</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={proposalData.phone}
-                        onChangeText={(text) => setProposalData({...proposalData, phone: text})}
-                        placeholder="(555) 123-4567"
-                        placeholderTextColor="#9CA3AF"
-                        keyboardType="phone-pad"
-                      />
-                    </View>
-                  </View>
-                </ScrollView>
-              )
-            ) : (
-              <ScrollView>
-                {/* Search Bar */}
-                <View style={styles.searchContainer}>
-                  <Search size={20} color="#9CA3AF" style={styles.searchIcon} />
-                  <TextInput
-                    style={styles.searchInput}
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                    placeholder={`Search ${proposalData.customerType === 'business' ? 'businesses' : 'contacts'}...`}
-                    placeholderTextColor="#9CA3AF"
-                  />
-                </View>
-
-                {/* Customer List */}
-                <View style={styles.customerList}>
-                  {filterItems().map((item) => (
-                    <TouchableOpacity
-                      key={item.id}
-                      style={[
-                        styles.customerCard,
-                        selectedCustomer?.id === item.id && styles.customerCardSelected
-                      ]}
-                      onPress={() => setSelectedCustomer(item)}
-                    >
-                      <Text style={styles.customerName}>{item.name}</Text>
-                      {proposalData.customerType === 'individual' && (
-                        <Text style={styles.customerDetails}>
-                          {(item as any).email} • {(item as any).phone}
-                        </Text>
-                      )}
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
-            )}
-          </View>
-        );
-
-      case 3:
-        return (
           <ScrollView style={styles.stepContent}>
+            {/* Customer Information Section */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>
+                {proposalData.customerType === 'business' ? 'Business Information' : 'Customer Information'}
+              </Text>
+              
+              {proposalData.customerStatus === 'new' ? (
+                proposalData.customerType === 'business' ? (
+                  <>
+                    {/* Business Name */}
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>Business Name *</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={proposalData.businessName}
+                        onChangeText={(text) => setProposalData({...proposalData, businessName: text})}
+                        placeholder="Enter business name"
+                        placeholderTextColor="#9CA3AF"
+                      />
+                    </View>
+
+                    {/* Primary Contact Section */}
+                    <Text style={styles.subSectionTitle}>Primary Contact</Text>
+                    <Text style={styles.subSectionDescription}>
+                      This contact will receive all communications
+                    </Text>
+
+                    <View style={styles.inputRow}>
+                      <View style={[styles.inputGroup, styles.inputHalf]}>
+                        <Text style={styles.inputLabel}>First Name *</Text>
+                        <TextInput
+                          style={styles.input}
+                          value={proposalData.contactFirstName}
+                          onChangeText={(text) => setProposalData({...proposalData, contactFirstName: text})}
+                          placeholder="First name"
+                          placeholderTextColor="#9CA3AF"
+                        />
+                      </View>
+                      <View style={[styles.inputGroup, styles.inputHalf]}>
+                        <Text style={styles.inputLabel}>Last Name *</Text>
+                        <TextInput
+                          style={styles.input}
+                          value={proposalData.contactLastName}
+                          onChangeText={(text) => setProposalData({...proposalData, contactLastName: text})}
+                          placeholder="Last name"
+                          placeholderTextColor="#9CA3AF"
+                        />
+                      </View>
+                    </View>
+
+                    <View style={styles.inputRow}>
+                      <View style={[styles.inputGroup, styles.inputHalf]}>
+                        <Text style={styles.inputLabel}>Email *</Text>
+                        <TextInput
+                          style={styles.input}
+                          value={proposalData.contactEmail}
+                          onChangeText={(text) => setProposalData({...proposalData, contactEmail: text})}
+                          placeholder="contact@email.com"
+                          placeholderTextColor="#9CA3AF"
+                          keyboardType="email-address"
+                          autoCapitalize="none"
+                        />
+                      </View>
+                      <View style={[styles.inputGroup, styles.inputHalf]}>
+                        <Text style={styles.inputLabel}>Phone *</Text>
+                        <TextInput
+                          style={styles.input}
+                          value={proposalData.contactPhone}
+                          onChangeText={(text) => setProposalData({...proposalData, contactPhone: text})}
+                          placeholder="(555) 123-4567"
+                          placeholderTextColor="#9CA3AF"
+                          keyboardType="phone-pad"
+                        />
+                      </View>
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>Title (Optional)</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={proposalData.contactTitle}
+                        onChangeText={(text) => setProposalData({...proposalData, contactTitle: text})}
+                        placeholder="e.g., CEO, Manager, Owner"
+                        placeholderTextColor="#9CA3AF"
+                      />
+                    </View>
+                  </>
+                ) : (
+                  <>
+                    <View style={styles.inputRow}>
+                      <View style={[styles.inputGroup, styles.inputHalf]}>
+                        <Text style={styles.inputLabel}>First Name *</Text>
+                        <TextInput
+                          style={styles.input}
+                          value={proposalData.firstName}
+                          onChangeText={(text) => setProposalData({...proposalData, firstName: text})}
+                          placeholder="First name"
+                          placeholderTextColor="#9CA3AF"
+                        />
+                      </View>
+                      <View style={[styles.inputGroup, styles.inputHalf]}>
+                        <Text style={styles.inputLabel}>Last Name *</Text>
+                        <TextInput
+                          style={styles.input}
+                          value={proposalData.lastName}
+                          onChangeText={(text) => setProposalData({...proposalData, lastName: text})}
+                          placeholder="Last name"
+                          placeholderTextColor="#9CA3AF"
+                        />
+                      </View>
+                    </View>
+
+                    <View style={styles.inputRow}>
+                      <View style={[styles.inputGroup, styles.inputHalf]}>
+                        <Text style={styles.inputLabel}>Email</Text>
+                        <TextInput
+                          style={styles.input}
+                          value={proposalData.email}
+                          onChangeText={(text) => setProposalData({...proposalData, email: text})}
+                          placeholder="customer@email.com"
+                          placeholderTextColor="#9CA3AF"
+                          keyboardType="email-address"
+                          autoCapitalize="none"
+                        />
+                      </View>
+                      <View style={[styles.inputGroup, styles.inputHalf]}>
+                        <Text style={styles.inputLabel}>Phone</Text>
+                        <TextInput
+                          style={styles.input}
+                          value={proposalData.phone}
+                          onChangeText={(text) => setProposalData({...proposalData, phone: text})}
+                          placeholder="(555) 123-4567"
+                          placeholderTextColor="#9CA3AF"
+                          keyboardType="phone-pad"
+                        />
+                      </View>
+                    </View>
+                  </>
+                )
+              ) : (
+                <>
+                  {/* Search Bar */}
+                  <View style={styles.searchContainer}>
+                    <Search size={20} color="#9CA3AF" style={styles.searchIcon} />
+                    <TextInput
+                      style={styles.searchInput}
+                      value={searchQuery}
+                      onChangeText={setSearchQuery}
+                      placeholder={`Search ${proposalData.customerType === 'business' ? 'businesses' : 'contacts'}...`}
+                      placeholderTextColor="#9CA3AF"
+                    />
+                  </View>
+
+                  {/* Customer List */}
+                  <View style={styles.customerList}>
+                    {filterItems().map((item) => (
+                      <TouchableOpacity
+                        key={item.id}
+                        style={[
+                          styles.customerCard,
+                          selectedCustomer?.id === item.id && styles.customerCardSelected
+                        ]}
+                        onPress={() => setSelectedCustomer(item)}
+                      >
+                        <Text style={styles.customerName}>{item.name}</Text>
+                        {proposalData.customerType === 'individual' && (
+                          <Text style={styles.customerDetails}>
+                            {(item as any).email} • {(item as any).phone}
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </>
+              )}
+            </View>
+
             {/* Job Address Section */}
-            <View style={styles.addressSection}>
+            <View style={[styles.section, styles.addressSection]}>
               <Text style={styles.sectionTitle}>Job Address</Text>
-              <Text style={styles.sectionDescription}>Where the work will be performed</Text>
+              <Text style={styles.subSectionDescription}>Where the work will be performed</Text>
               
               {/* Show existing addresses for existing customers */}
               {proposalData.customerStatus === 'existing' && selectedCustomer?.addresses && selectedCustomer.addresses.length > 0 && (
@@ -590,13 +631,8 @@ export default function NewProposalModal({ visible, onClose }: NewProposalModalP
                   />
                 </View>
               </View>
-            </View>
 
-            {/* Billing Address Section */}
-            <View style={[styles.addressSection, styles.billingSection]}>
-              <Text style={styles.sectionTitle}>Billing Address</Text>
-              <Text style={styles.sectionDescription}>Where invoices should be sent</Text>
-              
+              {/* Billing Address Toggle */}
               <TouchableOpacity
                 style={styles.checkboxContainer}
                 onPress={() => setProposalData({...proposalData, useDifferentBilling: !proposalData.useDifferentBilling})}
@@ -610,7 +646,7 @@ export default function NewProposalModal({ visible, onClose }: NewProposalModalP
               {proposalData.useDifferentBilling && (
                 <>
                   <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Street Address *</Text>
+                    <Text style={styles.inputLabel}>Billing Street Address *</Text>
                     <TextInput
                       style={styles.input}
                       value={proposalData.billingStreet}
@@ -671,7 +707,7 @@ export default function NewProposalModal({ visible, onClose }: NewProposalModalP
           </ScrollView>
         );
 
-      case 4:
+      case 3:
         return (
           <ScrollView style={styles.stepContent}>
             {/* Salesperson Selection */}
@@ -720,14 +756,195 @@ export default function NewProposalModal({ visible, onClose }: NewProposalModalP
                 </TouchableOpacity>
               ))}
             </View>
+          </ScrollView>
+        );
+
+      case 4:
+        return (
+          <ScrollView style={styles.stepContent}>
+            {/* Proposal Type Selection */}
+            <View style={styles.selectionContainer}>
+              <Text style={styles.sectionLabel}>Start Proposal</Text>
+              <View style={styles.selectionRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.selectionCard,
+                    proposalData.proposalType === 'blank' && styles.selectionCardSelected
+                  ]}
+                  onPress={() => setProposalData({...proposalData, proposalType: 'blank'})}
+                >
+                  <FileText size={24} color={proposalData.proposalType === 'blank' ? '#6366F1' : '#6B7280'} />
+                  <Text style={[
+                    styles.selectionTitle,
+                    proposalData.proposalType === 'blank' && styles.selectionTitleSelected
+                  ]}>
+                    Blank Proposal
+                  </Text>
+                  <Text style={styles.selectionDescription}>
+                    Start from scratch
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[
+                    styles.selectionCard,
+                    proposalData.proposalType === 'template' && styles.selectionCardSelected
+                  ]}
+                  onPress={() => setProposalData({...proposalData, proposalType: 'template'})}
+                >
+                  <FileText size={24} color={proposalData.proposalType === 'template' ? '#6366F1' : '#6B7280'} />
+                  <Text style={[
+                    styles.selectionTitle,
+                    proposalData.proposalType === 'template' && styles.selectionTitleSelected
+                  ]}>
+                    Use Template
+                  </Text>
+                  <Text style={styles.selectionDescription}>
+                    Start from a saved template
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Template Selection (shown if template is selected) */}
+            {proposalData.proposalType === 'template' && (
+              <View style={styles.selectionContainer}>
+                <Text style={styles.sectionLabel}>Select Template</Text>
+                
+                {/* Template Search */}
+                <View style={styles.searchContainer}>
+                  <Search size={20} color="#9CA3AF" style={styles.searchIcon} />
+                  <TextInput
+                    style={styles.searchInput}
+                    value={templateSearchQuery}
+                    onChangeText={setTemplateSearchQuery}
+                    placeholder="Search templates..."
+                    placeholderTextColor="#9CA3AF"
+                  />
+                </View>
+
+                {/* Template List */}
+                <View style={styles.templateList}>
+                  {filterTemplates().map((template) => (
+                    <TouchableOpacity
+                      key={template.id}
+                      style={[
+                        styles.templateCard,
+                        selectedTemplate?.id === template.id && styles.templateCardSelected
+                      ]}
+                      onPress={() => setSelectedTemplate(template)}
+                    >
+                      <View style={styles.templateCardContent}>
+                        <Text style={styles.templateCardTitle}>{template.name}</Text>
+                        <Text style={styles.templateCardDescription}>{template.description}</Text>
+                        <Text style={styles.templateCardLastUsed}>Last used: {template.lastUsed}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
+          </ScrollView>
+        );
+
+      case 5:
+        return (
+          <ScrollView style={styles.stepContent}>
+            {/* Job Frequency Selection */}
+            <View style={styles.selectionContainer}>
+              <Text style={styles.sectionLabel}>Job Frequency</Text>
+              <View style={styles.selectionRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.selectionCard,
+                    proposalData.jobFrequency === 'one-time' && styles.selectionCardSelected
+                  ]}
+                  onPress={() => setProposalData({...proposalData, jobFrequency: 'one-time'})}
+                >
+                  <Text style={[
+                    styles.selectionTitle,
+                    proposalData.jobFrequency === 'one-time' && styles.selectionTitleSelected
+                  ]}>
+                    One-Time Job
+                  </Text>
+                  <Text style={styles.selectionDescription}>
+                    Single service job
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[
+                    styles.selectionCard,
+                    proposalData.jobFrequency === 'recurring' && styles.selectionCardSelected
+                  ]}
+                  onPress={() => setProposalData({...proposalData, jobFrequency: 'recurring'})}
+                >
+                  <Text style={[
+                    styles.selectionTitle,
+                    proposalData.jobFrequency === 'recurring' && styles.selectionTitleSelected
+                  ]}>
+                    Recurring Job
+                  </Text>
+                  <Text style={styles.selectionDescription}>
+                    Repeat service schedule
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* One-Time Job Info */}
+            {proposalData.jobFrequency === 'one-time' && (
+              <View style={[styles.infoBox, { backgroundColor: '#D1FAE5', borderColor: '#10B981' }]}>
+                <Info size={20} color="#10B981" />
+                <View style={styles.infoTextContainer}>
+                  <Text style={[styles.infoTitle, { color: '#047857' }]}>Deal will be created</Text>
+                  <Text style={[styles.infoText, { color: '#065F46' }]}>
+                    A deal card will be automatically created in "In Draft" status in the Opportunity stage of your pipeline.
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {/* Recurring Job Options */}
+            {proposalData.jobFrequency === 'recurring' && (
+              <>
+                <View style={styles.infoBox}>
+                  <Info size={20} color="#3B82F6" />
+                  <View style={styles.infoTextContainer}>
+                    <Text style={styles.infoTitle}>Recurring Job</Text>
+                    <Text style={styles.infoText}>
+                      This job will be set up with a recurring schedule. You can configure the frequency and billing cycle in the proposal builder.
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.selectionContainer}>
+                  <Text style={styles.sectionLabel}>Deal Creation</Text>
+                  <TouchableOpacity
+                    style={styles.checkboxContainer}
+                    onPress={() => setProposalData({...proposalData, createDealForRecurring: !proposalData.createDealForRecurring})}
+                  >
+                    <View style={[styles.checkbox, proposalData.createDealForRecurring && styles.checkboxChecked]}>
+                      {proposalData.createDealForRecurring && <Check size={16} color="#FFFFFF" />}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.checkboxLabel}>Create a deal for this recurring job</Text>
+                      <Text style={styles.checkboxDescription}>
+                        Optional: Track this as an opportunity in your pipeline
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
 
             {/* Ready to Create Info Box */}
-            <View style={[styles.infoBox, { backgroundColor: '#D1FAE5', borderColor: '#10B981' }]}>
+            <View style={[styles.infoBox, { backgroundColor: '#D1FAE5', borderColor: '#10B981', marginTop: 24 }]}>
               <Info size={20} color="#10B981" />
               <View style={styles.infoTextContainer}>
                 <Text style={[styles.infoTitle, { color: '#047857' }]}>Ready to create proposal!</Text>
                 <Text style={[styles.infoText, { color: '#065F46' }]}>
-                  We'll create a new proposal in draft status and take you to the editor to start building.
+                  Click "Create Proposal" to start building your proposal in the editor.
                 </Text>
               </View>
             </View>
@@ -760,7 +977,7 @@ export default function NewProposalModal({ visible, onClose }: NewProposalModalP
 
         {/* Progress Steps */}
         <View style={styles.progressContainer}>
-          {[1, 2, 3, 4].map((step) => (
+          {[1, 2, 3, 4, 5].map((step) => (
             <View key={step} style={styles.progressWrapper}>
               <View style={[
                 styles.progressStep,
@@ -774,7 +991,7 @@ export default function NewProposalModal({ visible, onClose }: NewProposalModalP
                   {step < proposalStep ? '✓' : step}
                 </Text>
               </View>
-              {step < 4 && (
+              {step < 5 && (
                 <View style={[
                   styles.progressLine,
                   step < proposalStep && styles.progressLineCompleted
@@ -811,7 +1028,7 @@ export default function NewProposalModal({ visible, onClose }: NewProposalModalP
               <Text style={[styles.footerButtonText, styles.cancelButtonText]}>Cancel</Text>
             </TouchableOpacity>
 
-            {proposalStep === 4 ? (
+            {proposalStep === 5 ? (
               <TouchableOpacity
                 onPress={handleCreateProposal}
                 disabled={!canProceedToNext()}
@@ -908,7 +1125,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   progressLine: {
-    width: 40,
+    width: 24,
     height: 2,
     backgroundColor: '#E5E7EB',
     marginHorizontal: 4,
@@ -932,6 +1149,9 @@ const styles = StyleSheet.create({
   stepContent: {
     flex: 1,
   },
+  section: {
+    marginBottom: 24,
+  },
   selectionContainer: {
     marginBottom: 24,
   },
@@ -939,6 +1159,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#374151',
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  subSectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+    marginTop: 16,
+    marginBottom: 4,
+  },
+  subSectionDescription: {
+    fontSize: 13,
+    color: '#6B7280',
     marginBottom: 12,
   },
   selectionRow: {
@@ -1022,23 +1260,6 @@ const styles = StyleSheet.create({
   inputHalf: {
     flex: 1,
   },
-  sectionDivider: {
-    marginVertical: 20,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  sectionDescription: {
-    fontSize: 13,
-    color: '#6B7280',
-    marginBottom: 16,
-  },
   searchContainer: {
     position: 'relative',
     marginBottom: 16,
@@ -1085,16 +1306,11 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   addressSection: {
-    marginBottom: 24,
     padding: 16,
     backgroundColor: '#F9FAFB',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
-  },
-  billingSection: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#BFDBFE',
   },
   existingAddresses: {
     marginBottom: 16,
@@ -1145,6 +1361,11 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#374151',
   },
+  checkboxDescription: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 2,
+  },
   listCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1183,6 +1404,39 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     color: '#1E40AF',
+  },
+  templateList: {
+    gap: 12,
+    marginTop: 8,
+  },
+  templateCard: {
+    padding: 16,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+  },
+  templateCardSelected: {
+    borderColor: '#6366F1',
+    backgroundColor: '#EEF2FF',
+  },
+  templateCardContent: {
+    gap: 6,
+  },
+  templateCardTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  templateCardDescription: {
+    fontSize: 13,
+    color: '#6B7280',
+    lineHeight: 18,
+  },
+  templateCardLastUsed: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 4,
   },
   footer: {
     flexDirection: 'row',
