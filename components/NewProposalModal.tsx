@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, Dimensions } from 'react-native';
-import { X, Check, User as UserIcon, Building, MapPin, Tag, Info, Search } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import { Building, Check, Info, Search, User as UserIcon, X } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { Dimensions, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const { width } = Dimensions.get('window');
 

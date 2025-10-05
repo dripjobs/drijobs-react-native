@@ -1,13 +1,14 @@
 import DrawerMenu from '@/components/DrawerMenu';
 import FloatingActionMenu from '@/components/FloatingActionMenu';
 import NewAppointmentModal from '@/components/NewAppointmentModal';
+import NewProposalModal from '@/components/NewProposalModal';
 import NotificationModal from '@/components/NotificationModal';
 import StatCard from '@/components/StatCard';
 import StatDetailModal from '@/components/StatDetailModal';
 import { useTabBar } from '@/contexts/TabBarContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { Bell, Calendar, CheckSquare, ChevronDown, ChevronRight, Clock, Copy, FileText, Handshake, Lightbulb, Mail, MapPin, MessageSquare, Navigation, Phone, Search, Target, TrendingUp, User, Users, X } from 'lucide-react-native';
+import { Bell, Building, Calendar, CheckSquare, ChevronDown, ChevronRight, Clock, Copy, DollarSign, Edit, Eye, FileText, Handshake, Lightbulb, Mail, MapPin, MessageSquare, MoreVertical, Navigation, Phone, Search, Target, TrendingUp, User, Users, X, Zap } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Alert, Animated, Dimensions, Linking, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
@@ -19,6 +20,7 @@ export default function Dashboard() {
   const { setIsTransparent } = useTabBar();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [showNewAppointment, setShowNewAppointment] = useState(false);
+  const [showNewProposal, setShowNewProposal] = useState(false);
   const [showMeetingDetails, setShowMeetingDetails] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState<any>(null);
   const [meetingDetailsTranslateY] = useState(new Animated.Value(screenHeight));
@@ -39,6 +41,7 @@ export default function Dashboard() {
   const [showJobDetails, setShowJobDetails] = useState(false);
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [jobDetailsTranslateY] = useState(new Animated.Value(screenHeight));
+  const [expandedActionItem, setExpandedActionItem] = useState<string | null>(null);
   const [appointments, setAppointments] = useState([
     { 
       id: 1, 
@@ -158,7 +161,13 @@ export default function Dashboard() {
   const [jobs] = useState([
     {
       id: 1,
-      customer: 'Anderson Residence',
+      customer: {
+        name: 'Sherry Williams',
+        email: 'sherry.williams@email.com',
+        phone: '(407) 555-0123',
+        company: 'Williams Properties LLC',
+        address: '1234 Oak Street, Orlando FL 32801',
+      },
       projectType: 'Kitchen Renovation',
       startDate: new Date(), // Today
       endDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days from now
@@ -169,7 +178,31 @@ export default function Dashboard() {
       value: '$45,000',
       progress: 0,
       status: 'starting',
+      color: '#10B981',
+      jobAddress: '1234 Oak Street, Orlando FL 32801',
       notes: 'Initial demo and prep work. Customer will be out of town.',
+      jobInfo: {
+        startDate: 'Oct 6, 2024',
+        endDate: 'Oct 20, 2024',
+        salesperson: 'Tom Henderson',
+        projectManager: 'Chris Palmer',
+        crewLeader: 'Dan Mitchell',
+      },
+      dealInfo: {
+        pipeline: 'Jobs',
+        stage: 'Scheduled',
+        inStage: '1 day',
+        source: 'Website Inquiry',
+      },
+      dripCampaign: {
+        remaining: 3,
+      },
+      financial: {
+        contractValue: 45000,
+        paidToDate: 15000,
+        balanceDue: 30000,
+        changeOrderValue: 0,
+      },
     },
     {
       id: 2,
@@ -384,6 +417,14 @@ export default function Dashboard() {
     setShowNewAppointment(false);
   };
 
+  const handleNewProposal = () => {
+    setShowNewProposal(true);
+  };
+
+  const handleProposalClose = () => {
+    setShowNewProposal(false);
+  };
+
   // Today's appointments data
   const todaysAppointments = appointments;
   const todaysTasks = tasks;
@@ -490,10 +531,6 @@ export default function Dashboard() {
     console.log('Navigate to address:', selectedMeeting?.address);
   };
 
-  const handleCopyAddress = () => {
-    console.log('Copy address:', selectedMeeting?.address);
-  };
-
   const handleCall = () => {
     console.log('Call:', selectedMeeting?.phone);
   };
@@ -548,7 +585,16 @@ export default function Dashboard() {
     }).start(() => {
       setShowJobDetails(false);
       setSelectedJob(null);
+      setExpandedActionItem(null);
     });
+  };
+
+  const handleToggleActionMenu = (item: string) => {
+    setExpandedActionItem(expandedActionItem === item ? null : item);
+  };
+
+  const handleCopyAddress = (address: string) => {
+    Alert.alert('Success', 'Address copied to clipboard');
   };
 
   // Status change functionality
@@ -1033,7 +1079,7 @@ export default function Dashboard() {
                         <View style={styles.jobCardHeaderLeft}>
                           <View style={[styles.jobStatusIndicator, { backgroundColor: '#10B981' }]} />
                           <View>
-                            <Text style={styles.jobCustomerName}>{job.customer}</Text>
+                            <Text style={styles.jobCustomerName}>{typeof job.customer === 'object' ? job.customer.name : job.customer}</Text>
                             <Text style={styles.jobProjectType}>{job.projectType}</Text>
                           </View>
                         </View>
@@ -1043,11 +1089,11 @@ export default function Dashboard() {
                       </View>
 
                       <View style={styles.jobDetails}>
-                        <View style={styles.jobDetailRow}>
+                        <View style={styles.jobCardDetailRow}>
                           <User size={14} color="#6B7280" />
                           <Text style={styles.jobDetailText}>{job.projectManager}</Text>
                         </View>
-                        <View style={styles.jobDetailRow}>
+                        <View style={styles.jobCardDetailRow}>
                           <Users size={14} color="#6B7280" />
                           <Text style={styles.jobDetailText}>{job.crew}</Text>
                         </View>
@@ -1107,7 +1153,7 @@ export default function Dashboard() {
                         <View style={styles.jobCardHeaderLeft}>
                           <View style={[styles.jobStatusIndicator, { backgroundColor: '#F59E0B' }]} />
                           <View>
-                            <Text style={styles.jobCustomerName}>{job.customer}</Text>
+                            <Text style={styles.jobCustomerName}>{typeof job.customer === 'object' ? job.customer.name : job.customer}</Text>
                             <Text style={styles.jobProjectType}>{job.projectType}</Text>
                           </View>
                         </View>
@@ -1127,11 +1173,11 @@ export default function Dashboard() {
                       </View>
 
                       <View style={styles.jobDetails}>
-                        <View style={styles.jobDetailRow}>
+                        <View style={styles.jobCardDetailRow}>
                           <User size={14} color="#6B7280" />
                           <Text style={styles.jobDetailText}>{job.projectManager}</Text>
                         </View>
-                        <View style={styles.jobDetailRow}>
+                        <View style={styles.jobCardDetailRow}>
                           <Users size={14} color="#6B7280" />
                           <Text style={styles.jobDetailText}>{job.crew}</Text>
                         </View>
@@ -1188,7 +1234,7 @@ export default function Dashboard() {
                         <View style={styles.jobCardHeaderLeft}>
                           <View style={[styles.jobStatusIndicator, { backgroundColor: '#3B82F6' }]} />
                           <View>
-                            <Text style={styles.jobCustomerName}>{job.customer}</Text>
+                            <Text style={styles.jobCustomerName}>{typeof job.customer === 'object' ? job.customer.name : job.customer}</Text>
                             <Text style={styles.jobProjectType}>{job.projectType}</Text>
                           </View>
                         </View>
@@ -1375,12 +1421,22 @@ export default function Dashboard() {
         </View>
       </ScrollView>
 
-      <FloatingActionMenu onNewAppointment={handleNewAppointment} isVisible={showFAB} />
+      <FloatingActionMenu 
+        onNewAppointment={handleNewAppointment} 
+        onNewProposal={handleNewProposal}
+        isVisible={showFAB} 
+      />
       
       {/* New Appointment Modal */}
       <NewAppointmentModal 
         visible={showNewAppointment}
         onClose={handleAppointmentClose}
+      />
+
+      {/* New Proposal Modal */}
+      <NewProposalModal 
+        visible={showNewProposal}
+        onClose={handleProposalClose}
       />
 
       <StatDetailModal
@@ -1425,70 +1481,322 @@ export default function Dashboard() {
                     style={styles.jobDetailsScrollView}
                     showsVerticalScrollIndicator={false}
                   >
-                    {/* Customer Name */}
-                    <View style={styles.jobDetailsSection}>
-                      <Text style={styles.jobDetailsSectionTitle}>{selectedJob.customer}</Text>
-                      <Text style={styles.jobDetailsSectionSubtitle}>{selectedJob.projectType}</Text>
+                    {/* Status Section */}
+                    <View style={styles.statusSectionTop}>
+                      <Text style={styles.statusLabel}>Status</Text>
+                      <TouchableOpacity style={[styles.statusDropdown, { backgroundColor: selectedJob.color }]}>
+                        <Text style={styles.statusDropdownText}>{selectedJob.dealInfo?.stage || 'Scheduled'}</Text>
+                        <ChevronDown size={16} color="#FFFFFF" />
+                      </TouchableOpacity>
                     </View>
 
-                    {/* Job Info */}
-                    <View style={styles.jobDetailsSection}>
-                      <Text style={styles.jobDetailsLabel}>Project Manager</Text>
-                      <Text style={styles.jobDetailsValue}>{selectedJob.projectManager}</Text>
-                    </View>
-
-                    <View style={styles.jobDetailsSection}>
-                      <Text style={styles.jobDetailsLabel}>Crew</Text>
-                      <Text style={styles.jobDetailsValue}>{selectedJob.crew}</Text>
-                    </View>
-
-                    <View style={styles.jobDetailsSection}>
-                      <Text style={styles.jobDetailsLabel}>Project Value</Text>
-                      <Text style={[styles.jobDetailsValue, { fontSize: 18, fontWeight: '700', color: '#059669' }]}>
-                        {selectedJob.value}
-                      </Text>
-                    </View>
-
-                    {/* Address with Actions */}
-                    <View style={styles.jobDetailsSection}>
-                      <Text style={styles.jobDetailsLabel}>Job Site Address</Text>
-                      <Text style={styles.jobDetailsValue}>{selectedJob.address}</Text>
-                      <View style={styles.jobDetailsActions}>
+                    {/* Job Site Address with Actions */}
+                    <View style={styles.addressSection}>
+                      <View style={styles.addressHeaderRow}>
+                        <MapPin size={20} color="#EF4444" />
+                        <Text style={styles.addressLabelText}>Job Site</Text>
+                      </View>
+                      <Text style={styles.addressText}>{selectedJob.jobAddress}</Text>
+                      <View style={styles.addressButtonsRow}>
                         <TouchableOpacity 
-                          style={styles.jobDetailsActionButton}
-                          onPress={() => handleGPSNavigation(selectedJob.address)}
+                          style={styles.navigateButton}
+                          onPress={() => handleGPSNavigation(selectedJob.jobAddress)}
                         >
                           <Navigation size={16} color="#FFFFFF" />
-                          <Text style={styles.jobDetailsActionButtonText}>Navigate</Text>
+                          <Text style={styles.navigateButtonText}>Navigate</Text>
                         </TouchableOpacity>
                         <TouchableOpacity 
-                          style={styles.jobDetailsActionButtonSecondary}
-                          onPress={() => handlePhoneCall(selectedJob.phone)}
+                          style={styles.copyAddressButton}
+                          onPress={() => handleCopyAddress(selectedJob.jobAddress)}
                         >
-                          <Phone size={16} color="#6366F1" />
-                          <Text style={styles.jobDetailsActionButtonSecondaryText}>Call</Text>
+                          <Copy size={16} color="#6B7280" />
+                          <Text style={styles.copyAddressButtonText}>Copy</Text>
                         </TouchableOpacity>
                       </View>
                     </View>
 
-                    {/* Progress */}
-                    {selectedJob.progress !== undefined && (
-                      <View style={styles.jobDetailsSection}>
-                        <View style={styles.jobDetailsProgressHeader}>
-                          <Text style={styles.jobDetailsLabel}>Progress</Text>
-                          <Text style={styles.jobDetailsProgressPercent}>{selectedJob.progress}%</Text>
+                    {/* Edit Event Button */}
+                    <View style={styles.editEventSection}>
+                      <TouchableOpacity 
+                        style={styles.editEventButton}
+                      >
+                        <Edit size={20} color="#FFFFFF" />
+                        <Text style={styles.editEventButtonText}>Edit Event</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Customer Information */}
+                    {selectedJob.customer && (
+                      <View style={styles.modalSection}>
+                        <Text style={styles.modalSectionTitle}>Customer Information</Text>
+                        
+                        {/* Email */}
+                        <View style={styles.contactItem}>
+                          <Mail size={16} color="#6B7280" />
+                          <Text style={styles.contactItemText}>{selectedJob.customer.email}</Text>
+                          <TouchableOpacity 
+                            style={styles.contactMenuButton}
+                            onPress={() => handleToggleActionMenu('email')}
+                          >
+                            <MoreVertical size={16} color="#6B7280" />
+                          </TouchableOpacity>
                         </View>
-                        <View style={styles.jobDetailsProgressBar}>
-                          <View style={[styles.jobDetailsProgressFill, { width: `${selectedJob.progress}%` }]} />
+                        {expandedActionItem === 'email' && (
+                          <View style={styles.inlineActionMenu}>
+                            <Text style={styles.quickActionsTitle}>Quick Actions</Text>
+                            <TouchableOpacity style={styles.inlineActionItem}>
+                              <Mail size={16} color="#6366F1" />
+                              <Text style={styles.inlineActionText}>Send Email</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.inlineActionItem}>
+                              <FileText size={16} color="#6B7280" />
+                              <Text style={styles.inlineActionText}>Copy Email</Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+
+                        {/* Phone */}
+                        <View style={styles.contactItem}>
+                          <Phone size={16} color="#6B7280" />
+                          <Text style={styles.contactItemText}>{selectedJob.customer.phone}</Text>
+                          <TouchableOpacity 
+                            style={styles.contactMenuButton}
+                            onPress={() => handleToggleActionMenu('phone')}
+                          >
+                            <MoreVertical size={16} color="#6B7280" />
+                          </TouchableOpacity>
+                        </View>
+                        {expandedActionItem === 'phone' && (
+                          <View style={styles.inlineActionMenu}>
+                            <Text style={styles.quickActionsTitle}>Quick Actions</Text>
+                            <TouchableOpacity style={styles.inlineActionItem}>
+                              <Phone size={16} color="#10B981" />
+                              <Text style={styles.inlineActionText}>Call</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.inlineActionItem}>
+                              <MessageSquare size={16} color="#3B82F6" />
+                              <Text style={styles.inlineActionText}>Send Text</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.inlineActionItem}>
+                              <FileText size={16} color="#6B7280" />
+                              <Text style={styles.inlineActionText}>Copy Number</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.inlineActionItem}>
+                              <Edit size={16} color="#6B7280" />
+                              <Text style={styles.inlineActionText}>Edit Number</Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+
+                        {/* Company */}
+                        {selectedJob.customer.company && (
+                          <>
+                            <View style={styles.contactItem}>
+                              <Building size={16} color="#6B7280" />
+                              <Text style={styles.contactItemText}>{selectedJob.customer.company}</Text>
+                              <TouchableOpacity 
+                                style={styles.contactMenuButton}
+                                onPress={() => handleToggleActionMenu('business')}
+                              >
+                                <MoreVertical size={16} color="#6B7280" />
+                              </TouchableOpacity>
+                            </View>
+                            {expandedActionItem === 'business' && (
+                              <View style={styles.inlineActionMenu}>
+                                <Text style={styles.quickActionsTitle}>Quick Actions</Text>
+                                <TouchableOpacity style={styles.inlineActionItem}>
+                                  <Edit size={16} color="#6B7280" />
+                                  <Text style={styles.inlineActionText}>Edit Business</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity style={styles.inlineActionItem}>
+                                  <Eye size={16} color="#6B7280" />
+                                  <Text style={styles.inlineActionText}>View Details</Text>
+                                </TouchableOpacity>
+                              </View>
+                            )}
+                          </>
+                        )}
+
+                        {/* Address */}
+                        <View style={styles.contactItem}>
+                          <MapPin size={16} color="#6B7280" />
+                          <Text style={styles.contactItemText}>{selectedJob.customer.address}</Text>
+                          <TouchableOpacity 
+                            style={styles.contactMenuButton}
+                            onPress={() => handleToggleActionMenu('address')}
+                          >
+                            <MoreVertical size={16} color="#6B7280" />
+                          </TouchableOpacity>
+                        </View>
+                        {expandedActionItem === 'address' && (
+                          <View style={styles.inlineActionMenu}>
+                            <Text style={styles.quickActionsTitle}>Quick Actions</Text>
+                            <TouchableOpacity style={styles.inlineActionItem}>
+                              <FileText size={16} color="#6B7280" />
+                              <Text style={styles.inlineActionText}>Copy Address</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.inlineActionItem}>
+                              <MapPin size={16} color="#10B981" />
+                              <Text style={styles.inlineActionText}>Navigate</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.inlineActionItem}>
+                              <Edit size={16} color="#6B7280" />
+                              <Text style={styles.inlineActionText}>Edit Address</Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+
+                        {/* Contact Name */}
+                        <View style={styles.contactItem}>
+                          <User size={16} color="#6B7280" />
+                          <Text style={styles.contactItemText}>{selectedJob.customer.name}</Text>
+                          <TouchableOpacity 
+                            style={styles.contactMenuButton}
+                            onPress={() => handleToggleActionMenu('contact')}
+                          >
+                            <MoreVertical size={16} color="#6B7280" />
+                          </TouchableOpacity>
+                        </View>
+                        {expandedActionItem === 'contact' && (
+                          <View style={styles.inlineActionMenu}>
+                            <Text style={styles.quickActionsTitle}>Quick Actions</Text>
+                            <TouchableOpacity style={styles.inlineActionItem}>
+                              <Eye size={16} color="#6B7280" />
+                              <Text style={styles.inlineActionText}>View Contact</Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                      </View>
+                    )}
+
+                    {/* Quick Actions - Contact Customer */}
+                    {selectedJob.customer && (
+                      <View style={styles.quickActionsRow}>
+                        <TouchableOpacity style={styles.quickActionCall}>
+                          <Phone size={20} color="#FFFFFF" />
+                          <Text style={styles.quickActionText}>Call</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.quickActionText2}>
+                          <MessageSquare size={20} color="#FFFFFF" />
+                          <Text style={styles.quickActionText}>Text</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.quickActionEmail}>
+                          <Mail size={20} color="#FFFFFF" />
+                          <Text style={styles.quickActionText}>Email</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+
+                    {/* Job Information */}
+                    {selectedJob.jobInfo && (
+                      <View style={styles.modalSection}>
+                        <Text style={styles.modalSectionTitle}>Job Information</Text>
+                        
+                        <TouchableOpacity style={styles.viewWorkOrderButton}>
+                          <FileText size={20} color="#6366F1" />
+                          <Text style={styles.viewWorkOrderText}>View Work Order</Text>
+                        </TouchableOpacity>
+
+                        <View style={styles.jobDetailRow}>
+                          <Text style={styles.jobDetailLabel}>Job Start Date</Text>
+                          <Text style={styles.jobDetailValue}>{selectedJob.jobInfo.startDate}</Text>
+                        </View>
+                        <View style={styles.jobDetailRow}>
+                          <Text style={styles.jobDetailLabel}>Job End Date</Text>
+                          <Text style={styles.jobDetailValue}>{selectedJob.jobInfo.endDate}</Text>
+                        </View>
+                        <View style={styles.jobDetailRow}>
+                          <Text style={styles.jobDetailLabel}>Salesperson</Text>
+                          <Text style={styles.jobDetailValue}>{selectedJob.jobInfo.salesperson}</Text>
+                        </View>
+                        <View style={styles.jobDetailRow}>
+                          <Text style={styles.jobDetailLabel}>Project Manager</Text>
+                          <Text style={styles.jobDetailValue}>{selectedJob.jobInfo.projectManager}</Text>
+                        </View>
+                        <View style={styles.jobDetailRow}>
+                          <Text style={styles.jobDetailLabel}>Crew Leader</Text>
+                          <Text style={styles.jobDetailValue}>{selectedJob.jobInfo.crewLeader}</Text>
                         </View>
                       </View>
                     )}
 
-                    {/* Notes */}
-                    {selectedJob.notes && (
-                      <View style={styles.jobDetailsSection}>
-                        <Text style={styles.jobDetailsLabel}>Notes</Text>
-                        <Text style={styles.jobDetailsValue}>{selectedJob.notes}</Text>
+                    {/* Deal Information */}
+                    {selectedJob.dealInfo && (
+                      <View style={styles.modalSection}>
+                        <Text style={styles.modalSectionTitle}>Deal Information</Text>
+                        <View style={styles.jobDetailRow}>
+                          <Text style={styles.jobDetailLabel}>Pipeline</Text>
+                          <Text style={styles.jobDetailValue}>{selectedJob.dealInfo.pipeline}</Text>
+                        </View>
+                        <View style={styles.jobDetailRow}>
+                          <Text style={styles.jobDetailLabel}>Stage</Text>
+                          <Text style={styles.jobDetailValue}>{selectedJob.dealInfo.stage}</Text>
+                        </View>
+                        <View style={styles.jobDetailRow}>
+                          <Text style={styles.jobDetailLabel}>In Stage</Text>
+                          <Text style={styles.jobDetailValue}>{selectedJob.dealInfo.inStage}</Text>
+                        </View>
+                        <View style={styles.jobDetailRow}>
+                          <Text style={styles.jobDetailLabel}>Job Source</Text>
+                          <Text style={styles.jobDetailValue}>{selectedJob.dealInfo.source}</Text>
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Drip Campaign */}
+                    {selectedJob.dripCampaign && (
+                      <View style={styles.modalSection}>
+                        <View style={styles.dripCampaignHeader}>
+                          <Text style={styles.dripCampaignLabel}>Drip Campaign</Text>
+                          <View style={styles.dripRemainingBadge}>
+                            <Zap size={16} color="#10B981" />
+                            <Text style={styles.dripRemainingText}>{selectedJob.dripCampaign.remaining} remaining</Text>
+                          </View>
+                        </View>
+                      </View>
+                    )}
+
+                    {/* View Deal Command Center Button */}
+                    <View style={styles.commandCenterSection}>
+                      <TouchableOpacity style={styles.commandCenterButton}>
+                        <Zap size={20} color="#FFFFFF" />
+                        <Text style={styles.commandCenterText}>View Deal Command Center</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Financial Details */}
+                    {selectedJob.financial && (
+                      <View style={styles.modalSection}>
+                        <Text style={styles.modalSectionTitle}>Financial Details</Text>
+                        <View style={styles.financialRow}>
+                          <Text style={styles.financialLabel}>Contract Value</Text>
+                          <Text style={styles.financialValueLarge}>${selectedJob.financial.contractValue.toLocaleString()}</Text>
+                        </View>
+                        <View style={styles.financialRow}>
+                          <Text style={styles.financialLabel}>Paid to Date</Text>
+                          <Text style={styles.financialValue}>${selectedJob.financial.paidToDate.toLocaleString()}</Text>
+                        </View>
+                        <View style={styles.financialRow}>
+                          <Text style={styles.financialLabel}>Balance Due</Text>
+                          <Text style={styles.financialValue}>${selectedJob.financial.balanceDue.toLocaleString()}</Text>
+                        </View>
+                        {selectedJob.financial.changeOrderValue > 0 && (
+                          <View style={styles.financialRow}>
+                            <Text style={styles.financialLabel}>Change Order Value</Text>
+                            <Text style={styles.financialValue}>+${selectedJob.financial.changeOrderValue.toLocaleString()}</Text>
+                          </View>
+                        )}
+                        
+                        <View style={styles.financialButtonsRow}>
+                          <TouchableOpacity style={styles.financialButton}>
+                            <DollarSign size={18} color="#6366F1" />
+                            <Text style={styles.financialButtonText}>View Invoice</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity style={styles.financialButton}>
+                            <FileText size={18} color="#6366F1" />
+                            <Text style={styles.financialButtonText}>View Proposal</Text>
+                          </TouchableOpacity>
+                        </View>
                       </View>
                     )}
 
@@ -1583,11 +1891,11 @@ export default function Dashboard() {
                         </TouchableOpacity>
                         <TouchableOpacity 
                           style={styles.copyButton}
-                          onPress={handleCopyAddress}
+                          onPress={() => handleCopyAddress(selectedMeeting?.address || '')}
                         >
                           <Copy size={16} color="#6B7280" />
                           <Text style={styles.copyButtonText}>Copy</Text>
-            </TouchableOpacity>
+                        </TouchableOpacity>
           </View>
         </View>
 
@@ -2133,7 +2441,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   // Status Dropdown Styles
-  statusDropdown: {
+  appointmentStatusDropdown: {
     position: 'absolute',
     top: 35,
     right: 0,
@@ -3371,7 +3679,7 @@ const styles = StyleSheet.create({
     gap: 16,
     marginBottom: 12,
   },
-  jobDetailRow: {
+  jobCardDetailRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -3471,91 +3779,352 @@ const styles = StyleSheet.create({
   jobDetailsScrollView: {
     flex: 1,
   },
-  jobDetailsSection: {
+  // Status Section at Top
+  statusSectionTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: '#E5E7EB',
   },
-  jobDetailsSectionTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  jobDetailsSectionSubtitle: {
+  statusLabel: {
     fontSize: 16,
-    color: '#6B7280',
-  },
-  jobDetailsLabel: {
-    fontSize: 14,
     fontWeight: '600',
     color: '#6B7280',
-    marginBottom: 6,
   },
-  jobDetailsValue: {
-    fontSize: 16,
+  statusDropdown: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+  },
+  statusDropdownText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  // Address Section with Navigate/Copy
+  addressSection: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 20,
+    marginHorizontal: 20,
+    marginTop: 16,
+    marginBottom: 16,
+  },
+  addressHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  addressLabelText: {
+    fontSize: 15,
+    fontWeight: '700',
     color: '#111827',
   },
-  jobDetailsActions: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 12,
+  addressText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 12,
+    lineHeight: 22,
   },
-  jobDetailsActionButton: {
+  addressButtonsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  navigateButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#6366F1',
+    backgroundColor: '#EF4444',
     paddingVertical: 12,
-    paddingHorizontal: 16,
     borderRadius: 10,
-    gap: 6,
+    gap: 8,
   },
-  jobDetailsActionButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
+  navigateButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
     color: '#FFFFFF',
   },
-  jobDetailsActionButtonSecondary: {
+  copyAddressButton: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E5E7EB',
+    paddingVertical: 12,
+    borderRadius: 10,
+    gap: 8,
+  },
+  copyAddressButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#374151',
+  },
+  // Edit Event Button Section
+  editEventSection: {
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  editEventButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#10B981',
+    paddingVertical: 16,
+    borderRadius: 12,
+    gap: 10,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  editEventButtonText: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  // Modal Section Styles
+  modalSection: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 20,
+    marginHorizontal: 20,
+    marginBottom: 16,
+  },
+  modalSectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 16,
+  },
+  // Customer Information Styles (Command Center Style)
+  contactItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 12,
+  },
+  contactItemText: {
+    fontSize: 14,
+    color: '#374151',
+    flex: 1,
+  },
+  contactMenuButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  inlineActionMenu: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    marginTop: 8,
+    marginBottom: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  quickActionsTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  inlineActionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    gap: 12,
+  },
+  inlineActionText: {
+    fontSize: 14,
+    color: '#374151',
+    fontWeight: '500',
+  },
+  // Quick Actions Row
+  quickActionsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  quickActionCall: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#10B981',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    gap: 8,
+  },
+  quickActionText2: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#3B82F6',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    gap: 8,
+  },
+  quickActionEmail: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#8B5CF6',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    gap: 8,
+  },
+  quickActionText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  // Job Information Styles
+  viewWorkOrderButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#EEF2FF',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 10,
-    gap: 6,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    gap: 8,
+    marginBottom: 16,
   },
-  jobDetailsActionButtonSecondaryText: {
-    fontSize: 14,
-    fontWeight: '600',
+  viewWorkOrderText: {
+    fontSize: 15,
+    fontWeight: '700',
     color: '#6366F1',
   },
-  jobDetailsProgressHeader: {
+  jobDetailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    paddingVertical: 10,
   },
-  jobDetailsProgressPercent: {
+  jobDetailLabel: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  jobDetailValue: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  // Drip Campaign Styles
+  dripCampaignHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  dripCampaignLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  dripRemainingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
+  },
+  dripRemainingText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#10B981',
+  },
+  // Command Center Button
+  commandCenterSection: {
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  commandCenterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#6366F1',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    gap: 10,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  commandCenterText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  // Financial Details Styles
+  financialRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  financialLabel: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  financialValue: {
     fontSize: 16,
     fontWeight: '700',
     color: '#111827',
   },
-  jobDetailsProgressBar: {
-    height: 8,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 4,
-    overflow: 'hidden',
+  financialValueLarge: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#6366F1',
   },
-  jobDetailsProgressFill: {
-    height: '100%',
-    backgroundColor: '#F59E0B',
-    borderRadius: 4,
+  financialButtonsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+  },
+  financialButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EEF2FF',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    gap: 8,
+  },
+  financialButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#6366F1',
   },
 });
