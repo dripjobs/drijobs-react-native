@@ -1339,7 +1339,7 @@ const styles = StyleSheet.create({
   },
   checkboxContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 16,
   },
   checkbox: {
@@ -1348,7 +1348,8 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#D1D5DB',
     borderRadius: 4,
-    marginRight: 10,
+    marginRight: 12,
+    marginTop: 2,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1357,14 +1358,15 @@ const styles = StyleSheet.create({
     borderColor: '#6366F1',
   },
   checkboxLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
   },
   checkboxDescription: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#6B7280',
-    marginTop: 2,
+    lineHeight: 18,
   },
   listCard: {
     flexDirection: 'row',
