@@ -118,9 +118,24 @@ export default function FloatingActionMenu({ onNewAppointment, isVisible = true 
     ],
   };
 
+  const overlayOpacity = animation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+  });
+
   return (
-    <Animated.View style={[styles.container, containerStyle]}>
-      {menuItems.map((item, index) => (
+    <>
+      {isOpen && (
+        <Animated.View 
+          style={[
+            styles.overlay, 
+            { opacity: overlayOpacity }
+          ]} 
+          pointerEvents="none"
+        />
+      )}
+      <Animated.View style={[styles.container, containerStyle]}>
+        {menuItems.map((item, index) => (
         <Animated.View key={index} style={[styles.menuItem, getButtonStyle(index)]}>
           <View style={styles.labelContainer} pointerEvents="none">
             <Text style={styles.labelText}>{item.label}</Text>
@@ -157,10 +172,21 @@ export default function FloatingActionMenu({ onNewAppointment, isVisible = true 
         </LinearGradient>
       </TouchableOpacity>
     </Animated.View>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    zIndex: 998,
+    elevation: 998,
+  },
   container: {
     position: 'absolute',
     bottom: 100,
