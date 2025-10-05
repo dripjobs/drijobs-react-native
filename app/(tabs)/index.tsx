@@ -36,6 +36,9 @@ export default function Dashboard() {
   const [lastScrollY, setLastScrollY] = useState(0);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [unreadNotifications] = useState(6); // This would come from your notification service
+  const [showJobDetails, setShowJobDetails] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<any>(null);
+  const [jobDetailsTranslateY] = useState(new Animated.Value(screenHeight));
   const [appointments, setAppointments] = useState([
     { 
       id: 1, 
@@ -522,6 +525,29 @@ export default function Dashboard() {
     const mapsUrl = `https://maps.google.com/maps?q=${encodedAddress}`;
     Linking.openURL(mapsUrl).catch(err => {
       Alert.alert('Error', 'Unable to open maps');
+    });
+  };
+
+  // Job details modal handlers
+  const handleJobPress = (job: any) => {
+    setSelectedJob(job);
+    setShowJobDetails(true);
+    
+    Animated.timing(jobDetailsTranslateY, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handleCloseJobDetails = () => {
+    Animated.timing(jobDetailsTranslateY, {
+      toValue: screenHeight,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowJobDetails(false);
+      setSelectedJob(null);
     });
   };
 
@@ -1037,10 +1063,10 @@ export default function Dashboard() {
                         </TouchableOpacity>
                         <TouchableOpacity 
                           style={styles.jobActionButton}
-                          onPress={() => handleGPSNavigation(job.address)}
+                          onPress={() => handleJobPress(job)}
                         >
-                          <Navigation size={16} color="#6366F1" />
-                          <Text style={styles.jobActionSecondaryText}>Navigate</Text>
+                          <FileText size={16} color="#6366F1" />
+                          <Text style={styles.jobActionSecondaryText}>View Details</Text>
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -1364,6 +1390,116 @@ export default function Dashboard() {
         type={selectedStatType}
         data={getStatData()}
       />
+
+      {/* Job Details Modal */}
+      <Modal
+        visible={showJobDetails}
+        transparent
+        animationType="none"
+        onRequestClose={handleCloseJobDetails}
+      >
+        <View style={styles.jobDetailsOverlay}>
+          <PanGestureHandler>
+            <Animated.View
+              style={[
+                styles.jobDetailsContainer,
+                {
+                  transform: [{ translateY: jobDetailsTranslateY }],
+                },
+              ]}
+            >
+              {selectedJob && (
+                <View style={styles.jobDetailsContent}>
+                  <View style={styles.jobDetailsHeader}>
+                    <TouchableOpacity 
+                      style={styles.jobDetailsCloseButton}
+                      onPress={handleCloseJobDetails}
+                    >
+                      <X size={24} color="#6B7280" />
+                    </TouchableOpacity>
+                    <Text style={styles.jobDetailsTitle}>Job Details</Text>
+                    <View style={styles.jobDetailsHeaderSpacer} />
+                  </View>
+
+                  <ScrollView
+                    style={styles.jobDetailsScrollView}
+                    showsVerticalScrollIndicator={false}
+                  >
+                    {/* Customer Name */}
+                    <View style={styles.jobDetailsSection}>
+                      <Text style={styles.jobDetailsSectionTitle}>{selectedJob.customer}</Text>
+                      <Text style={styles.jobDetailsSectionSubtitle}>{selectedJob.projectType}</Text>
+                    </View>
+
+                    {/* Job Info */}
+                    <View style={styles.jobDetailsSection}>
+                      <Text style={styles.jobDetailsLabel}>Project Manager</Text>
+                      <Text style={styles.jobDetailsValue}>{selectedJob.projectManager}</Text>
+                    </View>
+
+                    <View style={styles.jobDetailsSection}>
+                      <Text style={styles.jobDetailsLabel}>Crew</Text>
+                      <Text style={styles.jobDetailsValue}>{selectedJob.crew}</Text>
+                    </View>
+
+                    <View style={styles.jobDetailsSection}>
+                      <Text style={styles.jobDetailsLabel}>Project Value</Text>
+                      <Text style={[styles.jobDetailsValue, { fontSize: 18, fontWeight: '700', color: '#059669' }]}>
+                        {selectedJob.value}
+                      </Text>
+                    </View>
+
+                    {/* Address with Actions */}
+                    <View style={styles.jobDetailsSection}>
+                      <Text style={styles.jobDetailsLabel}>Job Site Address</Text>
+                      <Text style={styles.jobDetailsValue}>{selectedJob.address}</Text>
+                      <View style={styles.jobDetailsActions}>
+                        <TouchableOpacity 
+                          style={styles.jobDetailsActionButton}
+                          onPress={() => handleGPSNavigation(selectedJob.address)}
+                        >
+                          <Navigation size={16} color="#FFFFFF" />
+                          <Text style={styles.jobDetailsActionButtonText}>Navigate</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                          style={styles.jobDetailsActionButtonSecondary}
+                          onPress={() => handlePhoneCall(selectedJob.phone)}
+                        >
+                          <Phone size={16} color="#6366F1" />
+                          <Text style={styles.jobDetailsActionButtonSecondaryText}>Call</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+
+                    {/* Progress */}
+                    {selectedJob.progress !== undefined && (
+                      <View style={styles.jobDetailsSection}>
+                        <View style={styles.jobDetailsProgressHeader}>
+                          <Text style={styles.jobDetailsLabel}>Progress</Text>
+                          <Text style={styles.jobDetailsProgressPercent}>{selectedJob.progress}%</Text>
+                        </View>
+                        <View style={styles.jobDetailsProgressBar}>
+                          <View style={[styles.jobDetailsProgressFill, { width: `${selectedJob.progress}%` }]} />
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Notes */}
+                    {selectedJob.notes && (
+                      <View style={styles.jobDetailsSection}>
+                        <Text style={styles.jobDetailsLabel}>Notes</Text>
+                        <Text style={styles.jobDetailsValue}>{selectedJob.notes}</Text>
+                      </View>
+                    )}
+
+                    <View style={styles.bottomSpacing} />
+                  </ScrollView>
+                </View>
+              )}
+            </Animated.View>
+          </PanGestureHandler>
+        </View>
+      </Modal>
 
       {/* Meeting Details Modal */}
       <Modal
@@ -3295,5 +3431,131 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     textAlign: 'center',
     lineHeight: 20,
+  },
+  // Job Details Modal Styles
+  jobDetailsOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  jobDetailsContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    marginTop: 50,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  jobDetailsContent: {
+    flex: 1,
+  },
+  jobDetailsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+  },
+  jobDetailsCloseButton: {
+    padding: 8,
+  },
+  jobDetailsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  jobDetailsHeaderSpacer: {
+    width: 40,
+  },
+  jobDetailsScrollView: {
+    flex: 1,
+  },
+  jobDetailsSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  jobDetailsSectionTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  jobDetailsSectionSubtitle: {
+    fontSize: 16,
+    color: '#6B7280',
+  },
+  jobDetailsLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 6,
+  },
+  jobDetailsValue: {
+    fontSize: 16,
+    color: '#111827',
+  },
+  jobDetailsActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  jobDetailsActionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#6366F1',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    gap: 6,
+  },
+  jobDetailsActionButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  jobDetailsActionButtonSecondary: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EEF2FF',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  jobDetailsActionButtonSecondaryText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  jobDetailsProgressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  jobDetailsProgressPercent: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  jobDetailsProgressBar: {
+    height: 8,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  jobDetailsProgressFill: {
+    height: '100%',
+    backgroundColor: '#F59E0B',
+    borderRadius: 4,
   },
 });

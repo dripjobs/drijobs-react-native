@@ -250,6 +250,8 @@ const RecurringJobsScreen: React.FC = () => {
   const [showCalendarModal, setShowCalendarModal] = useState(false);
   const [showInvoicesModal, setShowInvoicesModal] = useState(false);
   const [showInvoiceDetail, setShowInvoiceDetail] = useState(false);
+  const [showEditServiceType, setShowEditServiceType] = useState(false);
+  const [showCrewAssignment, setShowCrewAssignment] = useState(false);
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
@@ -281,6 +283,39 @@ const RecurringJobsScreen: React.FC = () => {
     autoCharge: false,
     autoChargeDays: 0,
   });
+
+  // Invoice Settings
+  const [invoiceSettings, setInvoiceSettings] = useState({
+    autoGenerate: true,
+    generateTiming: 'completion', // 'completion', 'scheduled', 'days_after'
+    generateDaysAfter: 0,
+    autoSend: true,
+    sendTiming: 'immediate', // 'immediate', 'delayed'
+    sendDelayDays: 0,
+    includeProjectSummary: true,
+    autoChargeEnabled: false,
+    chargeTiming: 'invoice_sent', // 'invoice_sent', 'days_after', 'monthly'
+    chargeDelayDays: 0,
+    chargeDayOfMonth: 1,
+  });
+  
+  // Crew Assignment
+  const [assignedCrew, setAssignedCrew] = useState([
+    { id: '1', name: 'John Smith', role: 'Lead Technician', avatar: '👨‍🔧' },
+    { id: '2', name: 'Mike Johnson', role: 'Technician', avatar: '👷' },
+  ]);
+  
+  // Change Orders
+  const [changeOrders, setChangeOrders] = useState([
+    {
+      id: '1',
+      date: '2024-12-15',
+      description: 'Added gutter cleaning to service',
+      amount: 150.00,
+      status: 'approved',
+    },
+  ]);
+  
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   // Calculate stats
@@ -675,7 +710,13 @@ const RecurringJobsScreen: React.FC = () => {
                           </View>
                         </View>
                       </View>
-                      <TouchableOpacity style={styles.editJobTypeButton}>
+                      <TouchableOpacity 
+                        style={styles.editJobTypeButton}
+                        onPress={() => {
+                          setShowDetailModal(false);
+                          setShowEditServiceType(true);
+                        }}
+                      >
                         <Edit size={18} color="#6366F1" />
                       </TouchableOpacity>
                     </View>
@@ -684,6 +725,56 @@ const RecurringJobsScreen: React.FC = () => {
                         <Text style={styles.jobTypeDescriptionText}>{selectedJob.description}</Text>
                       </View>
                     )}
+                  </View>
+
+                  {/* Crew Assignment Section */}
+                  <View style={styles.crewSection}>
+                    <View style={styles.crewHeader}>
+                      <View style={styles.crewHeaderLeft}>
+                        <User size={20} color="#6366F1" />
+                        <Text style={styles.crewTitle}>Assigned Crew</Text>
+                      </View>
+                      <TouchableOpacity 
+                        style={styles.editCrewButton}
+                        onPress={() => setShowCrewAssignment(true)}
+                      >
+                        <Edit size={16} color="#6366F1" />
+                        <Text style={styles.editCrewButtonText}>Edit</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <View style={styles.crewList}>
+                      {assignedCrew.map((member) => (
+                        <View key={member.id} style={styles.crewMember}>
+                          <View style={styles.crewAvatar}>
+                            <Text style={styles.crewAvatarText}>{member.avatar}</Text>
+                          </View>
+                          <View style={styles.crewMemberInfo}>
+                            <Text style={styles.crewMemberName}>{member.name}</Text>
+                            <Text style={styles.crewMemberRole}>{member.role}</Text>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+
+                  {/* Salesperson Section */}
+                  <View style={styles.salespersonSection}>
+                    <View style={styles.salespersonHeader}>
+                      <User size={18} color="#10B981" />
+                      <Text style={styles.salespersonLabel}>Salesperson</Text>
+                    </View>
+                    <View style={styles.salespersonCard}>
+                      <View style={styles.salespersonAvatar}>
+                        <Text style={styles.salespersonAvatarText}>💼</Text>
+                      </View>
+                      <View style={styles.salespersonInfo}>
+                        <Text style={styles.salespersonName}>Sarah Williams</Text>
+                        <Text style={styles.salespersonContact}>sarah@dripjobs.com</Text>
+                      </View>
+                      <TouchableOpacity style={styles.salespersonCallButton}>
+                        <Phone size={16} color="#10B981" />
+                      </TouchableOpacity>
+                    </View>
                   </View>
 
                   {/* Service Location */}
@@ -1225,6 +1316,213 @@ const RecurringJobsScreen: React.FC = () => {
                         </View>
                       </View>
 
+                      {/* Invoice Settings */}
+                      <View style={styles.settingsSection}>
+                        <Text style={styles.settingsSectionTitle}>Invoice Automation</Text>
+                        
+                        {/* Invoice Generation */}
+                        <View style={styles.invoiceSubSection}>
+                          <View style={styles.settingRow}>
+                            <View style={styles.settingInfo}>
+                              <Text style={styles.settingLabel}>Auto-Generate Invoices</Text>
+                              <Text style={styles.settingDescription}>
+                                Automatically create invoices for completed services
+                              </Text>
+                            </View>
+                            <Switch
+                              value={invoiceSettings.autoGenerate}
+                              onValueChange={(value) => 
+                                setInvoiceSettings({...invoiceSettings, autoGenerate: value})
+                              }
+                              trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
+                              thumbColor={invoiceSettings.autoGenerate ? '#6366F1' : '#F3F4F6'}
+                            />
+                          </View>
+                          
+                          {invoiceSettings.autoGenerate && (
+                            <View style={styles.timingOptions}>
+                              <Text style={styles.timingLabel}>Generate when:</Text>
+                              <View style={styles.timingButtons}>
+                                <TouchableOpacity 
+                                  style={[
+                                    styles.timingButton, 
+                                    invoiceSettings.generateTiming === 'completion' && styles.timingButtonActive
+                                  ]}
+                                  onPress={() => setInvoiceSettings({...invoiceSettings, generateTiming: 'completion'})}
+                                >
+                                  <Text style={[
+                                    styles.timingButtonText,
+                                    invoiceSettings.generateTiming === 'completion' && styles.timingButtonTextActive
+                                  ]}>
+                                    Job completed
+                                  </Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity 
+                                  style={[
+                                    styles.timingButton, 
+                                    invoiceSettings.generateTiming === 'scheduled' && styles.timingButtonActive
+                                  ]}
+                                  onPress={() => setInvoiceSettings({...invoiceSettings, generateTiming: 'scheduled'})}
+                                >
+                                  <Text style={[
+                                    styles.timingButtonText,
+                                    invoiceSettings.generateTiming === 'scheduled' && styles.timingButtonTextActive
+                                  ]}>
+                                    On scheduled date
+                                  </Text>
+                                </TouchableOpacity>
+                              </View>
+                            </View>
+                          )}
+                        </View>
+
+                        {/* Invoice Delivery */}
+                        <View style={styles.invoiceSubSection}>
+                          <View style={styles.settingRow}>
+                            <View style={styles.settingInfo}>
+                              <Text style={styles.settingLabel}>Auto-Send Invoices</Text>
+                              <Text style={styles.settingDescription}>
+                                Automatically email invoices to customers
+                              </Text>
+                            </View>
+                            <Switch
+                              value={invoiceSettings.autoSend}
+                              onValueChange={(value) => 
+                                setInvoiceSettings({...invoiceSettings, autoSend: value})
+                              }
+                              trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
+                              thumbColor={invoiceSettings.autoSend ? '#6366F1' : '#F3F4F6'}
+                            />
+                          </View>
+                          
+                          {invoiceSettings.autoSend && (
+                            <View style={styles.timingOptions}>
+                              <Text style={styles.timingLabel}>Send timing:</Text>
+                              <View style={styles.timingButtons}>
+                                <TouchableOpacity 
+                                  style={[
+                                    styles.timingButton, 
+                                    invoiceSettings.sendTiming === 'immediate' && styles.timingButtonActive
+                                  ]}
+                                  onPress={() => setInvoiceSettings({...invoiceSettings, sendTiming: 'immediate'})}
+                                >
+                                  <Text style={[
+                                    styles.timingButtonText,
+                                    invoiceSettings.sendTiming === 'immediate' && styles.timingButtonTextActive
+                                  ]}>
+                                    Immediately
+                                  </Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity 
+                                  style={[
+                                    styles.timingButton, 
+                                    invoiceSettings.sendTiming === 'delayed' && styles.timingButtonActive
+                                  ]}
+                                  onPress={() => setInvoiceSettings({...invoiceSettings, sendTiming: 'delayed'})}
+                                >
+                                  <Text style={[
+                                    styles.timingButtonText,
+                                    invoiceSettings.sendTiming === 'delayed' && styles.timingButtonTextActive
+                                  ]}>
+                                    After delay
+                                  </Text>
+                                </TouchableOpacity>
+                              </View>
+                            </View>
+                          )}
+                        </View>
+
+                        {/* Project Summary */}
+                        <View style={styles.invoiceSubSection}>
+                          <View style={styles.settingRow}>
+                            <View style={styles.settingInfo}>
+                              <Text style={styles.settingLabel}>Include Project Summary</Text>
+                              <Text style={styles.settingDescription}>
+                                Attach photos, notes, and work details with invoice
+                              </Text>
+                            </View>
+                            <Switch
+                              value={invoiceSettings.includeProjectSummary}
+                              onValueChange={(value) => 
+                                setInvoiceSettings({...invoiceSettings, includeProjectSummary: value})
+                              }
+                              trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
+                              thumbColor={invoiceSettings.includeProjectSummary ? '#6366F1' : '#F3F4F6'}
+                            />
+                          </View>
+                        </View>
+
+                        {/* Auto-Charge Settings */}
+                        {paymentSettings.cardOnFile && (
+                          <View style={styles.invoiceSubSection}>
+                            <View style={styles.settingRow}>
+                              <View style={styles.settingInfo}>
+                                <Text style={styles.settingLabel}>Auto-Charge Card</Text>
+                                <Text style={styles.settingDescription}>
+                                  Automatically charge card on file (recommended: OFF for customer trust)
+                                </Text>
+                              </View>
+                              <Switch
+                                value={invoiceSettings.autoChargeEnabled}
+                                onValueChange={(value) => 
+                                  setInvoiceSettings({...invoiceSettings, autoChargeEnabled: value})
+                                }
+                                trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
+                                thumbColor={invoiceSettings.autoChargeEnabled ? '#6366F1' : '#F3F4F6'}
+                              />
+                            </View>
+                            
+                            {invoiceSettings.autoChargeEnabled && (
+                              <View style={styles.timingOptions}>
+                                <Text style={styles.timingLabel}>Charge when:</Text>
+                                <View style={styles.timingButtons}>
+                                  <TouchableOpacity 
+                                    style={[
+                                      styles.timingButton, 
+                                      invoiceSettings.chargeTiming === 'invoice_sent' && styles.timingButtonActive
+                                    ]}
+                                    onPress={() => setInvoiceSettings({...invoiceSettings, chargeTiming: 'invoice_sent'})}
+                                  >
+                                    <Text style={[
+                                      styles.timingButtonText,
+                                      invoiceSettings.chargeTiming === 'invoice_sent' && styles.timingButtonTextActive
+                                    ]}>
+                                      Invoice sent
+                                    </Text>
+                                  </TouchableOpacity>
+                                  <TouchableOpacity 
+                                    style={[
+                                      styles.timingButton, 
+                                      invoiceSettings.chargeTiming === 'days_after' && styles.timingButtonActive
+                                    ]}
+                                    onPress={() => setInvoiceSettings({...invoiceSettings, chargeTiming: 'days_after'})}
+                                  >
+                                    <Text style={[
+                                      styles.timingButtonText,
+                                      invoiceSettings.chargeTiming === 'days_after' && styles.timingButtonTextActive
+                                    ]}>
+                                      Days after
+                                    </Text>
+                                  </TouchableOpacity>
+                                </View>
+                              </View>
+                            )}
+                          </View>
+                        )}
+
+                        {/* Best Practice Note */}
+                        <View style={styles.bestPracticeNote}>
+                          <Text style={styles.bestPracticeIcon}>💡</Text>
+                          <View style={styles.bestPracticeContent}>
+                            <Text style={styles.bestPracticeTitle}>Best Practice</Text>
+                            <Text style={styles.bestPracticeText}>
+                              Generate on completion + Send immediately + Include project summary. 
+                              Keep auto-charge OFF unless customer specifically requests it.
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+
                       <TouchableOpacity style={styles.saveSettingsButton}>
                         <Save size={20} color="#FFFFFF" />
                         <Text style={styles.saveSettingsButtonText}>Save Payment Settings</Text>
@@ -1440,6 +1738,236 @@ const RecurringJobsScreen: React.FC = () => {
           </View>
           <Text style={styles.calendarPlaceholder}>Calendar view coming soon...</Text>
         </SafeAreaView>
+      </Modal>
+
+      {/* Edit Service Type Modal */}
+      <Modal
+        visible={showEditServiceType}
+        animationType="slide"
+        onRequestClose={() => setShowEditServiceType(false)}
+      >
+        <SafeAreaView style={styles.editServiceModalContainer}>
+          <LinearGradient colors={['#6366F1', '#8B5CF6']} style={styles.editServiceHeader}>
+            <View style={styles.editServiceHeaderContent}>
+              <TouchableOpacity onPress={() => {
+                setShowEditServiceType(false);
+                setShowDetailModal(true);
+              }}>
+                <ChevronLeft size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+              <Text style={styles.editServiceHeaderTitle}>Edit Service Type</Text>
+              <TouchableOpacity>
+                <Save size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+          </LinearGradient>
+
+          <ScrollView style={styles.editServiceContent} showsVerticalScrollIndicator={false}>
+            {/* Original Service Agreement */}
+            <View style={styles.editServiceSection}>
+              <Text style={styles.editServiceSectionTitle}>Original Service Agreement</Text>
+              <View style={styles.agreementCard}>
+                <View style={styles.agreementHeader}>
+                  <FileText size={20} color="#6366F1" />
+                  <Text style={styles.agreementTitle}>Service Agreement #{selectedJob?.jobNumber}</Text>
+                </View>
+                <View style={styles.agreementDetails}>
+                  <View style={styles.agreementRow}>
+                    <Text style={styles.agreementLabel}>Service Type:</Text>
+                    <Text style={styles.agreementValue}>{selectedJob?.serviceName}</Text>
+                  </View>
+                  <View style={styles.agreementRow}>
+                    <Text style={styles.agreementLabel}>Original Amount:</Text>
+                    <Text style={styles.agreementValue}>${selectedJob?.amount.toFixed(2)}</Text>
+                  </View>
+                  <View style={styles.agreementRow}>
+                    <Text style={styles.agreementLabel}>Frequency:</Text>
+                    <Text style={styles.agreementValue}>{selectedJob?.frequency}</Text>
+                  </View>
+                  <View style={styles.agreementRow}>
+                    <Text style={styles.agreementLabel}>Start Date:</Text>
+                    <Text style={styles.agreementValue}>{selectedJob?.startDate}</Text>
+                  </View>
+                </View>
+                <TouchableOpacity style={styles.viewAgreementButton}>
+                  <FileText size={16} color="#6366F1" />
+                  <Text style={styles.viewAgreementButtonText}>View Full Agreement</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Edit Service Type */}
+            <View style={styles.editServiceSection}>
+              <Text style={styles.editServiceSectionTitle}>Service Type</Text>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Service Name</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={selectedJob?.serviceName}
+                  placeholder="e.g., Christmas Lights, Pressure Washing"
+                />
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Description</Text>
+                <TextInput
+                  style={styles.textAreaInput}
+                  value={selectedJob?.description}
+                  placeholder="Describe the service..."
+                  multiline
+                  numberOfLines={4}
+                />
+              </View>
+              <View style={styles.inputRow}>
+                <View style={[styles.inputGroup, { flex: 1 }]}>
+                  <Text style={styles.inputLabel}>Amount</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={selectedJob?.amount.toString()}
+                    keyboardType="decimal-pad"
+                    placeholder="0.00"
+                  />
+                </View>
+                <View style={[styles.inputGroup, { flex: 1 }]}>
+                  <Text style={styles.inputLabel}>Frequency</Text>
+                  <TouchableOpacity style={styles.dropdownInput}>
+                    <Text style={styles.dropdownInputText}>{selectedJob?.frequency}</Text>
+                    <ChevronDown size={20} color="#6B7280" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+
+            {/* Change Orders */}
+            <View style={styles.editServiceSection}>
+              <View style={styles.changeOrdersHeader}>
+                <Text style={styles.editServiceSectionTitle}>Change Orders</Text>
+                <TouchableOpacity style={styles.addChangeOrderButton}>
+                  <Plus size={16} color="#FFFFFF" />
+                  <Text style={styles.addChangeOrderButtonText}>Add Change Order</Text>
+                </TouchableOpacity>
+              </View>
+              
+              {changeOrders.map((order) => (
+                <View key={order.id} style={styles.changeOrderCard}>
+                  <View style={styles.changeOrderHeader}>
+                    <View style={[styles.changeOrderStatus, order.status === 'approved' && styles.changeOrderStatusApproved]}>
+                      <CheckCircle size={14} color="#10B981" />
+                      <Text style={styles.changeOrderStatusText}>
+                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                      </Text>
+                    </View>
+                    <Text style={styles.changeOrderDate}>{order.date}</Text>
+                  </View>
+                  <Text style={styles.changeOrderDescription}>{order.description}</Text>
+                  <View style={styles.changeOrderFooter}>
+                    <Text style={styles.changeOrderAmount}>+${order.amount.toFixed(2)}</Text>
+                    <TouchableOpacity>
+                      <MoreVertical size={18} color="#6B7280" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+              
+              {changeOrders.length === 0 && (
+                <View style={styles.noChangeOrders}>
+                  <FileText size={48} color="#D1D5DB" />
+                  <Text style={styles.noChangeOrdersText}>No change orders yet</Text>
+                  <Text style={styles.noChangeOrdersSubtext}>
+                    Add a change order to modify the service agreement
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.bottomSpacing} />
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Crew Assignment Modal */}
+      <Modal
+        visible={showCrewAssignment}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowCrewAssignment(false)}
+      >
+        <View style={styles.crewModalOverlay}>
+          <TouchableOpacity 
+            style={styles.crewModalBackdrop}
+            activeOpacity={1}
+            onPress={() => setShowCrewAssignment(false)}
+          />
+          <View style={styles.crewModalContainer}>
+            <View style={styles.crewModalHandle} />
+            <View style={styles.crewModalHeader}>
+              <Text style={styles.crewModalTitle}>Assign Crew</Text>
+              <TouchableOpacity onPress={() => setShowCrewAssignment(false)}>
+                <X size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.crewModalContent} showsVerticalScrollIndicator={false}>
+              <Text style={styles.crewModalDescription}>
+                Select team members to assign to this recurring job
+              </Text>
+
+              {/* Currently Assigned */}
+              <View style={styles.crewModalSection}>
+                <Text style={styles.crewModalSectionTitle}>Currently Assigned ({assignedCrew.length})</Text>
+                {assignedCrew.map((member) => (
+                  <View key={member.id} style={styles.crewModalMember}>
+                    <View style={styles.crewModalMemberLeft}>
+                      <View style={styles.crewModalAvatar}>
+                        <Text style={styles.crewModalAvatarText}>{member.avatar}</Text>
+                      </View>
+                      <View style={styles.crewModalMemberInfo}>
+                        <Text style={styles.crewModalMemberName}>{member.name}</Text>
+                        <Text style={styles.crewModalMemberRole}>{member.role}</Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity style={styles.removeCrewButton}>
+                      <X size={18} color="#EF4444" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+
+              {/* Available Team Members */}
+              <View style={styles.crewModalSection}>
+                <Text style={styles.crewModalSectionTitle}>Available Team Members</Text>
+                {[
+                  { id: '3', name: 'David Brown', role: 'Technician', avatar: '👨‍💼' },
+                  { id: '4', name: 'Emily Davis', role: 'Lead Technician', avatar: '👩‍🔧' },
+                  { id: '5', name: 'Chris Wilson', role: 'Helper', avatar: '🧑‍🔧' },
+                ].map((member) => (
+                  <TouchableOpacity key={member.id} style={styles.crewModalMember}>
+                    <View style={styles.crewModalMemberLeft}>
+                      <View style={styles.crewModalAvatar}>
+                        <Text style={styles.crewModalAvatarText}>{member.avatar}</Text>
+                      </View>
+                      <View style={styles.crewModalMemberInfo}>
+                        <Text style={styles.crewModalMemberName}>{member.name}</Text>
+                        <Text style={styles.crewModalMemberRole}>{member.role}</Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity style={styles.addCrewButton}>
+                      <Plus size={18} color="#6366F1" />
+                    </TouchableOpacity>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+
+            <View style={styles.crewModalFooter}>
+              <TouchableOpacity 
+                style={styles.crewModalSaveButton}
+                onPress={() => setShowCrewAssignment(false)}
+              >
+                <Text style={styles.crewModalSaveButtonText}>Save Changes</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       </Modal>
 
       <DrawerMenu isOpen={menuVisible} onClose={() => setMenuVisible(false)} />
@@ -2411,6 +2939,496 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     lineHeight: 22,
   },
+  // Crew Section
+  crewSection: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 20,
+    marginBottom: 16,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  crewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  crewHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  crewTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  editCrewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  editCrewButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  crewList: {
+    gap: 12,
+  },
+  crewMember: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  crewAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  crewAvatarText: {
+    fontSize: 24,
+  },
+  crewMemberInfo: {
+    flex: 1,
+  },
+  crewMemberName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  crewMemberRole: {
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  // Salesperson Section
+  salespersonSection: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 20,
+    marginBottom: 16,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#D1FAE5',
+    backgroundColor: '#F0FDF4',
+  },
+  salespersonHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  salespersonLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#10B981',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  salespersonCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  salespersonAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#10B981',
+  },
+  salespersonAvatarText: {
+    fontSize: 24,
+  },
+  salespersonInfo: {
+    flex: 1,
+  },
+  salespersonName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  salespersonContact: {
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  salespersonCallButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#10B981',
+  },
+  // Edit Service Modal
+  editServiceModalContainer: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  editServiceHeader: {
+    paddingTop: 12,
+    paddingBottom: 20,
+  },
+  editServiceHeaderContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+  },
+  editServiceHeaderTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  editServiceContent: {
+    flex: 1,
+  },
+  editServiceSection: {
+    padding: 20,
+  },
+  editServiceSectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 16,
+  },
+  agreementCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  agreementHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  agreementTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  agreementDetails: {
+    gap: 12,
+    marginBottom: 16,
+  },
+  agreementRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  agreementLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  agreementValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  viewAgreementButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  viewAgreementButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  textInput: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: '#111827',
+  },
+  textAreaInput: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: '#111827',
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  inputRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  dropdownInput: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  dropdownInputText: {
+    fontSize: 15,
+    color: '#111827',
+  },
+  changeOrdersHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  addChangeOrderButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#6366F1',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  addChangeOrderButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  changeOrderCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  changeOrderHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  changeOrderStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: '#F3F4F6',
+  },
+  changeOrderStatusApproved: {
+    backgroundColor: '#D1FAE5',
+  },
+  changeOrderStatusText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#10B981',
+  },
+  changeOrderDate: {
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  changeOrderDescription: {
+    fontSize: 15,
+    color: '#111827',
+    marginBottom: 12,
+    lineHeight: 20,
+  },
+  changeOrderFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  changeOrderAmount: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#10B981',
+  },
+  noChangeOrders: {
+    alignItems: 'center',
+    paddingVertical: 48,
+  },
+  noChangeOrdersText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginTop: 16,
+  },
+  noChangeOrdersSubtext: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  // Crew Modal
+  crewModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  crewModalBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  crewModalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '90%',
+  },
+  crewModalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  crewModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  crewModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  crewModalContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  crewModalDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 16,
+    marginBottom: 24,
+  },
+  crewModalSection: {
+    marginBottom: 24,
+  },
+  crewModalSectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 12,
+  },
+  crewModalMember: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  crewModalMemberLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  crewModalAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  crewModalAvatarText: {
+    fontSize: 24,
+  },
+  crewModalMemberInfo: {
+    flex: 1,
+  },
+  crewModalMemberName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  crewModalMemberRole: {
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  removeCrewButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addCrewButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  crewModalFooter: {
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  crewModalSaveButton: {
+    backgroundColor: '#6366F1',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  crewModalSaveButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
   // Tabs
   tabsContainer: {
     flexDirection: 'row',
@@ -2632,6 +3650,76 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#111827',
+  },
+  // Invoice Settings
+  invoiceSubSection: {
+    marginBottom: 24,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  timingOptions: {
+    marginTop: 16,
+    paddingLeft: 12,
+  },
+  timingLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 12,
+  },
+  timingButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  timingButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    backgroundColor: '#FFFFFF',
+  },
+  timingButtonActive: {
+    backgroundColor: '#EEF2FF',
+    borderColor: '#6366F1',
+  },
+  timingButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  timingButtonTextActive: {
+    color: '#6366F1',
+    fontWeight: '600',
+  },
+  bestPracticeNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#F0F9FF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    marginTop: 16,
+  },
+  bestPracticeIcon: {
+    fontSize: 20,
+  },
+  bestPracticeContent: {
+    flex: 1,
+  },
+  bestPracticeTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0369A1',
+    marginBottom: 4,
+  },
+  bestPracticeText: {
+    fontSize: 13,
+    color: '#0369A1',
+    lineHeight: 18,
   },
 });
 
