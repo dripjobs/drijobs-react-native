@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 4,
     elevation: 4,
-    minWidth: 100,
+    minWidth: 130,
   },
   labelText: {
     color: '#FFFFFF',
