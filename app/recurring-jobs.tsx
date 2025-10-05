@@ -3,6 +3,7 @@ import { InvoiceDetail } from '@/components/InvoiceDetail';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
+    Bell,
     Building,
     Calendar,
     CheckCircle,
@@ -11,10 +12,12 @@ import {
     ChevronRight,
     Clock,
     Copy,
+    CreditCard,
     DollarSign,
     Edit,
     FileText,
     Filter,
+    Lock,
     Mail,
     MapPin,
     MessageSquare,
@@ -24,14 +27,16 @@ import {
     Plus,
     RefreshCw,
     Repeat,
+    Save,
     Search,
+    Settings,
     TrendingUp,
     User,
     X,
     XCircle
 } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Modal, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Modal, Platform, SafeAreaView, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 // Sample recurring job data
 const recurringJobData = [
@@ -250,6 +255,32 @@ const RecurringJobsScreen: React.FC = () => {
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [dateFilterType, setDateFilterType] = useState<'nextService' | 'lastService'>('nextService');
+  const [detailTab, setDetailTab] = useState<'details' | 'communication' | 'payment'>('details');
+  
+  // Communication Settings
+  const [communicationSettings, setCommunicationSettings] = useState({
+    serviceReminders: true,
+    reminderDaysBefore: 3,
+    invoiceNotifications: true,
+    autoSendInvoice: true,
+    invoiceDaysAfter: 1,
+    paymentReminders: true,
+    paymentReminderDays: 7,
+    completionNotifications: true,
+    scheduleChangeNotifications: true,
+    emailNotifications: true,
+    smsNotifications: false,
+  });
+
+  // Payment Settings
+  const [paymentSettings, setPaymentSettings] = useState({
+    cardOnFile: false,
+    cardLastFour: '',
+    cardBrand: '',
+    cardExpiry: '',
+    autoCharge: false,
+    autoChargeDays: 0,
+  });
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   // Calculate stats
@@ -572,10 +603,43 @@ const RecurringJobsScreen: React.FC = () => {
                   <View style={styles.headerSpacer} />
                 </View>
 
+                {/* Tabs */}
+                <View style={styles.tabsContainer}>
+                  <TouchableOpacity
+                    style={[styles.tab, detailTab === 'details' && styles.activeTab]}
+                    onPress={() => setDetailTab('details')}
+                  >
+                    <FileText size={18} color={detailTab === 'details' ? '#6366F1' : '#6B7280'} />
+                    <Text style={[styles.tabText, detailTab === 'details' && styles.activeTabText]}>
+                      Details
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.tab, detailTab === 'communication' && styles.activeTab]}
+                    onPress={() => setDetailTab('communication')}
+                  >
+                    <Bell size={18} color={detailTab === 'communication' ? '#6366F1' : '#6B7280'} />
+                    <Text style={[styles.tabText, detailTab === 'communication' && styles.activeTabText]}>
+                      Communication
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.tab, detailTab === 'payment' && styles.activeTab]}
+                    onPress={() => setDetailTab('payment')}
+                  >
+                    <CreditCard size={18} color={detailTab === 'payment' ? '#6366F1' : '#6B7280'} />
+                    <Text style={[styles.tabText, detailTab === 'payment' && styles.activeTabText]}>
+                      Payment
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
                 <ScrollView
                   style={styles.fullScreenScrollView}
                   showsVerticalScrollIndicator={false}
                 >
+                  {detailTab === 'details' && (
+                    <>
                   {/* Status Section */}
                   <View style={styles.statusSectionTop}>
                     <Text style={styles.statusLabel}>Status</Text>
@@ -585,6 +649,41 @@ const RecurringJobsScreen: React.FC = () => {
                       </Text>
                       <ChevronDown size={16} color="#FFFFFF" />
                     </TouchableOpacity>
+                  </View>
+
+                  {/* Job Type Section - Prominent */}
+                  <View style={styles.jobTypeSection}>
+                    <View style={styles.jobTypeHeader}>
+                      <View style={styles.jobTypeIconContainer}>
+                        <Repeat size={24} color="#6366F1" />
+                      </View>
+                      <View style={styles.jobTypeContent}>
+                        <Text style={styles.jobTypeLabel}>Service Type</Text>
+                        <Text style={styles.jobTypeName}>{selectedJob.serviceName}</Text>
+                        <View style={styles.jobTypeMetaRow}>
+                          <View style={styles.jobTypeMeta}>
+                            <Clock size={14} color="#6B7280" />
+                            <Text style={styles.jobTypeMetaText}>
+                              {selectedJob.frequency.charAt(0).toUpperCase() + selectedJob.frequency.slice(1)}
+                            </Text>
+                          </View>
+                          <View style={styles.jobTypeMeta}>
+                            <DollarSign size={14} color="#6B7280" />
+                            <Text style={styles.jobTypeMetaText}>
+                              ${selectedJob.amount.toFixed(2)}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                      <TouchableOpacity style={styles.editJobTypeButton}>
+                        <Edit size={18} color="#6366F1" />
+                      </TouchableOpacity>
+                    </View>
+                    {selectedJob.description && (
+                      <View style={styles.jobTypeDescription}>
+                        <Text style={styles.jobTypeDescriptionText}>{selectedJob.description}</Text>
+                      </View>
+                    )}
                   </View>
 
                   {/* Service Location */}
@@ -824,6 +923,316 @@ const RecurringJobsScreen: React.FC = () => {
                   </View>
 
                   <View style={styles.bottomSpacing} />
+                  </>
+                  )}
+
+                  {/* Communication Settings Tab */}
+                  {detailTab === 'communication' && (
+                    <View style={styles.settingsContent}>
+                      <View style={styles.settingsHeader}>
+                        <Settings size={24} color="#6366F1" />
+                        <Text style={styles.settingsHeaderTitle}>Communication Settings</Text>
+                      </View>
+                      <Text style={styles.settingsHeaderDescription}>
+                        Configure automated notifications and reminders for this recurring job
+                      </Text>
+
+                      {/* Service Reminders */}
+                      <View style={styles.settingsSection}>
+                        <Text style={styles.settingsSectionTitle}>Service Reminders</Text>
+                        <View style={styles.settingRow}>
+                          <View style={styles.settingInfo}>
+                            <Text style={styles.settingLabel}>Send Service Reminders</Text>
+                            <Text style={styles.settingDescription}>
+                              Automatically remind customer before scheduled service
+                            </Text>
+                          </View>
+                          <Switch
+                            value={communicationSettings.serviceReminders}
+                            onValueChange={(value) => 
+                              setCommunicationSettings({...communicationSettings, serviceReminders: value})
+                            }
+                            trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
+                            thumbColor={communicationSettings.serviceReminders ? '#6366F1' : '#F3F4F6'}
+                          />
+                        </View>
+                        {communicationSettings.serviceReminders && (
+                          <View style={styles.settingSubRow}>
+                            <Text style={styles.settingSubLabel}>Send reminder</Text>
+                            <TextInput
+                              style={styles.settingInput}
+                              value={communicationSettings.reminderDaysBefore.toString()}
+                              onChangeText={(value) => 
+                                setCommunicationSettings({...communicationSettings, reminderDaysBefore: parseInt(value) || 0})
+                              }
+                              keyboardType="number-pad"
+                            />
+                            <Text style={styles.settingSubLabel}>days before service</Text>
+                          </View>
+                        )}
+                      </View>
+
+                      {/* Invoice Notifications */}
+                      <View style={styles.settingsSection}>
+                        <Text style={styles.settingsSectionTitle}>Invoice Notifications</Text>
+                        <View style={styles.settingRow}>
+                          <View style={styles.settingInfo}>
+                            <Text style={styles.settingLabel}>Auto-Send Invoices</Text>
+                            <Text style={styles.settingDescription}>
+                              Automatically send invoice after service completion
+                            </Text>
+                          </View>
+                          <Switch
+                            value={communicationSettings.autoSendInvoice}
+                            onValueChange={(value) => 
+                              setCommunicationSettings({...communicationSettings, autoSendInvoice: value})
+                            }
+                            trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
+                            thumbColor={communicationSettings.autoSendInvoice ? '#6366F1' : '#F3F4F6'}
+                          />
+                        </View>
+                        {communicationSettings.autoSendInvoice && (
+                          <View style={styles.settingSubRow}>
+                            <Text style={styles.settingSubLabel}>Send invoice</Text>
+                            <TextInput
+                              style={styles.settingInput}
+                              value={communicationSettings.invoiceDaysAfter.toString()}
+                              onChangeText={(value) => 
+                                setCommunicationSettings({...communicationSettings, invoiceDaysAfter: parseInt(value) || 0})
+                              }
+                              keyboardType="number-pad"
+                            />
+                            <Text style={styles.settingSubLabel}>days after completion</Text>
+                          </View>
+                        )}
+                      </View>
+
+                      {/* Payment Reminders */}
+                      <View style={styles.settingsSection}>
+                        <Text style={styles.settingsSectionTitle}>Payment Reminders</Text>
+                        <View style={styles.settingRow}>
+                          <View style={styles.settingInfo}>
+                            <Text style={styles.settingLabel}>Payment Reminders</Text>
+                            <Text style={styles.settingDescription}>
+                              Send reminders for unpaid invoices
+                            </Text>
+                          </View>
+                          <Switch
+                            value={communicationSettings.paymentReminders}
+                            onValueChange={(value) => 
+                              setCommunicationSettings({...communicationSettings, paymentReminders: value})
+                            }
+                            trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
+                            thumbColor={communicationSettings.paymentReminders ? '#6366F1' : '#F3F4F6'}
+                          />
+                        </View>
+                        {communicationSettings.paymentReminders && (
+                          <View style={styles.settingSubRow}>
+                            <Text style={styles.settingSubLabel}>Send reminder every</Text>
+                            <TextInput
+                              style={styles.settingInput}
+                              value={communicationSettings.paymentReminderDays.toString()}
+                              onChangeText={(value) => 
+                                setCommunicationSettings({...communicationSettings, paymentReminderDays: parseInt(value) || 0})
+                              }
+                              keyboardType="number-pad"
+                            />
+                            <Text style={styles.settingSubLabel}>days until paid</Text>
+                          </View>
+                        )}
+                      </View>
+
+                      {/* Other Notifications */}
+                      <View style={styles.settingsSection}>
+                        <Text style={styles.settingsSectionTitle}>Other Notifications</Text>
+                        <View style={styles.settingRow}>
+                          <View style={styles.settingInfo}>
+                            <Text style={styles.settingLabel}>Completion Notifications</Text>
+                            <Text style={styles.settingDescription}>
+                              Notify customer when service is completed
+                            </Text>
+                          </View>
+                          <Switch
+                            value={communicationSettings.completionNotifications}
+                            onValueChange={(value) => 
+                              setCommunicationSettings({...communicationSettings, completionNotifications: value})
+                            }
+                            trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
+                            thumbColor={communicationSettings.completionNotifications ? '#6366F1' : '#F3F4F6'}
+                          />
+                        </View>
+                        <View style={styles.settingRow}>
+                          <View style={styles.settingInfo}>
+                            <Text style={styles.settingLabel}>Schedule Change Notifications</Text>
+                            <Text style={styles.settingDescription}>
+                              Notify customer of any schedule changes
+                            </Text>
+                          </View>
+                          <Switch
+                            value={communicationSettings.scheduleChangeNotifications}
+                            onValueChange={(value) => 
+                              setCommunicationSettings({...communicationSettings, scheduleChangeNotifications: value})
+                            }
+                            trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
+                            thumbColor={communicationSettings.scheduleChangeNotifications ? '#6366F1' : '#F3F4F6'}
+                          />
+                        </View>
+                      </View>
+
+                      {/* Notification Channels */}
+                      <View style={styles.settingsSection}>
+                        <Text style={styles.settingsSectionTitle}>Notification Channels</Text>
+                        <View style={styles.settingRow}>
+                          <View style={styles.settingInfo}>
+                            <Text style={styles.settingLabel}>Email Notifications</Text>
+                            <Text style={styles.settingDescription}>
+                              Send notifications via email
+                            </Text>
+                          </View>
+                          <Switch
+                            value={communicationSettings.emailNotifications}
+                            onValueChange={(value) => 
+                              setCommunicationSettings({...communicationSettings, emailNotifications: value})
+                            }
+                            trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
+                            thumbColor={communicationSettings.emailNotifications ? '#6366F1' : '#F3F4F6'}
+                          />
+                        </View>
+                        <View style={styles.settingRow}>
+                          <View style={styles.settingInfo}>
+                            <Text style={styles.settingLabel}>SMS Notifications</Text>
+                            <Text style={styles.settingDescription}>
+                              Send notifications via text message
+                            </Text>
+                          </View>
+                          <Switch
+                            value={communicationSettings.smsNotifications}
+                            onValueChange={(value) => 
+                              setCommunicationSettings({...communicationSettings, smsNotifications: value})
+                            }
+                            trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
+                            thumbColor={communicationSettings.smsNotifications ? '#6366F1' : '#F3F4F6'}
+                          />
+                        </View>
+                      </View>
+
+                      <TouchableOpacity style={styles.saveSettingsButton}>
+                        <Save size={20} color="#FFFFFF" />
+                        <Text style={styles.saveSettingsButtonText}>Save Communication Settings</Text>
+                      </TouchableOpacity>
+
+                      <View style={styles.bottomSpacing} />
+                    </View>
+                  )}
+
+                  {/* Payment Settings Tab */}
+                  {detailTab === 'payment' && (
+                    <View style={styles.settingsContent}>
+                      <View style={styles.settingsHeader}>
+                        <CreditCard size={24} color="#6366F1" />
+                        <Text style={styles.settingsHeaderTitle}>Payment Settings</Text>
+                      </View>
+                      <Text style={styles.settingsHeaderDescription}>
+                        Manage payment methods and auto-charge settings for this recurring job
+                      </Text>
+
+                      {/* Card on File */}
+                      <View style={styles.settingsSection}>
+                        <Text style={styles.settingsSectionTitle}>Payment Method</Text>
+                        {!paymentSettings.cardOnFile ? (
+                          <View style={styles.noCardContainer}>
+                            <Lock size={48} color="#D1D5DB" />
+                            <Text style={styles.noCardTitle}>No Card on File</Text>
+                            <Text style={styles.noCardDescription}>
+                              Add a payment method to enable automatic charging for this recurring job
+                            </Text>
+                            <TouchableOpacity style={styles.addCardButton}>
+                              <Plus size={20} color="#FFFFFF" />
+                              <Text style={styles.addCardButtonText}>Add Payment Method</Text>
+                            </TouchableOpacity>
+                          </View>
+                        ) : (
+                          <View style={styles.cardContainer}>
+                            <View style={styles.cardInfo}>
+                              <View style={styles.cardBrandIcon}>
+                                <CreditCard size={24} color="#6366F1" />
+                              </View>
+                              <View style={styles.cardDetails}>
+                                <Text style={styles.cardBrand}>{paymentSettings.cardBrand} •••• {paymentSettings.cardLastFour}</Text>
+                                <Text style={styles.cardExpiry}>Expires {paymentSettings.cardExpiry}</Text>
+                              </View>
+                            </View>
+                            <TouchableOpacity style={styles.removeCardButton}>
+                              <X size={16} color="#EF4444" />
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                      </View>
+
+                      {/* Auto-Charge Settings */}
+                      {paymentSettings.cardOnFile && (
+                        <View style={styles.settingsSection}>
+                          <Text style={styles.settingsSectionTitle}>Auto-Charge Settings</Text>
+                          <View style={styles.settingRow}>
+                            <View style={styles.settingInfo}>
+                              <Text style={styles.settingLabel}>Enable Auto-Charge</Text>
+                              <Text style={styles.settingDescription}>
+                                Automatically charge card when invoice is generated
+                              </Text>
+                            </View>
+                            <Switch
+                              value={paymentSettings.autoCharge}
+                              onValueChange={(value) => 
+                                setPaymentSettings({...paymentSettings, autoCharge: value})
+                              }
+                              trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
+                              thumbColor={paymentSettings.autoCharge ? '#6366F1' : '#F3F4F6'}
+                            />
+                          </View>
+                          {paymentSettings.autoCharge && (
+                            <View style={styles.settingSubRow}>
+                              <Text style={styles.settingSubLabel}>Charge card</Text>
+                              <TextInput
+                                style={styles.settingInput}
+                                value={paymentSettings.autoChargeDays.toString()}
+                                onChangeText={(value) => 
+                                  setPaymentSettings({...paymentSettings, autoChargeDays: parseInt(value) || 0})
+                                }
+                                keyboardType="number-pad"
+                              />
+                              <Text style={styles.settingSubLabel}>days after invoice</Text>
+                            </View>
+                          )}
+                        </View>
+                      )}
+
+                      {/* Payment Terms */}
+                      <View style={styles.settingsSection}>
+                        <Text style={styles.settingsSectionTitle}>Payment Terms</Text>
+                        <View style={styles.paymentTermsInfo}>
+                          <View style={styles.paymentTermRow}>
+                            <Text style={styles.paymentTermLabel}>Due Date</Text>
+                            <Text style={styles.paymentTermValue}>Net 30</Text>
+                          </View>
+                          <View style={styles.paymentTermRow}>
+                            <Text style={styles.paymentTermLabel}>Late Fee</Text>
+                            <Text style={styles.paymentTermValue}>5% after 30 days</Text>
+                          </View>
+                          <View style={styles.paymentTermRow}>
+                            <Text style={styles.paymentTermLabel}>Payment Methods</Text>
+                            <Text style={styles.paymentTermValue}>Card, ACH, Check</Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      <TouchableOpacity style={styles.saveSettingsButton}>
+                        <Save size={20} color="#FFFFFF" />
+                        <Text style={styles.saveSettingsButtonText}>Save Payment Settings</Text>
+                      </TouchableOpacity>
+
+                      <View style={styles.bottomSpacing} />
+                    </View>
+                  )}
                 </ScrollView>
               </View>
             )}
@@ -1920,6 +2329,308 @@ const styles = StyleSheet.create({
   invoiceListAmount: {
     fontSize: 16,
     fontWeight: '700',
+    color: '#111827',
+  },
+  // Job Type Section
+  jobTypeSection: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 16,
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 2,
+    borderColor: '#6366F1',
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  jobTypeHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 16,
+  },
+  jobTypeIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  jobTypeContent: {
+    flex: 1,
+  },
+  jobTypeLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  jobTypeName: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 10,
+    lineHeight: 28,
+  },
+  jobTypeMetaRow: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  jobTypeMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  jobTypeMetaText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  editJobTypeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  jobTypeDescription: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  jobTypeDescriptionText: {
+    fontSize: 15,
+    color: '#6B7280',
+    lineHeight: 22,
+  },
+  // Tabs
+  tabsContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#F9FAFB',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    paddingHorizontal: 4,
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  activeTab: {
+    borderBottomColor: '#6366F1',
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  activeTabText: {
+    color: '#6366F1',
+  },
+  // Settings Content
+  settingsContent: {
+    padding: 20,
+  },
+  settingsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 8,
+  },
+  settingsHeaderTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  settingsHeaderDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  settingsSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  settingsSectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 16,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  settingInfo: {
+    flex: 1,
+    marginRight: 16,
+  },
+  settingLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  settingDescription: {
+    fontSize: 13,
+    color: '#6B7280',
+    lineHeight: 18,
+  },
+  settingSubRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+    paddingLeft: 12,
+  },
+  settingSubLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  settingInput: {
+    width: 60,
+    height: 40,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    fontSize: 14,
+    color: '#111827',
+    textAlign: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  saveSettingsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: '#6366F1',
+    paddingVertical: 16,
+    borderRadius: 12,
+    marginTop: 8,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  saveSettingsButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  // Payment Settings
+  noCardContainer: {
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  noCardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  noCardDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+    paddingHorizontal: 20,
+  },
+  addCardButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#6366F1',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  addCardButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  cardContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  cardInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  cardBrandIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 10,
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  cardDetails: {
+    flex: 1,
+  },
+  cardBrand: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  cardExpiry: {
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  removeCardButton: {
+    padding: 8,
+  },
+  paymentTermsInfo: {
+    gap: 12,
+  },
+  paymentTermRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  paymentTermLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  paymentTermValue: {
+    fontSize: 14,
+    fontWeight: '600',
     color: '#111827',
   },
 });

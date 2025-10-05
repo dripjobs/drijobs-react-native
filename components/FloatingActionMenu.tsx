@@ -5,10 +5,21 @@ import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native
 
 interface FloatingActionMenuProps {
   onNewAppointment?: () => void;
+  onNewTask?: () => void;
+  onSendRequest?: () => void;
+  onNewProposal?: () => void;
+  onNewLead?: () => void;
   isVisible?: boolean;
 }
 
-export default function FloatingActionMenu({ onNewAppointment, isVisible = true }: FloatingActionMenuProps) {
+export default function FloatingActionMenu({ 
+  onNewAppointment, 
+  onNewTask, 
+  onSendRequest, 
+  onNewProposal, 
+  onNewLead, 
+  isVisible = true 
+}: FloatingActionMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [animation] = useState(new Animated.Value(0));
   const [visibilityAnimation] = useState(new Animated.Value(1));
@@ -81,25 +92,25 @@ export default function FloatingActionMenu({ onNewAppointment, isVisible = true 
       icon: CheckSquare, 
       label: 'Create Task',
       colors: ['#8B5CF6', '#A855F7'], 
-      action: () => console.log('Create Task') 
+      action: () => onNewTask?.() 
     },
     { 
       icon: Send, 
       label: 'Send Request',
       colors: ['#6366F1', '#8B5CF6'], 
-      action: () => console.log('Send Request') 
+      action: () => onSendRequest?.() 
     },
     { 
       icon: FileText, 
       label: 'Create Proposal',
       colors: ['#10B981', '#059669'], 
-      action: () => console.log('Create Proposal') 
+      action: () => onNewProposal?.() 
     },
     { 
       icon: UserPlus, 
       label: 'Create Lead',
       colors: ['#EF4444', '#DC2626'], 
-      action: () => console.log('Create Lead') 
+      action: () => onNewLead?.() 
     },
   ];
 
