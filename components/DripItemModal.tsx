@@ -9,7 +9,7 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 
 interface DripItemModalProps {
@@ -43,6 +43,7 @@ export default function DripItemModal({
   const [content, setContent] = useState('');
   const [delay, setDelay] = useState(prefillDelay);
   const [automationType, setAutomationType] = useState('add_note');
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
 
   const handleSave = () => {
     if (itemType === 'message' && !content.trim()) {
@@ -83,11 +84,11 @@ export default function DripItemModal({
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.overlay}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <View style={styles.container}>
+    <View style={styles.overlay}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <X size={24} color="#6B7280" />
@@ -257,13 +258,20 @@ export default function DripItemModal({
           {mode === 'add-item' && itemType === 'message' && messageType === 'email' && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Email Subject</Text>
-              <TextInput
-                style={styles.input}
-                value={subject}
-                onChangeText={setSubject}
-                placeholder="Enter email subject..."
-                placeholderTextColor="#9CA3AF"
-              />
+              <View style={[
+                styles.inputContainer,
+                focusedInput === 'subject' && styles.inputContainerFocused
+              ]}>
+                <TextInput
+                  style={styles.input}
+                  value={subject}
+                  onChangeText={setSubject}
+                  placeholder="Enter email subject..."
+                  placeholderTextColor="#9CA3AF"
+                  onFocus={() => setFocusedInput('subject')}
+                  onBlur={() => setFocusedInput(null)}
+                />
+              </View>
             </View>
           )}
 
@@ -272,19 +280,26 @@ export default function DripItemModal({
             <Text style={styles.sectionTitle}>
               {itemType === 'message' ? 'Message Content' : 'Automation Details'}
             </Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              value={content}
-              onChangeText={setContent}
-              placeholder={
-                itemType === 'message' 
-                  ? "Enter your message content..." 
-                  : "Enter automation details..."
-              }
-              placeholderTextColor="#9CA3AF"
-              multiline
-              numberOfLines={4}
-            />
+            <View style={[
+              styles.inputContainer,
+              focusedInput === 'content' && styles.inputContainerFocused
+            ]}>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                value={content}
+                onChangeText={setContent}
+                placeholder={
+                  itemType === 'message' 
+                    ? "Enter your message content..." 
+                    : "Enter automation details..."
+                }
+                placeholderTextColor="#9CA3AF"
+                multiline
+                numberOfLines={4}
+                onFocus={() => setFocusedInput('content')}
+                onBlur={() => setFocusedInput(null)}
+              />
+            </View>
           </View>
 
           {/* Delay Settings */}
@@ -381,8 +396,8 @@ export default function DripItemModal({
             </View>
           </View>
         </ScrollView>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -394,14 +409,20 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    justifyContent: 'flex-start',
+    paddingTop: 50,
   },
   container: {
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '90%',
-    minHeight: '70%',
+    borderRadius: 20,
+    flex: 1,
+    marginHorizontal: 8,
+    marginBottom: 20,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
   },
   header: {
     flexDirection: 'row',
@@ -530,15 +551,29 @@ const styles = StyleSheet.create({
   automationTypeButtonTextActive: {
     color: '#FFFFFF',
   },
-  input: {
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
+  inputContainer: {
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
     borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0,
+    shadowRadius: 4,
+    elevation: 0,
+  },
+  inputContainerFocused: {
+    borderColor: '#6366F1',
+    backgroundColor: '#F5F7FF',
+    shadowOpacity: 0.15,
+    elevation: 2,
+  },
+  input: {
     paddingHorizontal: 12,
     paddingVertical: 12,
     fontSize: 16,
     color: '#111827',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
   },
   textArea: {
     height: 100,
@@ -646,3 +681,4 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 });
+

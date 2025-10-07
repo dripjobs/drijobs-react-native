@@ -129,16 +129,18 @@ const mockDripService = {
 const pipelineConfigs = {
   leads: {
     title: 'Lead Pipeline',
-    stages: ['new_leads', 'qualified_leads', 'hot_leads'],
+    stages: ['new_leads', 'cold_leads', 'on_hold', 'warm_leads'],
     stageLabels: {
       new_leads: 'New Leads',
-      qualified_leads: 'Qualified Leads', 
-      hot_leads: 'Hot Leads'
+      cold_leads: 'Cold Leads', 
+      on_hold: 'On Hold',
+      warm_leads: 'Warm Leads'
     },
     stageDescriptions: {
       new_leads: 'Fresh leads that need initial contact',
-      qualified_leads: 'Leads that have shown interest',
-      hot_leads: 'High-priority leads ready to convert'
+      cold_leads: 'Leads that need nurturing',
+      on_hold: 'Leads temporarily paused',
+      warm_leads: 'Engaged leads ready to convert'
     }
   },
   opportunities: {
@@ -259,7 +261,13 @@ export default function DripsScreen() {
   const renderHeader = () => (
     <View style={styles.header}>
       <TouchableOpacity 
-        onPress={() => router.back()}
+        onPress={() => {
+          if (selectedSequence) {
+            handleBackToSequences();
+          } else {
+            router.back();
+          }
+        }}
         style={styles.backButton}
       >
         <ArrowLeft size={24} color="#374151" />
@@ -270,14 +278,6 @@ export default function DripsScreen() {
           {selectedSequence ? selectedSequence.name : 'Automate your communication'}
         </Text>
       </View>
-      {!selectedSequence && (
-        <TouchableOpacity 
-          onPress={handleCreateNewSequence}
-          style={styles.addButton}
-        >
-          <Plus size={24} color="#FFFFFF" />
-        </TouchableOpacity>
-      )}
     </View>
   );
 
@@ -431,6 +431,14 @@ export default function DripsScreen() {
           <Plus size={20} color="#FFFFFF" />
           <Text style={styles.newSequenceButtonText}>New Sequence</Text>
         </TouchableOpacity>
+      </View>
+
+      {/* Helper Text */}
+      <View style={styles.helperTextContainer}>
+        <Info size={16} color="#6366F1" />
+        <Text style={styles.helperText}>
+          These automations send when a card enters this stage
+        </Text>
       </View>
 
       {sequences.length === 0 ? (
@@ -618,30 +626,42 @@ export default function DripsScreen() {
 
             {/* Add Item Buttons */}
             <View style={styles.addItemSection}>
-              <Text style={styles.addItemTitle}>Add to Sequence</Text>
+              <View style={styles.addItemHeader}>
+                <Text style={styles.addItemTitle}>Add to Sequence</Text>
+                <Text style={styles.addItemSubtitle}>Select one of the options below to add to your sequence</Text>
+              </View>
               <View style={styles.addItemButtons}>
                 <TouchableOpacity 
                   style={styles.addItemButton}
                   onPress={() => handleAddDripItem('add-item', 60)}
                 >
-                  <MessageSquare size={20} color="#3B82F6" />
+                  <View style={[styles.addItemButtonIcon, { backgroundColor: '#DBEAFE' }]}>
+                    <MessageSquare size={20} color="#3B82F6" />
+                  </View>
                   <Text style={styles.addItemButtonText}>Message</Text>
+                  <Text style={styles.addItemButtonDesc}>Send email or text</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity 
                   style={styles.addItemButton}
                   onPress={() => handleAddDripItem('add-item', 60)}
                 >
-                  <Zap size={20} color="#10B981" />
+                  <View style={[styles.addItemButtonIcon, { backgroundColor: '#D1FAE5' }]}>
+                    <Zap size={20} color="#10B981" />
+                  </View>
                   <Text style={styles.addItemButtonText}>Automation</Text>
+                  <Text style={styles.addItemButtonDesc}>Create tasks or notes</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity 
                   style={styles.addItemButton}
                   onPress={() => handleAddDripItem('add-delay', 1440)}
                 >
-                  <Clock size={20} color="#F59E0B" />
+                  <View style={[styles.addItemButtonIcon, { backgroundColor: '#FEF3C7' }]}>
+                    <Clock size={20} color="#F59E0B" />
+                  </View>
                   <Text style={styles.addItemButtonText}>Delay</Text>
+                  <Text style={styles.addItemButtonDesc}>Wait before next</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1094,6 +1114,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
   },
+  helperTextContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F9FF',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    gap: 10,
+  },
+  helperText: {
+    fontSize: 14,
+    color: '#0369A1',
+    flex: 1,
+    lineHeight: 20,
+  },
   newSequenceButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1435,16 +1473,29 @@ const styles = StyleSheet.create({
   addItemSection: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    padding: 20,
+    borderWidth: 2,
+    borderColor: '#6366F1',
+    marginBottom: 16,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  addItemHeader: {
     marginBottom: 16,
   },
   addItemTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
     color: '#111827',
-    marginBottom: 12,
+    marginBottom: 6,
+  },
+  addItemSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    lineHeight: 20,
   },
   addItemButtons: {
     flexDirection: 'row',
@@ -1452,21 +1503,35 @@ const styles = StyleSheet.create({
   },
   addItemButton: {
     flex: 1,
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
     backgroundColor: '#FFFFFF',
+  },
+  addItemButtonIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   addItemButtonText: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
-    marginLeft: 6,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  addItemButtonDesc: {
+    fontSize: 11,
+    color: '#6B7280',
+    textAlign: 'center',
   },
   timelineHelp: {
     backgroundColor: '#F0F9FF',

@@ -1427,7 +1427,7 @@ export default function Tasks() {
         </SafeAreaView>
       </Modal>
 
-      <FloatingActionMenu />
+      <FloatingActionMenu onNewTask={() => setShowCreateTask(true)} />
     </SafeAreaView>
   );
 }

@@ -1,6 +1,7 @@
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Building, Calendar, Check, ChevronRight, Clock, MapPin, Search, User as UserIcon, X } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Modal } from 'react-native';
-import { X, Check, Calendar, Clock, MapPin, ChevronRight, User as UserIcon, Building, Search } from 'lucide-react-native';
+import { Modal, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 interface NewAppointmentModalProps {
   visible: boolean;
@@ -11,6 +12,14 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
   const [appointmentStep, setAppointmentStep] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [showDurationPicker, setShowDurationPicker] = useState(false);
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
+  const [calendarDate, setCalendarDate] = useState(new Date());
+  const [selectedCalendarDay, setSelectedCalendarDay] = useState<Date | null>(null);
+  const [pickerDate, setPickerDate] = useState(new Date());
+  const [pickerTime, setPickerTime] = useState(new Date());
   const [appointmentData, setAppointmentData] = useState({
     customerType: '', // 'individual' or 'business'
     customerStatus: '', // 'new' or 'existing'
@@ -22,6 +31,7 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
     appointmentAddress: '',
     billingAddress: '',
     notes: '',
+    gateCode: '',
     reminders: true,
     reminderType: 'both',
     // Individual customer fields
@@ -50,6 +60,19 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
     { id: 1, name: 'ABC Construction', email: 'contact@abcconstruction.com', phone: '(555) 111-2222' },
     { id: 2, name: 'XYZ Builders', email: 'info@xyzbuilders.com', phone: '(555) 333-4444' },
     { id: 3, name: 'TechCorp Solutions', email: 'hello@techcorp.com', phone: '(555) 555-6666' },
+  ];
+
+  // Sample appointment data for calendar
+  const sampleAppointments = [
+    { id: 1, date: 15, time: '09:00 AM', duration: '1 hour', name: 'Client Meeting', assignee: 'Chris Palmer', status: 'confirmed', address: '123 Oak Street, Ocala, FL 34471' },
+    { id: 2, date: 15, time: '02:00 PM', duration: '2 hours', name: 'Site Visit - Kitchen Remodel', assignee: 'Chris Palmer', status: 'scheduled', address: '456 Maple Avenue, Gainesville, FL 32601' },
+    { id: 3, date: 18, time: '10:30 AM', duration: '1 hour', name: 'Estimate Consultation', assignee: 'Tanner Mullen', status: 'scheduled', address: '789 Pine Road, Ocala, FL 34480' },
+    { id: 4, date: 20, time: '01:00 PM', duration: '30 min', name: 'Follow-up Call', assignee: 'Chris Palmer', status: 'confirmed', address: '321 Elm Drive, The Villages, FL 32162' },
+    { id: 5, date: 22, time: '11:00 AM', duration: '1.5 hours', name: 'Project Review', assignee: 'Tanner Mullen', status: 'confirmed', address: '654 Cedar Lane, Ocala, FL 34472' },
+    { id: 6, date: 22, time: '03:00 PM', duration: '1 hour', name: 'New Client Consultation', assignee: 'Chris Palmer', status: 'scheduled', address: '987 Birch Court, Gainesville, FL 32607' },
+    { id: 7, date: 25, time: '09:00 AM', duration: '2 hours', name: 'Paint Estimate', assignee: 'Chris Palmer', status: 'confirmed', address: '147 Willow Way, Ocala, FL 34476' },
+    { id: 8, date: 25, time: '01:00 PM', duration: '1 hour', name: 'Site Inspection', assignee: 'Tanner Mullen', status: 'scheduled', address: '258 Spruce Street, Silver Springs, FL 34488' },
+    { id: 9, date: 28, time: '10:00 AM', duration: '1 hour', name: 'Final Walkthrough', assignee: 'Chris Palmer', status: 'confirmed', address: '369 Hickory Boulevard, Ocala, FL 34471' },
   ];
 
   const getCustomerName = () => {
@@ -82,7 +105,7 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
   };
 
   const handleNext = () => {
-    if (canProceedToNext() && appointmentStep < 7) {
+    if (canProceedToNext() && appointmentStep < 6) {
       setAppointmentStep(appointmentStep + 1);
     }
   };
@@ -109,6 +132,7 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
       appointmentAddress: '',
       billingAddress: '',
       notes: '',
+      gateCode: '',
       reminders: true,
       reminderType: 'both',
       firstName: '',
@@ -122,6 +146,94 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
       contactPhone: '',
       contactTitle: ''
     });
+  };
+
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      setPickerDate(selectedDate);
+      const formattedDate = selectedDate.toLocaleDateString('en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric'
+      });
+      setAppointmentData({...appointmentData, startDate: formattedDate});
+    }
+  };
+
+  const handleTimeChange = (event: any, selectedTime?: Date) => {
+    setShowTimePicker(false);
+    if (selectedTime) {
+      setPickerTime(selectedTime);
+      const formattedTime = selectedTime.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+      setAppointmentData({...appointmentData, startTime: formattedTime});
+    }
+  };
+
+  const handleDurationSelect = (duration: string) => {
+    setAppointmentData({...appointmentData, duration});
+    setShowDurationPicker(false);
+  };
+
+  // Calendar helper functions
+  const navigateCalendarMonth = (direction: 'prev' | 'next') => {
+    const newDate = new Date(calendarDate);
+    if (direction === 'prev') {
+      newDate.setMonth(newDate.getMonth() - 1);
+    } else {
+      newDate.setMonth(newDate.getMonth() + 1);
+    }
+    setCalendarDate(newDate);
+  };
+
+  const getEventsForDay = (day: number) => {
+    return sampleAppointments.filter(event => event.date === day);
+  };
+
+  const generateCalendarDays = () => {
+    const year = calendarDate.getFullYear();
+    const month = calendarDate.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const startDate = new Date(firstDay);
+    startDate.setDate(startDate.getDate() - firstDay.getDay());
+    
+    const days = [];
+    const today = new Date();
+    
+    for (let i = 0; i < 42; i++) {
+      const date = new Date(startDate);
+      date.setDate(startDate.getDate() + i);
+      
+      const isCurrentMonth = date.getMonth() === month;
+      const isToday = date.toDateString() === today.toDateString();
+      const events = isCurrentMonth ? getEventsForDay(date.getDate()) : [];
+      
+      days.push({
+        date,
+        day: date.getDate(),
+        isCurrentMonth,
+        isToday,
+        events,
+      });
+    }
+    
+    return days;
+  };
+
+  const getStatusColor = (status: string) => {
+    const statusColors = {
+      'scheduled': '#BFDBFE',
+      'confirmed': '#BBF7D0',
+      'complete': '#16A34A',
+      'no-show': '#D1D5DB',
+      'cancelled': '#FECACA',
+      'in-progress': '#FED7AA',
+    };
+    return statusColors[status as keyof typeof statusColors] || '#D1D5DB';
   };
 
   const renderStepContent = () => {
@@ -245,13 +357,25 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
                   <View style={styles.formField}>
                     <Text style={styles.fieldLabel}>First Name *</Text>
                     <View style={styles.inputContainer}>
-                      <Text style={styles.inputText}>{appointmentData.firstName || 'Enter first name'}</Text>
+                      <TextInput 
+                        style={styles.inputText}
+                        placeholder="Enter first name"
+                        placeholderTextColor="#9CA3AF"
+                        value={appointmentData.firstName}
+                        onChangeText={(text) => setAppointmentData({...appointmentData, firstName: text})}
+                      />
                     </View>
                   </View>
                   <View style={styles.formField}>
                     <Text style={styles.fieldLabel}>Last Name *</Text>
                     <View style={styles.inputContainer}>
-                      <Text style={styles.inputText}>{appointmentData.lastName || 'Enter last name'}</Text>
+                      <TextInput 
+                        style={styles.inputText}
+                        placeholder="Enter last name"
+                        placeholderTextColor="#9CA3AF"
+                        value={appointmentData.lastName}
+                        onChangeText={(text) => setAppointmentData({...appointmentData, lastName: text})}
+                      />
                     </View>
                   </View>
                 </View>
@@ -259,14 +383,29 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
                 <View style={styles.formField}>
                   <Text style={styles.fieldLabel}>Email</Text>
                   <View style={styles.inputContainer}>
-                    <Text style={styles.inputText}>{appointmentData.email || 'customer@email.com'}</Text>
+                    <TextInput 
+                      style={styles.inputText}
+                      placeholder="customer@email.com"
+                      placeholderTextColor="#9CA3AF"
+                      value={appointmentData.email}
+                      onChangeText={(text) => setAppointmentData({...appointmentData, email: text})}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                    />
                   </View>
                 </View>
                 
                 <View style={styles.formField}>
                   <Text style={styles.fieldLabel}>Phone</Text>
                   <View style={styles.inputContainer}>
-                    <Text style={styles.inputText}>{appointmentData.phone || '(555) 123-4567'}</Text>
+                    <TextInput 
+                      style={styles.inputText}
+                      placeholder="(555) 123-4567"
+                      placeholderTextColor="#9CA3AF"
+                      value={appointmentData.phone}
+                      onChangeText={(text) => setAppointmentData({...appointmentData, phone: text})}
+                      keyboardType="phone-pad"
+                    />
                   </View>
                 </View>
               </View>
@@ -282,7 +421,13 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
                 <View style={styles.formField}>
                   <Text style={styles.fieldLabel}>Business Name *</Text>
                   <View style={styles.inputContainer}>
-                    <Text style={styles.inputText}>{appointmentData.businessName || 'Enter business name'}</Text>
+                    <TextInput 
+                      style={styles.inputText}
+                      placeholder="Enter business name"
+                      placeholderTextColor="#9CA3AF"
+                      value={appointmentData.businessName}
+                      onChangeText={(text) => setAppointmentData({...appointmentData, businessName: text})}
+                    />
                   </View>
                 </View>
                 
@@ -296,13 +441,25 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
                   <View style={styles.formField}>
                     <Text style={styles.fieldLabel}>First Name *</Text>
                     <View style={styles.inputContainer}>
-                      <Text style={styles.inputText}>{appointmentData.contactFirstName || 'Enter first name'}</Text>
+                      <TextInput 
+                        style={styles.inputText}
+                        placeholder="Enter first name"
+                        placeholderTextColor="#9CA3AF"
+                        value={appointmentData.contactFirstName}
+                        onChangeText={(text) => setAppointmentData({...appointmentData, contactFirstName: text})}
+                      />
                     </View>
                   </View>
                   <View style={styles.formField}>
                     <Text style={styles.fieldLabel}>Last Name *</Text>
                     <View style={styles.inputContainer}>
-                      <Text style={styles.inputText}>{appointmentData.contactLastName || 'Enter last name'}</Text>
+                      <TextInput 
+                        style={styles.inputText}
+                        placeholder="Enter last name"
+                        placeholderTextColor="#9CA3AF"
+                        value={appointmentData.contactLastName}
+                        onChangeText={(text) => setAppointmentData({...appointmentData, contactLastName: text})}
+                      />
                     </View>
                   </View>
                 </View>
@@ -311,13 +468,28 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
                   <View style={styles.formField}>
                     <Text style={styles.fieldLabel}>Email *</Text>
                     <View style={styles.inputContainer}>
-                      <Text style={styles.inputText}>{appointmentData.contactEmail || 'contact@email.com'}</Text>
+                      <TextInput 
+                        style={styles.inputText}
+                        placeholder="contact@email.com"
+                        placeholderTextColor="#9CA3AF"
+                        value={appointmentData.contactEmail}
+                        onChangeText={(text) => setAppointmentData({...appointmentData, contactEmail: text})}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                      />
                     </View>
                   </View>
                   <View style={styles.formField}>
                     <Text style={styles.fieldLabel}>Phone *</Text>
                     <View style={styles.inputContainer}>
-                      <Text style={styles.inputText}>{appointmentData.contactPhone || '(555) 123-4567'}</Text>
+                      <TextInput 
+                        style={styles.inputText}
+                        placeholder="(555) 123-4567"
+                        placeholderTextColor="#9CA3AF"
+                        value={appointmentData.contactPhone}
+                        onChangeText={(text) => setAppointmentData({...appointmentData, contactPhone: text})}
+                        keyboardType="phone-pad"
+                      />
                     </View>
                   </View>
                 </View>
@@ -325,7 +497,13 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
                 <View style={styles.formField}>
                   <Text style={styles.fieldLabel}>Title (Optional)</Text>
                   <View style={styles.inputContainer}>
-                    <Text style={styles.inputText}>{appointmentData.contactTitle || 'e.g., CEO, Manager, Owner'}</Text>
+                    <TextInput 
+                      style={styles.inputText}
+                      placeholder="e.g., CEO, Manager, Owner"
+                      placeholderTextColor="#9CA3AF"
+                      value={appointmentData.contactTitle}
+                      onChangeText={(text) => setAppointmentData({...appointmentData, contactTitle: text})}
+                    />
                   </View>
                 </View>
               </View>
@@ -356,9 +534,13 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
                 {/* Search Bar */}
                 <View style={styles.searchContainer}>
                   <Search size={20} color="#6B7280" />
-                  <Text style={styles.searchPlaceholder}>
-                    {isBusiness ? 'Search businesses...' : 'Search contacts...'}
-                  </Text>
+                  <TextInput
+                    style={styles.searchPlaceholder}
+                    placeholder={isBusiness ? 'Search businesses...' : 'Search contacts...'}
+                    placeholderTextColor="#9CA3AF"
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                  />
                 </View>
                 
                 {/* Customer/Business List */}
@@ -471,9 +653,82 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
       case 4:
         return (
           <View style={styles.appointmentStep}>
-            <Text style={styles.stepTitle}>User *</Text>
-            <Text style={styles.stepSubtitle}>Select the user who will be assigned to this appointment</Text>
+            <Text style={styles.stepTitle}>Schedule Details</Text>
+            <Text style={styles.stepSubtitle}>Set the date, time, and duration for your appointment</Text>
             
+            <View style={styles.scheduleContainer}>
+              {/* View Calendar Button */}
+              <TouchableOpacity 
+                style={styles.viewCalendarButton}
+                onPress={() => setShowCalendarModal(true)}
+              >
+                <Calendar size={20} color="#6366F1" />
+                <Text style={styles.viewCalendarButtonText}>View Calendar</Text>
+                <Text style={styles.viewCalendarButtonSubtext}>Check availability</Text>
+              </TouchableOpacity>
+
+              <View style={styles.scheduleField}>
+                <Text style={styles.fieldLabel}>Event Start Date *</Text>
+                <TouchableOpacity 
+                  style={styles.inputContainer}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <Text style={styles.inputText}>{appointmentData.startDate}</Text>
+                  <Calendar size={20} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.scheduleField}>
+                <Text style={styles.fieldLabel}>Event Start Time *</Text>
+                <TouchableOpacity 
+                  style={styles.inputContainer}
+                  onPress={() => setShowTimePicker(true)}
+                >
+                  <Text style={styles.inputText}>{appointmentData.startTime}</Text>
+                  <Clock size={20} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.scheduleField}>
+                <Text style={styles.fieldLabel}>Event Duration</Text>
+                <TouchableOpacity 
+                  style={styles.inputContainer}
+                  onPress={() => setShowDurationPicker(!showDurationPicker)}
+                >
+                  <Text style={styles.inputText}>{appointmentData.duration}</Text>
+                  <ChevronRight size={20} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Duration Picker Dropdown */}
+              {showDurationPicker && (
+                <View style={styles.durationDropdown}>
+                  {['30 minutes', '45 minutes', '1 hour', '1.5 hours', '2 hours', '3 hours', '4 hours'].map((duration) => (
+                    <TouchableOpacity
+                      key={duration}
+                      style={styles.durationOption}
+                      onPress={() => handleDurationSelect(duration)}
+                    >
+                      <Text style={[
+                        styles.durationOptionText,
+                        appointmentData.duration === duration && styles.durationOptionTextSelected
+                      ]}>
+                        {duration}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+              
+              <Text style={styles.durationNote}>Event will end at 10:00 AM</Text>
+            </View>
+
+            {/* User Selection */}
+            <View style={styles.scheduleField}>
+              <Text style={styles.fieldLabel}>Assigned User *</Text>
+              <Text style={styles.fieldHelperText}>Select the user who will be assigned to this appointment</Text>
+            </View>
+
             <View style={styles.userContainer}>
               {[
                 { name: 'John Smith', email: 'john@company.com', isYou: true },
@@ -500,46 +755,30 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
                 </TouchableOpacity>
               ))}
             </View>
+
+            {/* Date Picker */}
+            {showDatePicker && (
+              <DateTimePicker
+                value={pickerDate}
+                mode="date"
+                display="spinner"
+                onChange={handleDateChange}
+              />
+            )}
+
+            {/* Time Picker */}
+            {showTimePicker && (
+              <DateTimePicker
+                value={pickerTime}
+                mode="time"
+                display="spinner"
+                onChange={handleTimeChange}
+              />
+            )}
           </View>
         );
 
       case 5:
-        return (
-          <View style={styles.appointmentStep}>
-            <Text style={styles.stepTitle}>Schedule Details</Text>
-            <Text style={styles.stepSubtitle}>Set the date, time, and duration for your appointment</Text>
-            
-            <View style={styles.scheduleContainer}>
-              <View style={styles.scheduleField}>
-                <Text style={styles.fieldLabel}>Event Start Date *</Text>
-                <View style={styles.inputContainer}>
-                  <Text style={styles.inputText}>{appointmentData.startDate}</Text>
-                  <Calendar size={20} color="#6B7280" />
-                </View>
-              </View>
-              
-              <View style={styles.scheduleField}>
-                <Text style={styles.fieldLabel}>Event Start Time *</Text>
-                <View style={styles.inputContainer}>
-                  <Text style={styles.inputText}>{appointmentData.startTime}</Text>
-                  <Clock size={20} color="#6B7280" />
-                </View>
-              </View>
-              
-              <View style={styles.scheduleField}>
-                <Text style={styles.fieldLabel}>Event Duration</Text>
-                <View style={styles.inputContainer}>
-                  <Text style={styles.inputText}>{appointmentData.duration}</Text>
-                  <ChevronRight size={20} color="#6B7280" />
-                </View>
-              </View>
-              
-              <Text style={styles.durationNote}>Event will end at 10:00 AM</Text>
-            </View>
-          </View>
-        );
-
-      case 6:
         return (
           <View style={styles.appointmentStep}>
             <Text style={styles.stepTitle}>Appointment Notes</Text>
@@ -547,18 +786,38 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
             
             <View style={styles.notesContainer}>
               <View style={styles.textAreaContainer}>
-                <Text style={styles.textAreaPlaceholder}>
-                  Enter any notes, special requirements, or additional information for this appointment...
-                </Text>
+                <TextInput
+                  style={styles.textAreaPlaceholder}
+                  placeholder="Enter any notes, special requirements, or additional information for this appointment..."
+                  placeholderTextColor="#9CA3AF"
+                  value={appointmentData.notes}
+                  onChangeText={(text) => setAppointmentData({...appointmentData, notes: text})}
+                  multiline
+                  numberOfLines={6}
+                  textAlignVertical="top"
+                />
+              </View>
+
+              <View style={styles.scheduleField}>
+                <Text style={styles.fieldLabel}>Gate or Lockbox Code (Optional)</Text>
+                <View style={styles.inputContainer}>
+                  <TextInput 
+                    style={styles.inputText}
+                    placeholder="Enter gate or lockbox code"
+                    placeholderTextColor="#9CA3AF"
+                    value={appointmentData.gateCode}
+                    onChangeText={(text) => setAppointmentData({...appointmentData, gateCode: text})}
+                  />
+                </View>
               </View>
             </View>
           </View>
         );
 
-      case 7:
+      case 6:
         return (
           <View style={styles.appointmentStep}>
-            <Text style={styles.stepTitle}>Reminders & Notes</Text>
+            <Text style={styles.stepTitle}>Reminders & Review</Text>
             
             <View style={styles.remindersContainer}>
               <View style={styles.reminderToggle}>
@@ -628,11 +887,10 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
             <Text style={styles.appointmentSubtitle}>
               {appointmentStep === 1 && "Choose whether this proposal is for a business or individual customer, and whether they are new or existing."}
               {appointmentStep === 2 && "Enter customer details or select an existing customer from your database."}
-              {appointmentStep === 3 && `Choose the event type, assign a salesperson, and schedule the appointment date and time${getCustomerName() ? ` for ${getCustomerName()}` : ''}.`}
-              {appointmentStep === 4 && `Choose the user who will be assigned to this appointment${getCustomerName() ? ` with ${getCustomerName()}` : ''}.`}
-              {appointmentStep === 5 && `Choose whether this is an on-site appointment or virtual meeting${getCustomerName() ? ` for ${getCustomerName()}` : ''}.`}
-              {appointmentStep === 6 && `Add any additional details or special instructions for this appointment${getCustomerName() ? ` with ${getCustomerName()}` : ''}.`}
-              {appointmentStep === 7 && `Set up reminders and review your appointment details${getCustomerName() ? ` for ${getCustomerName()}` : ''}.`}
+              {appointmentStep === 3 && `Choose the event type for this appointment${getCustomerName() ? ` with ${getCustomerName()}` : ''}.`}
+              {appointmentStep === 4 && `Set the date, time, duration, and assign the user who will handle this appointment${getCustomerName() ? ` with ${getCustomerName()}` : ''}.`}
+              {appointmentStep === 5 && `Add any additional details or special instructions for this appointment${getCustomerName() ? ` with ${getCustomerName()}` : ''}.`}
+              {appointmentStep === 6 && `Set up reminders and review your appointment details${getCustomerName() ? ` for ${getCustomerName()}` : ''}.`}
             </Text>
           </View>
           <TouchableOpacity 
@@ -645,7 +903,7 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
 
         {/* Progress Indicator */}
         <View style={styles.progressContainer}>
-          {[1, 2, 3, 4, 5, 6].map((step) => (
+          {[1, 2, 3, 4, 5].map((step) => (
             <View key={step} style={styles.progressStep}>
               <View style={[
                 styles.progressCircle,
@@ -663,7 +921,7 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
                   </Text>
                 )}
               </View>
-              {step < 6 && <View style={styles.progressLine} />}
+              {step < 5 && <View style={styles.progressLine} />}
             </View>
           ))}
         </View>
@@ -717,10 +975,10 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
                 style={[
                   styles.footerButton, 
                   styles.footerButtonPrimary,
-                  appointmentStep === 7 && styles.footerButtonCreate,
+                  appointmentStep === 6 && styles.footerButtonCreate,
                   !canProceedToNext() && styles.footerButtonDisabled
                 ]}
-                onPress={appointmentStep === 7 ? handleClose : handleNext}
+                onPress={appointmentStep === 6 ? handleClose : handleNext}
                 disabled={!canProceedToNext()}
               >
                 <Text style={[
@@ -728,11 +986,172 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
                   styles.footerButtonPrimaryText,
                   !canProceedToNext() && styles.footerButtonTextDisabled
                 ]}>
-                  {appointmentStep === 7 ? 'Create Appointment' : 'Next'}
+                  {appointmentStep === 6 ? 'Create Appointment' : 'Next'}
                 </Text>
               </TouchableOpacity>
           </View>
         </View>
+
+        {/* Calendar View Modal */}
+        <Modal
+          visible={showCalendarModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowCalendarModal(false)}
+        >
+          <SafeAreaView style={styles.calendarModalContainer}>
+            {/* Calendar Header */}
+            <View style={styles.calendarModalHeader}>
+              <View style={styles.calendarModalHeaderLeft}>
+                <Text style={styles.calendarModalTitle}>Availability Calendar</Text>
+                <Text style={styles.calendarModalSubtitle}>View your scheduled appointments</Text>
+              </View>
+              <TouchableOpacity 
+                style={styles.calendarModalCloseButton}
+                onPress={() => setShowCalendarModal(false)}
+              >
+                <X size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Month Navigation */}
+            <View style={styles.calendarMonthNav}>
+              <TouchableOpacity 
+                style={styles.calendarNavButton}
+                onPress={() => navigateCalendarMonth('prev')}
+              >
+                <ChevronRight size={24} color="#6B7280" style={{ transform: [{ rotate: '180deg' }] }} />
+              </TouchableOpacity>
+              <Text style={styles.calendarMonthTitle}>
+                {calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              </Text>
+              <TouchableOpacity 
+                style={styles.calendarNavButton}
+                onPress={() => navigateCalendarMonth('next')}
+              >
+                <ChevronRight size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Calendar Content */}
+            <ScrollView style={styles.calendarModalContent}>
+              {/* Day Headers */}
+              <View style={styles.calendarDayHeaders}>
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                  <Text key={day} style={styles.calendarDayHeader}>
+                    {day}
+                  </Text>
+                ))}
+              </View>
+
+              {/* Calendar Grid */}
+              <View style={styles.calendarGridContainer}>
+                {generateCalendarDays().map((day, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.calendarDayCell,
+                      !day.isCurrentMonth && styles.calendarDayCellInactive,
+                      day.isToday && styles.calendarDayCellToday,
+                      selectedCalendarDay?.toDateString() === day.date.toDateString() && styles.calendarDayCellSelected,
+                    ]}
+                    onPress={() => {
+                      if (day.isCurrentMonth) {
+                        setSelectedCalendarDay(day.date);
+                      }
+                    }}
+                    disabled={!day.isCurrentMonth}
+                  >
+                    <Text
+                      style={[
+                        styles.calendarDayText,
+                        !day.isCurrentMonth && styles.calendarDayTextInactive,
+                        day.isToday && styles.calendarDayTextToday,
+                        selectedCalendarDay?.toDateString() === day.date.toDateString() && styles.calendarDayTextSelected,
+                      ]}
+                    >
+                      {day.day}
+                    </Text>
+                    
+                    {/* Event indicators */}
+                    {day.events && day.events.length > 0 && (
+                      <View style={styles.calendarDayEvents}>
+                        {day.events.slice(0, 2).map((event: any, i: number) => (
+                          <View
+                            key={i}
+                            style={[
+                              styles.calendarEventDot,
+                              { backgroundColor: getStatusColor(event.status) }
+                            ]}
+                          />
+                        ))}
+                        {day.events.length > 2 && (
+                          <Text style={styles.calendarMoreEventsText}>+{day.events.length - 2}</Text>
+                        )}
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Selected Day Events */}
+              {selectedCalendarDay && getEventsForDay(selectedCalendarDay.getDate()).length > 0 && (
+                <View style={styles.selectedDaySection}>
+                  <Text style={styles.selectedDayTitle}>
+                    {selectedCalendarDay.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                  </Text>
+                  <Text style={styles.selectedDaySubtitle}>
+                    {getEventsForDay(selectedCalendarDay.getDate()).length} appointment{getEventsForDay(selectedCalendarDay.getDate()).length !== 1 ? 's' : ''} scheduled
+                  </Text>
+                  
+                  <View style={styles.calendarEventsList}>
+                    {getEventsForDay(selectedCalendarDay.getDate()).map((event: any) => (
+                      <View key={event.id} style={styles.calendarEventCard}>
+                        <View style={styles.calendarEventTimeSection}>
+                          <Text style={styles.calendarEventTime}>{event.time}</Text>
+                          <Text style={styles.calendarEventDuration}>{event.duration}</Text>
+                        </View>
+                        <View style={styles.calendarEventDetails}>
+                          <Text style={styles.calendarEventName}>{event.name}</Text>
+                          <Text style={styles.calendarEventAssignee}>{event.assignee}</Text>
+                          {event.address && (
+                            <View style={styles.calendarEventAddressRow}>
+                              <MapPin size={14} color="#6B7280" />
+                              <Text style={styles.calendarEventAddress}>{event.address}</Text>
+                            </View>
+                          )}
+                          <View style={[
+                            styles.calendarEventStatusBadge,
+                            { backgroundColor: getStatusColor(event.status) }
+                          ]}>
+                            <Text style={styles.calendarEventStatusText}>
+                              {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {/* Legend */}
+              <View style={styles.calendarLegend}>
+                <Text style={styles.calendarLegendTitle}>Legend</Text>
+                <View style={styles.calendarLegendItems}>
+                  <View style={styles.calendarLegendItem}>
+                    <View style={[styles.calendarLegendDot, { backgroundColor: '#BBF7D0' }]} />
+                    <Text style={styles.calendarLegendText}>Confirmed</Text>
+                  </View>
+                  <View style={styles.calendarLegendItem}>
+                    <View style={[styles.calendarLegendDot, { backgroundColor: '#BFDBFE' }]} />
+                    <Text style={styles.calendarLegendText}>Scheduled</Text>
+                  </View>
+                </View>
+              </View>
+            </ScrollView>
+          </SafeAreaView>
+        </Modal>
       </SafeAreaView>
     </Modal>
   );
@@ -778,8 +1197,8 @@ const styles = StyleSheet.create({
   progressContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
     paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
@@ -787,6 +1206,7 @@ const styles = StyleSheet.create({
   progressStep: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   progressCircle: {
     width: 32,
@@ -811,10 +1231,10 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   progressLine: {
-    width: 40,
+    flex: 1,
     height: 2,
     backgroundColor: '#E5E7EB',
-    marginHorizontal: 8,
+    marginHorizontal: 4,
   },
   appointmentContent: {
     flex: 1,
@@ -838,6 +1258,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#374151',
+    marginBottom: 12,
+  },
+  fieldHelperText: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginTop: -8,
     marginBottom: 12,
   },
   // Event Type Styles
@@ -968,6 +1394,28 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontStyle: 'italic',
   },
+  durationDropdown: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginTop: 8,
+    overflow: 'hidden',
+  },
+  durationOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  durationOptionText: {
+    fontSize: 16,
+    color: '#1F2937',
+  },
+  durationOptionTextSelected: {
+    color: '#6366F1',
+    fontWeight: '600',
+  },
   // Notes Styles
   notesContainer: {
     gap: 12,
@@ -982,8 +1430,9 @@ const styles = StyleSheet.create({
   },
   textAreaPlaceholder: {
     fontSize: 16,
-    color: '#9CA3AF',
+    color: '#1F2937',
     lineHeight: 24,
+    flex: 1,
   },
   // Reminders Styles
   remindersContainer: {
@@ -1243,7 +1692,7 @@ const styles = StyleSheet.create({
   },
   searchPlaceholder: {
     fontSize: 16,
-    color: '#9CA3AF',
+    color: '#1F2937',
     flex: 1,
   },
   customerList: {
@@ -1320,5 +1769,258 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#1F2937',
+  },
+  // View Calendar Button
+  viewCalendarButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EEF2FF',
+    borderRadius: 12,
+    padding: 16,
+    gap: 12,
+    borderWidth: 2,
+    borderColor: '#6366F1',
+    marginBottom: 20,
+  },
+  viewCalendarButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  viewCalendarButtonSubtext: {
+    fontSize: 14,
+    color: '#6366F1',
+    fontWeight: '500',
+    marginLeft: -8,
+  },
+  // Calendar Modal Styles
+  calendarModalContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  calendarModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  calendarModalHeaderLeft: {
+    flex: 1,
+  },
+  calendarModalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  calendarModalSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 4,
+  },
+  calendarModalCloseButton: {
+    padding: 8,
+  },
+  calendarMonthNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  calendarNavButton: {
+    padding: 8,
+  },
+  calendarMonthTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  calendarModalContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  calendarDayHeaders: {
+    flexDirection: 'row',
+    paddingVertical: 12,
+  },
+  calendarDayHeader: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  calendarGridContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  calendarDayCell: {
+    width: '14.28%',
+    aspectRatio: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+    padding: 4,
+  },
+  calendarDayCellInactive: {
+    opacity: 0.3,
+  },
+  calendarDayCellToday: {
+    backgroundColor: '#DBEAFE',
+    borderRadius: 8,
+  },
+  calendarDayCellSelected: {
+    backgroundColor: '#6366F1',
+    borderRadius: 8,
+  },
+  calendarDayText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#374151',
+  },
+  calendarDayTextSelected: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  calendarDayTextInactive: {
+    color: '#9CA3AF',
+  },
+  calendarDayTextToday: {
+    color: '#1D4ED8',
+    fontWeight: '600',
+  },
+  calendarDayEvents: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 2,
+    gap: 2,
+  },
+  calendarEventDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  calendarMoreEventsText: {
+    fontSize: 8,
+    color: '#6B7280',
+    fontWeight: '600',
+  },
+  calendarLegend: {
+    marginTop: 24,
+    marginBottom: 20,
+    padding: 16,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+  },
+  calendarLegendTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 12,
+  },
+  calendarLegendItems: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  calendarLegendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  calendarLegendDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  calendarLegendText: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  // Selected Day Section
+  selectedDaySection: {
+    marginTop: 24,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  selectedDayTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  selectedDaySubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 16,
+  },
+  calendarEventsList: {
+    gap: 12,
+  },
+  calendarEventCard: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    gap: 12,
+  },
+  calendarEventTimeSection: {
+    width: 80,
+  },
+  calendarEventTime: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  calendarEventDuration: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  calendarEventDetails: {
+    flex: 1,
+  },
+  calendarEventName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  calendarEventAssignee: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 6,
+  },
+  calendarEventAddressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  calendarEventAddress: {
+    fontSize: 13,
+    color: '#6B7280',
+    flex: 1,
+  },
+  calendarEventStatusBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  calendarEventStatusText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#374151',
   },
 });

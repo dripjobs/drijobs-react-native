@@ -1,18 +1,21 @@
 import { AddAreaWizard } from '@/components/AddAreaWizard';
+import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
     ChevronLeft,
     Clock,
+    Copy,
+    Edit3,
     Eye,
     FileText,
     MessageSquare,
+    Monitor,
     Package,
     Paperclip,
     Percent,
     Plus,
     Presentation,
-    Save,
     Send,
     Settings,
     Shield,
@@ -24,6 +27,7 @@ import {
     Alert,
     Modal,
     Platform,
+    Linking as RNLinking,
     SafeAreaView,
     ScrollView,
     StyleSheet,
@@ -61,8 +65,14 @@ export default function ProposalBuilder() {
   const proposalId = params.id as string | undefined;
   const isEditing = !!proposalId;
   
+  // Preview mode state
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
+  
   // Active tab state
   const [activeTab, setActiveTab] = useState<'overview' | 'settings' | 'notes' | 'comments' | 'activity' | 'video' | 'presentation'>('overview');
+  
+  // Public URL state
+  const [showUrlModal, setShowUrlModal] = useState(false);
   
   // Form state
   const [title, setTitle] = useState('');
@@ -118,9 +128,35 @@ export default function ProposalBuilder() {
     return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
   
-  const handleSave = () => {
-    // TODO: Implement save logic
-    Alert.alert('Success', 'Proposal saved successfully!');
+  // Generate public URL for proposal
+  const getPublicUrl = () => {
+    const baseUrl = 'https://app.dripjobs.com/proposal';
+    const proposalSlug = proposalId || `draft-${Date.now()}`;
+    return `${baseUrl}/${proposalSlug}`;
+  };
+  
+  const handleCopyUrl = async () => {
+    const url = getPublicUrl();
+    await Clipboard.setStringAsync(url);
+    Alert.alert('Success', 'Public URL copied to clipboard!');
+  };
+  
+  const handlePresent = () => {
+    setShowUrlModal(true);
+  };
+  
+  const handleOpenPublicUrl = async () => {
+    const url = getPublicUrl();
+    const canOpen = await RNLinking.canOpenURL(url);
+    if (canOpen) {
+      await RNLinking.openURL(url);
+    } else {
+      Alert.alert('Error', 'Cannot open URL');
+    }
+  };
+  
+  const togglePreviewMode = () => {
+    setIsPreviewMode(!isPreviewMode);
   };
   
   const handleSend = () => {
@@ -223,6 +259,128 @@ export default function ProposalBuilder() {
       </ScrollView>
     );
   };
+
+  const renderPreviewMode = () => (
+    <View style={styles.tabContent}>
+      {/* Customer View Header */}
+      <View style={styles.previewHeader}>
+        <Text style={styles.previewCompanyName}>DripJobs Inc.</Text>
+        <Text style={styles.previewProposalTitle}>{title || 'Untitled Proposal'}</Text>
+        <Text style={styles.previewContactName}>For: {contactName || 'Contact Name'}</Text>
+        {businessName && <Text style={styles.previewBusinessName}>{businessName}</Text>}
+        {validUntil && (
+          <Text style={styles.previewValidUntil}>Valid Until: {validUntil}</Text>
+        )}
+      </View>
+
+      {/* Line Items Preview */}
+      {standardItems.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Proposal Items</Text>
+          {standardItems.map((item) => (
+            <View key={item.id} style={styles.previewLineItem}>
+              <View style={styles.lineItemHeader}>
+                <Text style={styles.lineItemName}>{item.name}</Text>
+                <Text style={styles.lineItemTotal}>{formatCurrency(item.totalPrice)}</Text>
+              </View>
+              <Text style={styles.lineItemDescription}>{item.description}</Text>
+              <Text style={styles.lineItemText}>
+                Quantity: {item.quantity} × {formatCurrency(item.unitPrice)}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Optional Items Preview */}
+      {optionalItems.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Optional Add-Ons</Text>
+          <Text style={styles.optionalDescription}>
+            The following items can be added to your proposal:
+          </Text>
+          {optionalItems.map((item) => (
+            <View key={item.id} style={[styles.previewLineItem, styles.optionalItem]}>
+              <View style={styles.lineItemHeader}>
+                <Text style={styles.lineItemName}>{item.name}</Text>
+                <Text style={styles.lineItemTotal}>{formatCurrency(item.totalPrice)}</Text>
+              </View>
+              <Text style={styles.lineItemDescription}>{item.description}</Text>
+              <Text style={styles.lineItemText}>
+                Quantity: {item.quantity} × {formatCurrency(item.unitPrice)}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Preview Summary */}
+      <View style={[styles.section, styles.summarySection]}>
+        <Text style={styles.sectionTitle}>Proposal Summary</Text>
+        
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>Subtotal:</Text>
+          <Text style={styles.summaryValue}>{formatCurrency(subtotal)}</Text>
+        </View>
+
+        {discountAmount > 0 && (
+          <View style={styles.summaryRow}>
+            <Text style={[styles.summaryLabel, styles.summaryDiscount]}>Discount:</Text>
+            <Text style={[styles.summaryValue, styles.summaryDiscount]}>
+              -{formatCurrency(discountAmount)}
+            </Text>
+          </View>
+        )}
+
+        {taxAmount > 0 && (
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Tax:</Text>
+            <Text style={styles.summaryValue}>{formatCurrency(taxAmount)}</Text>
+          </View>
+        )}
+
+        <View style={[styles.summaryRow, styles.summaryTotal]}>
+          <Text style={styles.summaryTotalLabel}>Total Amount:</Text>
+          <Text style={styles.summaryTotalValue}>{formatCurrency(totalAmount)}</Text>
+        </View>
+
+        {depositRequired && (
+          <>
+            <View style={[styles.summaryRow, styles.summaryDeposit]}>
+              <Text style={styles.summaryDepositLabel}>Deposit Required:</Text>
+              <Text style={styles.summaryDepositValue}>{formatCurrency(depositAmount)}</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Remaining Balance:</Text>
+              <Text style={styles.summaryValue}>{formatCurrency(remainingAmount)}</Text>
+            </View>
+          </>
+        )}
+      </View>
+
+      {/* Client Notes */}
+      {clientNotes && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Additional Information</Text>
+          <Text style={styles.previewNotes}>{clientNotes}</Text>
+        </View>
+      )}
+
+      {/* Terms and Conditions */}
+      {terms && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Terms and Conditions</Text>
+          <Text style={styles.previewTerms}>{terms}</Text>
+        </View>
+      )}
+
+      {/* Payment Terms */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Payment Terms</Text>
+        <Text style={styles.previewPaymentTerms}>{paymentTerms}</Text>
+      </View>
+    </View>
+  );
 
   const renderOverviewTab = () => (
     <View style={styles.tabContent}>
@@ -651,23 +809,38 @@ export default function ProposalBuilder() {
 
         {/* Action Buttons */}
         <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.headerActionButton} onPress={handleSave}>
-            <Save size={18} color="#FFFFFF" />
-            <Text style={styles.headerActionText}>Save</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.headerActionButton} onPress={handleSend}>
-            <Send size={18} color="#FFFFFF" />
-            <Text style={styles.headerActionText}>Send</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.headerActionButton}>
-            <Eye size={18} color="#FFFFFF" />
-            <Text style={styles.headerActionText}>Preview</Text>
-          </TouchableOpacity>
+          {isPreviewMode ? (
+            <>
+              <TouchableOpacity style={styles.headerActionButton} onPress={togglePreviewMode}>
+                <Edit3 size={18} color="#FFFFFF" />
+                <Text style={styles.headerActionText}>Edit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.headerActionButton} onPress={handleSend}>
+                <Send size={18} color="#FFFFFF" />
+                <Text style={styles.headerActionText}>Send</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <TouchableOpacity style={styles.headerActionButton} onPress={togglePreviewMode}>
+                <Eye size={18} color="#FFFFFF" />
+                <Text style={styles.headerActionText}>Preview</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.headerActionButton} onPress={handlePresent}>
+                <Monitor size={18} color="#FFFFFF" />
+                <Text style={styles.headerActionText}>Present</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.headerActionButton} onPress={handleSend}>
+                <Send size={18} color="#FFFFFF" />
+                <Text style={styles.headerActionText}>Send</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </LinearGradient>
 
-      {/* Tab Bar */}
-      {renderTabBar()}
+      {/* Tab Bar - Hidden in preview mode */}
+      {!isPreviewMode && renderTabBar()}
 
       {/* Content */}
       <ScrollView
@@ -675,7 +848,7 @@ export default function ProposalBuilder() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
       >
-        {renderTabContent()}
+        {isPreviewMode ? renderPreviewMode() : renderTabContent()}
       </ScrollView>
 
       {/* Add Item Modal */}
@@ -931,6 +1104,65 @@ export default function ProposalBuilder() {
         onClose={() => setShowAreaWizard(false)}
         onAddArea={handleAddArea}
       />
+
+      {/* Present / Public URL Modal */}
+      <Modal
+        visible={showUrlModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowUrlModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Present Proposal</Text>
+              <TouchableOpacity onPress={() => setShowUrlModal(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalBody}>
+              <Text style={styles.presentDescription}>
+                Share this public link with your customer or open it on another device to present your proposal in person.
+              </Text>
+
+              <View style={styles.urlContainer}>
+                <Text style={styles.urlLabel}>Public URL:</Text>
+                <View style={styles.urlBox}>
+                  <Text style={styles.urlText} numberOfLines={1}>
+                    {getPublicUrl()}
+                  </Text>
+                </View>
+              </View>
+
+              <TouchableOpacity style={styles.presentButton} onPress={handleCopyUrl}>
+                <Copy size={20} color="#6366F1" />
+                <Text style={styles.presentButtonText}>Copy URL</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.presentButtonPrimary} onPress={handleOpenPublicUrl}>
+                <Monitor size={20} color="#FFFFFF" />
+                <Text style={styles.presentButtonPrimaryText}>Open in Browser</Text>
+              </TouchableOpacity>
+
+              <View style={styles.presentInfo}>
+                <Text style={styles.presentInfoText}>
+                  💡 This URL will show your proposal in a clean, customer-friendly format without any editing controls.
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.modalButtonSecondary}
+                onPress={() => setShowUrlModal(false)}
+              >
+                <Text style={styles.modalButtonSecondaryText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1480,6 +1712,149 @@ const styles = StyleSheet.create({
   radioLabel: {
     fontSize: 16,
     color: '#111827',
+  },
+  // Preview Mode Styles
+  previewHeader: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  previewCompanyName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  previewProposalTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#111827',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  previewContactName: {
+    fontSize: 16,
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  previewBusinessName: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    fontStyle: 'italic',
+  },
+  previewValidUntil: {
+    fontSize: 14,
+    color: '#EF4444',
+    marginTop: 8,
+    fontWeight: '600',
+  },
+  previewLineItem: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  optionalDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 12,
+    fontStyle: 'italic',
+  },
+  previewNotes: {
+    fontSize: 14,
+    color: '#374151',
+    lineHeight: 20,
+  },
+  previewTerms: {
+    fontSize: 13,
+    color: '#6B7280',
+    lineHeight: 20,
+  },
+  previewPaymentTerms: {
+    fontSize: 14,
+    color: '#111827',
+    fontWeight: '600',
+  },
+  // Present Modal Styles
+  presentDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  urlContainer: {
+    marginBottom: 16,
+  },
+  urlLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  urlBox: {
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    padding: 12,
+  },
+  urlText: {
+    fontSize: 14,
+    color: '#6366F1',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
+  presentButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EEF2FF',
+    borderRadius: 12,
+    padding: 14,
+    gap: 8,
+    marginBottom: 12,
+  },
+  presentButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  presentButtonPrimary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#6366F1',
+    borderRadius: 12,
+    padding: 14,
+    gap: 8,
+    marginBottom: 16,
+  },
+  presentButtonPrimaryText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  presentInfo: {
+    backgroundColor: '#F0FDF4',
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  presentInfoText: {
+    fontSize: 13,
+    color: '#15803D',
+    lineHeight: 18,
   },
 });
 

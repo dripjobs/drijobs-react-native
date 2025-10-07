@@ -1,8 +1,10 @@
+import CreateLeadModal from '@/components/CreateLeadModal';
 import DrawerMenu from '@/components/DrawerMenu';
 import FloatingActionMenu from '@/components/FloatingActionMenu';
 import NewAppointmentModal from '@/components/NewAppointmentModal';
 import NewProposalModal from '@/components/NewProposalModal';
 import NotificationModal from '@/components/NotificationModal';
+import SendRequestModal from '@/components/SendRequestModal';
 import StatCard from '@/components/StatCard';
 import StatDetailModal from '@/components/StatDetailModal';
 import { useTabBar } from '@/contexts/TabBarContext';
@@ -21,6 +23,8 @@ export default function Dashboard() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [showNewAppointment, setShowNewAppointment] = useState(false);
   const [showNewProposal, setShowNewProposal] = useState(false);
+  const [showSendRequest, setShowSendRequest] = useState(false);
+  const [showCreateLead, setShowCreateLead] = useState(false);
   const [showMeetingDetails, setShowMeetingDetails] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState<any>(null);
   const [meetingDetailsTranslateY] = useState(new Animated.Value(screenHeight));
@@ -423,6 +427,22 @@ export default function Dashboard() {
 
   const handleProposalClose = () => {
     setShowNewProposal(false);
+  };
+
+  const handleSendRequest = () => {
+    setShowSendRequest(true);
+  };
+
+  const handleSendRequestClose = () => {
+    setShowSendRequest(false);
+  };
+
+  const handleCreateLead = () => {
+    setShowCreateLead(true);
+  };
+
+  const handleCreateLeadClose = () => {
+    setShowCreateLead(false);
   };
 
   // Today's appointments data
@@ -1424,6 +1444,8 @@ export default function Dashboard() {
       <FloatingActionMenu 
         onNewAppointment={handleNewAppointment} 
         onNewProposal={handleNewProposal}
+        onSendRequest={handleSendRequest}
+        onNewLead={handleCreateLead}
         isVisible={showFAB} 
       />
       
@@ -1437,6 +1459,18 @@ export default function Dashboard() {
       <NewProposalModal 
         visible={showNewProposal}
         onClose={handleProposalClose}
+      />
+
+      {/* Send Request Modal */}
+      <SendRequestModal 
+        visible={showSendRequest}
+        onClose={handleSendRequestClose}
+      />
+
+      {/* Create Lead Modal */}
+      <CreateLeadModal 
+        visible={showCreateLead}
+        onClose={handleCreateLeadClose}
       />
 
       <StatDetailModal

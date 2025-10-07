@@ -918,7 +918,7 @@ export default function NewProposalModal({ visible, onClose }: NewProposalModalP
                   </View>
                 </View>
 
-                <View style={styles.selectionContainer}>
+                <View style={[styles.selectionContainer, { marginTop: 20 }]}>
                   <Text style={styles.sectionLabel}>Deal Creation</Text>
                   <TouchableOpacity
                     style={styles.checkboxContainer}

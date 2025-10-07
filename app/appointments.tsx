@@ -1,8 +1,10 @@
-import DrawerMenu from '@/components/DrawerMenu';
 import FloatingActionMenu from '@/components/FloatingActionMenu';
+import NewAppointmentModal from '@/components/NewAppointmentModal';
+import NewProposalModal from '@/components/NewProposalModal';
 import { useTabBar } from '@/contexts/TabBarContext';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import {
     AlertCircle,
     Archive,
@@ -11,7 +13,6 @@ import {
     ChevronDown,
     ChevronLeft,
     ChevronRight,
-    ChevronRight as ChevronRightIcon,
     Clock,
     Copy,
     Edit,
@@ -343,7 +344,9 @@ const durationOptions = [
 
 export default function Appointments() {
   const { setIsTransparent } = useTabBar();
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const router = useRouter();
+  const [showNewAppointment, setShowNewAppointment] = useState(false);
+  const [showNewProposal, setShowNewProposal] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showRequestQueue, setShowRequestQueue] = useState(false);
@@ -689,6 +692,23 @@ export default function Appointments() {
     console.log('Opening email client');
   };
 
+  // Modal handlers
+  const handleNewAppointment = () => {
+    setShowNewAppointment(true);
+  };
+
+  const handleAppointmentClose = () => {
+    setShowNewAppointment(false);
+  };
+
+  const handleNewProposal = () => {
+    setShowNewProposal(true);
+  };
+
+  const handleProposalClose = () => {
+    setShowNewProposal(false);
+  };
+
   // Edit form helper functions
   const updateEditForm = (field: string, value: any) => {
     setEditForm(prev => ({ ...prev, [field]: value }));
@@ -905,22 +925,10 @@ export default function Appointments() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <DrawerMenu 
-        isOpen={drawerOpen} 
-        onClose={() => setDrawerOpen(false)} 
-      />
-      
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => setDrawerOpen(true)} style={styles.pullOutMenu}>
-          <View style={styles.pullOutIndicator}>
-            <View style={styles.pullOutDot} />
-            <View style={styles.pullOutDot} />
-            <View style={styles.pullOutDot} />
-          </View>
-          <View style={styles.pullOutArrow}>
-            <ChevronRightIcon size={16} color="#6366F1" />
-          </View>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <ChevronLeft size={24} color="#6B7280" />
         </TouchableOpacity>
         
         <View style={styles.headerContent}>
@@ -1086,7 +1094,7 @@ export default function Appointments() {
                   <Text style={styles.eventType}>{event.type.replace('-', ' ')}</Text>
                 </View>
                 <View style={styles.eventActionButton}>
-                  <ChevronRightIcon size={16} color="#6B7280" />
+                  <ChevronRight size={16} color="#6B7280" />
                 </View>
               </TouchableOpacity>
             ))}
@@ -1437,7 +1445,7 @@ export default function Appointments() {
                       
                       <View style={styles.requestItemActions}>
                         <TouchableOpacity style={styles.viewRequestButton}>
-                          <ChevronRightIcon size={16} color="#6366F1" />
+                          <ChevronRight size={16} color="#6366F1" />
                         </TouchableOpacity>
                       </View>
                     </TouchableOpacity>
@@ -2060,7 +2068,22 @@ export default function Appointments() {
         </View>
       </Modal>
 
-      <FloatingActionMenu />
+      {/* New Appointment Modal */}
+      <NewAppointmentModal 
+        visible={showNewAppointment}
+        onClose={handleAppointmentClose}
+      />
+
+      {/* New Proposal Modal */}
+      <NewProposalModal 
+        visible={showNewProposal}
+        onClose={handleProposalClose}
+      />
+
+      <FloatingActionMenu 
+        onNewAppointment={handleNewAppointment}
+        onNewProposal={handleNewProposal}
+      />
 
       <Toast />
     </SafeAreaView>
@@ -2081,25 +2104,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
-  pullOutMenu: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  pullOutIndicator: {
-    width: 6,
-    height: 24,
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  pullOutDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#6366F1',
-  },
-  pullOutArrow: {
-    marginLeft: 4,
+  backButton: {
+    padding: 8,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
   },
   headerContent: {
     flex: 1,

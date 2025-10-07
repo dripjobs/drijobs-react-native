@@ -80,6 +80,7 @@ export default function NewSequenceModal({
   const [timingMode, setTimingMode] = useState<'previous_action' | 'time_in_stage'>('previous_action');
   const [pipeline, setPipeline] = useState(initialPipeline);
   const [stage, setStage] = useState(initialStage);
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
 
   const handleSave = () => {
     if (!name.trim()) {
@@ -130,26 +131,40 @@ export default function NewSequenceModal({
             
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Sequence Name *</Text>
-              <TextInput
-                style={styles.input}
-                value={name}
-                onChangeText={setName}
-                placeholder="e.g., Welcome New Leads"
-                placeholderTextColor="#9CA3AF"
-              />
+              <View style={[
+                styles.inputContainer,
+                focusedInput === 'name' && styles.inputContainerFocused
+              ]}>
+                <TextInput
+                  style={styles.input}
+                  value={name}
+                  onChangeText={setName}
+                  placeholder="e.g., Welcome New Leads"
+                  placeholderTextColor="#9CA3AF"
+                  onFocus={() => setFocusedInput('name')}
+                  onBlur={() => setFocusedInput(null)}
+                />
+              </View>
             </View>
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Description</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={description}
-                onChangeText={setDescription}
-                placeholder="Describe what this sequence does..."
-                placeholderTextColor="#9CA3AF"
-                multiline
-                numberOfLines={3}
-              />
+              <View style={[
+                styles.inputContainer,
+                focusedInput === 'description' && styles.inputContainerFocused
+              ]}>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  value={description}
+                  onChangeText={setDescription}
+                  placeholder="Describe what this sequence does..."
+                  placeholderTextColor="#9CA3AF"
+                  multiline
+                  numberOfLines={3}
+                  onFocus={() => setFocusedInput('description')}
+                  onBlur={() => setFocusedInput(null)}
+                />
+              </View>
             </View>
           </View>
 
@@ -357,15 +372,29 @@ const styles = StyleSheet.create({
     color: '#374151',
     marginBottom: 8,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
+  inputContainer: {
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
     borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0,
+    shadowRadius: 4,
+    elevation: 0,
+  },
+  inputContainerFocused: {
+    borderColor: '#6366F1',
+    backgroundColor: '#F5F7FF',
+    shadowOpacity: 0.15,
+    elevation: 2,
+  },
+  input: {
     paddingHorizontal: 12,
     paddingVertical: 12,
     fontSize: 16,
     color: '#111827',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
   },
   textArea: {
     height: 80,
