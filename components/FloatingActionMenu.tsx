@@ -1,5 +1,6 @@
+import { useAppSettings } from '@/contexts/AppSettingsContext';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Calendar, SquareCheck as CheckSquare, FileText, Plus, Send, UserPlus } from 'lucide-react-native';
+import { Briefcase, Calendar, FileText, Phone, Plus, Receipt, Send, SquareCheck, UserPlus } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -9,20 +10,42 @@ interface FloatingActionMenuProps {
   onSendRequest?: () => void;
   onNewProposal?: () => void;
   onNewLead?: () => void;
+  onNewJob?: () => void;
+  onNewInvoice?: () => void;
+  onPhoneCall?: () => void;
   isVisible?: boolean;
 }
+
+// Icon mapper for quick actions
+const getQuickActionIcon = (iconName: string) => {
+  const icons: Record<string, any> = {
+    Calendar,
+    SquareCheck,
+    Send,
+    FileText,
+    Briefcase,
+    UserPlus,
+    Receipt,
+    Phone,
+  };
+  return icons[iconName] || Plus;
+};
 
 export default function FloatingActionMenu({ 
   onNewAppointment, 
   onNewTask, 
   onSendRequest, 
   onNewProposal, 
-  onNewLead, 
+  onNewLead,
+  onNewJob,
+  onNewInvoice,
+  onPhoneCall,
   isVisible = true 
 }: FloatingActionMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [animation] = useState(new Animated.Value(0));
   const [visibilityAnimation] = useState(new Animated.Value(1));
+  const { selectedQuickActions } = useAppSettings();
 
   useEffect(() => {
     Animated.timing(visibilityAnimation, {
@@ -81,38 +104,25 @@ export default function FloatingActionMenu({
     return { transform: [{ rotate }] };
   };
 
-  const menuItems = [
-    { 
-      icon: Calendar, 
-      label: 'Create Appt',
-      colors: ['#F59E0B', '#D97706'], 
-      action: () => onNewAppointment?.() 
-    },
-    { 
-      icon: CheckSquare, 
-      label: 'Create Task',
-      colors: ['#8B5CF6', '#A855F7'], 
-      action: () => onNewTask?.() 
-    },
-    { 
-      icon: Send, 
-      label: 'Send Request',
-      colors: ['#6366F1', '#8B5CF6'], 
-      action: () => onSendRequest?.() 
-    },
-    { 
-      icon: FileText, 
-      label: 'Create Proposal',
-      colors: ['#10B981', '#059669'], 
-      action: () => onNewProposal?.() 
-    },
-    { 
-      icon: UserPlus, 
-      label: 'Create Lead',
-      colors: ['#EF4444', '#DC2626'], 
-      action: () => onNewLead?.() 
-    },
-  ];
+  // Map quick action IDs to handlers
+  const actionHandlers: Record<string, () => void> = {
+    appointment: () => onNewAppointment?.(),
+    task: () => onNewTask?.(),
+    request: () => onSendRequest?.(),
+    proposal: () => onNewProposal?.(),
+    job: () => onNewJob?.(),
+    lead: () => onNewLead?.(),
+    invoice: () => onNewInvoice?.(),
+    call: () => onPhoneCall?.(),
+  };
+
+  // Build menu items from selected quick actions
+  const menuItems = selectedQuickActions.map(action => ({
+    icon: getQuickActionIcon(action.icon),
+    label: action.label,
+    colors: action.colors,
+    action: actionHandlers[action.id] || (() => {}),
+  }));
 
   const containerStyle = {
     opacity: visibilityAnimation,

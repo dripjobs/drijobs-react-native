@@ -1,6 +1,11 @@
+import CallInitiationModal from '@/components/CallInitiationModal';
+import CreateJobModal from '@/components/CreateJobModal';
+import CreateLeadModal from '@/components/CreateLeadModal';
 import DrawerMenu from '@/components/DrawerMenu';
 import FloatingActionMenu from '@/components/FloatingActionMenu';
 import NewAppointmentModal from '@/components/NewAppointmentModal';
+import NewProposalModal from '@/components/NewProposalModal';
+import SendRequestModal from '@/components/SendRequestModal';
 import { useTabBar } from '@/contexts/TabBarContext';
 import { Archive, ArrowRight, Building, Calendar, CheckSquare, ChevronLeft, ChevronRight, Clock, DollarSign, Edit, Eye, FileText, Filter, Mail, MapPin, MessageSquare, MoreVertical, Phone, Plus, Send, Tag, Target, Trash2, TrendingUp, User, X, Zap } from 'lucide-react-native';
 import React, { useState } from 'react';
@@ -42,6 +47,14 @@ export default function Pipeline() {
   });
   const [showFAB, setShowFAB] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  
+  // Quick Actions modal states (additional ones beyond showNewAppointment)
+  const [showNewProposal, setShowNewProposal] = useState(false);
+  const [showSendRequest, setShowSendRequest] = useState(false);
+  const [showCreateLead, setShowCreateLead] = useState(false);
+  const [showCreateJob, setShowCreateJob] = useState(false);
+  const [showCallInitiation, setShowCallInitiation] = useState(false);
+  const [callContact, setCallContact] = useState({ name: '', phone: '' });
 
   const pipelines = [
     {
@@ -350,6 +363,11 @@ export default function Pipeline() {
     }).start();
   };
 
+  const handleCallPress = (contactName: string, phoneNumber: string) => {
+    setCallContact({ name: contactName, phone: phoneNumber });
+    setShowCallInitiation(true);
+  };
+
   const toggleCardExpansion = (cardId: number) => {
     const newExpandedCards = new Set(expandedCards);
     if (newExpandedCards.has(cardId)) {
@@ -367,6 +385,22 @@ export default function Pipeline() {
   const handleNewAppointment = () => {
     setShowNewAppointment(true);
     setAppointmentStep(1);
+  };
+
+  const handleNewProposal = () => {
+    setShowNewProposal(true);
+  };
+
+  const handleSendRequest = () => {
+    setShowSendRequest(true);
+  };
+
+  const handleCreateLead = () => {
+    setShowCreateLead(true);
+  };
+
+  const handleCreateJob = () => {
+    setShowCreateJob(true);
   };
 
   const handleAppointmentNext = () => {
@@ -448,7 +482,10 @@ export default function Pipeline() {
             {/* Communication Actions */}
             <View style={styles.communicationSection}>
               <View style={styles.communicationActions}>
-                <TouchableOpacity style={[styles.communicationButton, styles.callButton]}>
+                <TouchableOpacity 
+                  style={[styles.communicationButton, styles.callButton]}
+                  onPress={() => handleCallPress('Mike Stewart', '(555) 123-4567')}
+                >
                   <Phone size={18} color="#FFFFFF" />
                   <Text style={styles.communicationButtonText}>Call</Text>
                 </TouchableOpacity>
@@ -1525,7 +1562,10 @@ export default function Pipeline() {
                       <View style={styles.communicationSection}>
                         <Text style={styles.sectionTitle}>Quick Actions</Text>
                         <View style={styles.communicationActions}>
-                          <TouchableOpacity style={[styles.communicationButton, styles.callButton]}>
+                          <TouchableOpacity 
+                            style={[styles.communicationButton, styles.callButton]}
+                            onPress={() => handleCallPress(card.contact || 'Contact', '(555) 123-4567')}
+                          >
                             <Phone size={18} color="#FFFFFF" />
                             <Text style={styles.communicationButtonText}>Call</Text>
                           </TouchableOpacity>
@@ -1619,7 +1659,35 @@ export default function Pipeline() {
         </View>
       </ScrollView>
 
-      <FloatingActionMenu onNewAppointment={handleNewAppointment} isVisible={showFAB} />
+      <FloatingActionMenu
+        onNewAppointment={handleNewAppointment}
+        onNewProposal={handleNewProposal}
+        onSendRequest={handleSendRequest}
+        onNewLead={handleCreateLead}
+        onNewJob={handleCreateJob}
+        isVisible={showFAB}
+      />
+
+      {/* Quick Actions Modals */}
+      <NewProposalModal 
+        visible={showNewProposal}
+        onClose={() => setShowNewProposal(false)}
+      />
+
+      <SendRequestModal 
+        visible={showSendRequest}
+        onClose={() => setShowSendRequest(false)}
+      />
+
+      <CreateLeadModal 
+        visible={showCreateLead}
+        onClose={() => setShowCreateLead(false)}
+      />
+
+      <CreateJobModal 
+        visible={showCreateJob}
+        onClose={() => setShowCreateJob(false)}
+      />
 
       {/* Command Center Modal */}
       <Modal
@@ -1901,6 +1969,13 @@ export default function Pipeline() {
             <NewAppointmentModal 
         visible={showNewAppointment}
         onClose={handleAppointmentClose}
+      />
+
+      <CallInitiationModal
+        visible={showCallInitiation}
+        onClose={() => setShowCallInitiation(false)}
+        contactName={callContact.name}
+        phoneNumber={callContact.phone}
       />
 
     </SafeAreaView>

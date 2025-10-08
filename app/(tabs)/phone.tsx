@@ -1,7 +1,13 @@
+import CreateJobModal from '@/components/CreateJobModal';
+import CreateLeadModal from '@/components/CreateLeadModal';
 import DrawerMenu from '@/components/DrawerMenu';
 import FloatingActionMenu from '@/components/FloatingActionMenu';
+import NewAppointmentModal from '@/components/NewAppointmentModal';
+import NewProposalModal from '@/components/NewProposalModal';
+import SendRequestModal from '@/components/SendRequestModal';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useTabBar } from '@/contexts/TabBarContext';
+import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronRight, Clock, FileText, MessageSquare, Mic, MicOff, Pause, Phone as PhoneIcon, PhoneOff, Play, Search, Settings, Sparkles, UserPlus, Volume2 } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
@@ -29,6 +35,13 @@ export default function Phone() {
   const [showCallThread, setShowCallThread] = useState(false);
   const [callThreadTranslateY] = useState(new Animated.Value(0));
   const [selectedCallThread, setSelectedCallThread] = useState(null);
+  
+  // Quick Actions modal states
+  const [showNewAppointment, setShowNewAppointment] = useState(false);
+  const [showNewProposal, setShowNewProposal] = useState(false);
+  const [showSendRequest, setShowSendRequest] = useState(false);
+  const [showCreateLead, setShowCreateLead] = useState(false);
+  const [showCreateJob, setShowCreateJob] = useState(false);
 
   const dialpadNumbers = [
     [{ number: '1', letters: '' }, { number: '2', letters: 'ABC' }, { number: '3', letters: 'DEF' }],
@@ -139,6 +152,9 @@ export default function Phone() {
   };
 
   const handleNumberPress = (number: string) => {
+    // Add haptic feedback for dialpad button press
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
     // Remove formatting, add number, then reformat
     const cleaned = phoneNumber.replace(/\D/g, '');
     const newNumber = cleaned + number;
@@ -150,6 +166,9 @@ export default function Phone() {
   };
 
   const handleBackspace = () => {
+    // Add haptic feedback for backspace
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
     // Remove formatting, delete last digit, then reformat
     const cleaned = phoneNumber.replace(/\D/g, '');
     const newNumber = cleaned.slice(0, -1);
@@ -172,6 +191,9 @@ export default function Phone() {
   }, [isCallActive, isOnHold]);
 
   const handleCall = () => {
+    // Add haptic feedback for call button press
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    
     const cleanedNumber = phoneNumber.replace(/\D/g, '');
     if (cleanedNumber.length === 0) {
       Alert.alert('Error', 'Please enter a phone number');
@@ -216,6 +238,9 @@ export default function Phone() {
   };
 
   const handleContactSelect = (contact: any) => {
+    // Add haptic feedback for contact selection
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    
     setPhoneNumber(formatPhoneNumber(contact.phone));
     setSelectedContact(contact);
     setShowContactSearch(false);
@@ -229,6 +254,9 @@ export default function Phone() {
   }, []);
 
   const handleRecentCallsPress = () => {
+    // Add haptic feedback for recent calls button
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
     setShowCallHistory(true);
     // Clear missed calls when user opens call history
     clearMissedCalls();
@@ -236,7 +264,17 @@ export default function Phone() {
     translateY.setValue(0);
   };
 
+  const handleAddContactPress = () => {
+    // Add haptic feedback for add contact button
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
+    setShowContactSearch(true);
+  };
+
   const handleCallFromHistory = (call: any) => {
+    // Add haptic feedback for calling from history
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    
     setPhoneNumber(formatPhoneNumber(call.number));
     setShowCallHistory(false);
   };
@@ -250,6 +288,9 @@ export default function Phone() {
   };
 
   const handleCallFromThread = (call: any) => {
+    // Add haptic feedback for calling from thread
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    
     // Set the phone number and selected contact
     setPhoneNumber(formatPhoneNumber(call.number || selectedCallThread?.number));
     setSelectedContact(selectedCallThread);
@@ -389,6 +430,27 @@ export default function Phone() {
       case 'missed': return '#EF4444';
       default: return '#6B7280';
     }
+  };
+
+  // Quick Actions handlers
+  const handleNewAppointment = () => {
+    setShowNewAppointment(true);
+  };
+
+  const handleNewProposal = () => {
+    setShowNewProposal(true);
+  };
+
+  const handleSendRequest = () => {
+    setShowSendRequest(true);
+  };
+
+  const handleCreateLead = () => {
+    setShowCreateLead(true);
+  };
+
+  const handleCreateJob = () => {
+    setShowCreateJob(true);
   };
 
   return (
@@ -980,14 +1042,46 @@ export default function Phone() {
           
           <TouchableOpacity 
             style={styles.addContactButton}
-            onPress={() => setShowContactSearch(true)}
+            onPress={handleAddContactPress}
           >
             <UserPlus size={24} color="#6B7280" />
           </TouchableOpacity>
         </View>
       </View>
 
-      <FloatingActionMenu />
+      <FloatingActionMenu
+        onNewAppointment={handleNewAppointment}
+        onNewProposal={handleNewProposal}
+        onSendRequest={handleSendRequest}
+        onNewLead={handleCreateLead}
+        onNewJob={handleCreateJob}
+      />
+
+      {/* Quick Actions Modals */}
+      <NewAppointmentModal 
+        visible={showNewAppointment}
+        onClose={() => setShowNewAppointment(false)}
+      />
+
+      <NewProposalModal 
+        visible={showNewProposal}
+        onClose={() => setShowNewProposal(false)}
+      />
+
+      <SendRequestModal 
+        visible={showSendRequest}
+        onClose={() => setShowSendRequest(false)}
+      />
+
+      <CreateLeadModal 
+        visible={showCreateLead}
+        onClose={() => setShowCreateLead(false)}
+      />
+
+      <CreateJobModal 
+        visible={showCreateJob}
+        onClose={() => setShowCreateJob(false)}
+      />
     </SafeAreaView>
   );
 }

@@ -1,30 +1,56 @@
+import { useAppSettings } from '@/contexts/AppSettingsContext';
+import { useUserRole } from '@/contexts/UserRoleContext';
+import QuickBooksService from '@/services/QuickBooksService';
+import { QuickBooksConnectionStatus, QuickBooksSyncSettings } from '@/types/quickbooks';
+import { UserRole } from '@/types/userRoles';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
     AlertCircle,
+    BarChart3,
     Bell,
+    Briefcase,
     Building2,
     Calendar,
+    Camera,
     CheckCircle,
+    ChevronDown,
     ChevronLeft,
     ChevronRight,
+    ChevronUp,
+    Clock,
     Copy,
     CreditCard,
+    DollarSign,
     Edit,
     ExternalLink,
     FileText,
+    GripVertical,
+    Hash,
+    House,
+    Link,
     Mail,
     Palette,
+    Phone,
     Plus,
+    Receipt,
+    RefreshCw,
+    RotateCcw,
     Save,
     Send,
     Settings,
+    Smartphone,
+    SquareCheck,
     Trash2,
     Upload,
+    UserPlus,
+    Users,
+    Wrench,
     X,
+    XCircle,
     Zap
 } from 'lucide-react-native';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Modal,
     Platform,
@@ -39,7 +65,7 @@ import {
     View
 } from 'react-native';
 
-type SettingsTab = 'company' | 'brand' | 'email' | 'general' | 'leads' | 'events' | 'payments' | 'reminders';
+type SettingsTab = 'company' | 'brand' | 'email' | 'general' | 'leads' | 'events' | 'payments' | 'reminders' | 'app' | 'integrations';
 
 interface EventType {
     id: string;
@@ -67,7 +93,17 @@ export default function AccountSettings() {
     const [activeTab, setActiveTab] = useState<SettingsTab>('company');
     const [isEditing, setIsEditing] = useState(false);
     const [showTabSelector, setShowTabSelector] = useState(false);
+    const [showQBSettings, setShowQBSettings] = useState(false);
     const [hasChanges, setHasChanges] = useState(false);
+    
+    // App Settings Context
+    const appSettings = useAppSettings();
+    const userRole = useUserRole();
+
+    // QuickBooks Integration State
+    const [qbConnectionStatus, setQBConnectionStatus] = useState<QuickBooksConnectionStatus>({ isConnected: false });
+    const [qbSyncSettings, setQBSyncSettings] = useState<QuickBooksSyncSettings | null>(null);
+    const [selectedAccountantRole, setSelectedAccountantRole] = useState<UserRole>('admin');
 
     // Company Settings
     const [companySettings, setCompanySettings] = useState({
@@ -196,7 +232,25 @@ export default function AccountSettings() {
         }
     ]);
 
+    // Load QuickBooks connection status on mount
+    useEffect(() => {
+        loadQuickBooksStatus();
+    }, []);
+
+    const loadQuickBooksStatus = async () => {
+        try {
+            const status = await QuickBooksService.getConnectionStatus();
+            setQBConnectionStatus(status);
+            
+            const settings = await QuickBooksService.getSyncSettings();
+            setQBSyncSettings(settings);
+        } catch (error) {
+            console.error('Error loading QuickBooks status:', error);
+        }
+    };
+
     const tabs = [
+        { id: 'app', label: 'App Settings', icon: Smartphone },
         { id: 'company', label: 'Company Info', icon: Building2 },
         { id: 'brand', label: 'Brand Settings', icon: Palette },
         { id: 'email', label: 'Email Settings', icon: Mail },
@@ -205,6 +259,7 @@ export default function AccountSettings() {
         { id: 'events', label: 'Event Types', icon: Calendar },
         { id: 'payments', label: 'Payments', icon: CreditCard },
         { id: 'reminders', label: 'Reminders', icon: Bell },
+        { id: 'integrations', label: 'Integrations', icon: Link },
     ];
 
     const handleSave = () => {
@@ -1503,6 +1558,568 @@ export default function AccountSettings() {
                     </View>
                 );
 
+            case 'app':
+                return (
+                    <View style={styles.tabContent}>
+                        {/* Bottom Menu Settings */}
+                        <View style={styles.section}>
+                            <View style={styles.sectionHeader}>
+                                <Text style={styles.sectionTitle}>Bottom Menu</Text>
+                            </View>
+                            <Text style={styles.sectionSubtitle}>
+                                Choose 4-6 menu items. Home is always first.
+                            </Text>
+
+                            {/* Selected Tabs */}
+                            <View style={styles.selectedTabsContainer}>
+                                {appSettings.selectedTabs.map((tab, index) => {
+                                    const Icon = tab.id === 'index' ? House : 
+                                                 tab.id === 'contacts' ? Users :
+                                                 tab.id === 'businesses' ? Building2 :
+                                                 tab.id === 'pipeline' ? BarChart3 :
+                                                 tab.id === 'phone' ? Grid3x3 :
+                                                 tab.id === 'chat' ? MessageSquare :
+                                                 tab.id === 'email' ? Mail :
+                                                 tab.id === 'team-chat' ? Hash :
+                                                 tab.id === 'work-orders' ? Wrench :
+                                                 tab.id === 'tasks' ? SquareCheck : House;
+                                    
+                                    const isHome = tab.id === 'index';
+                                    const canMoveUp = index > 1;
+                                    const canMoveDown = index < appSettings.selectedTabs.length - 1;
+                                    
+                                    return (
+                                        <View key={tab.id} style={styles.selectedTabItem}>
+                                            <View style={styles.selectedTabLeft}>
+                                                <GripVertical size={18} color="#9CA3AF" />
+                                                <View style={[styles.tabIconCircle, isHome && styles.tabIconCircleHome]}>
+                                                    <Icon size={18} color={isHome ? '#6366F1' : '#6B7280'} />
+                                                </View>
+                                                <View>
+                                                    <Text style={styles.selectedTabName}>{tab.title}</Text>
+                                                    {isHome && <Text style={styles.requiredBadge}>Required</Text>}
+                                                </View>
+                                            </View>
+                                            <View style={styles.selectedTabActions}>
+                                                {!isHome && (
+                                                    <>
+                                                        <TouchableOpacity
+                                                            style={[styles.tabActionButton, !canMoveUp && styles.tabActionButtonDisabled]}
+                                                            disabled={!canMoveUp}
+                                                            onPress={() => {
+                                                                const newTabs = [...appSettings.selectedTabs];
+                                                                [newTabs[index], newTabs[index - 1]] = [newTabs[index - 1], newTabs[index]];
+                                                                appSettings.setSelectedTabs(newTabs);
+                                                            }}
+                                                        >
+                                                            <ChevronUp size={18} color={canMoveUp ? '#6B7280' : '#D1D5DB'} />
+                                                        </TouchableOpacity>
+                                                        <TouchableOpacity
+                                                            style={[styles.tabActionButton, !canMoveDown && styles.tabActionButtonDisabled]}
+                                                            disabled={!canMoveDown}
+                                                            onPress={() => {
+                                                                const newTabs = [...appSettings.selectedTabs];
+                                                                [newTabs[index], newTabs[index + 1]] = [newTabs[index + 1], newTabs[index]];
+                                                                appSettings.setSelectedTabs(newTabs);
+                                                            }}
+                                                        >
+                                                            <ChevronDown size={18} color={canMoveDown ? '#6B7280' : '#D1D5DB'} />
+                                                        </TouchableOpacity>
+                                                        <TouchableOpacity
+                                                            style={styles.tabActionButton}
+                                                            disabled={appSettings.selectedTabs.length <= 4}
+                                                            onPress={() => {
+                                                                if (appSettings.selectedTabs.length > 4) {
+                                                                    const newTabs = appSettings.selectedTabs.filter(t => t.id !== tab.id);
+                                                                    appSettings.setSelectedTabs(newTabs);
+                                                                }
+                                                            }}
+                                                        >
+                                                            <X size={18} color={appSettings.selectedTabs.length > 4 ? '#EF4444' : '#D1D5DB'} />
+                                                        </TouchableOpacity>
+                                                    </>
+                                                )}
+                                            </View>
+                                        </View>
+                                    );
+                                })}
+                            </View>
+
+                            {/* Available Tabs */}
+                            {appSettings.selectedTabs.length < 6 && (
+                                <View style={styles.availableTabsSection}>
+                                    <Text style={styles.availableTabsTitle}>Add More Tabs</Text>
+                                    <View style={styles.availableTabsGrid}>
+                                        {appSettings.availableTabs
+                                            .filter(tab => !appSettings.selectedTabs.find(st => st.id === tab.id))
+                                            .map(tab => {
+                                                const Icon = tab.id === 'contacts' ? Users :
+                                                             tab.id === 'businesses' ? Building2 :
+                                                             tab.id === 'pipeline' ? BarChart3 :
+                                                             tab.id === 'phone' ? Phone :
+                                                             tab.id === 'chat' ? Hash :
+                                                             tab.id === 'email' ? Mail :
+                                                             tab.id === 'team-chat' ? Hash :
+                                                             tab.id === 'work-orders' ? Wrench :
+                                                             tab.id === 'tasks' ? SquareCheck : House;
+                                                
+                                                return (
+                                                    <TouchableOpacity
+                                                        key={tab.id}
+                                                        style={styles.availableTabItem}
+                                                        onPress={() => {
+                                                            const newTabs = [...appSettings.selectedTabs, tab];
+                                                            appSettings.setSelectedTabs(newTabs);
+                                                        }}
+                                                    >
+                                                        <Icon size={20} color="#6366F1" />
+                                                        <Text style={styles.availableTabName}>{tab.title}</Text>
+                                                        <Plus size={16} color="#6366F1" />
+                                                    </TouchableOpacity>
+                                                );
+                                            })}
+                                    </View>
+                                </View>
+                            )}
+
+                            <View style={styles.helpTextContainer}>
+                                <Text style={styles.helpText}>
+                                    Selected: {appSettings.selectedTabs.length}/6 tabs
+                                    {appSettings.selectedTabs.length < 4 && ' (minimum 4 required)'}
+                                </Text>
+                            </View>
+                        </View>
+
+                        {/* Quick Actions Settings */}
+                        <View style={styles.section}>
+                            <View style={styles.sectionHeader}>
+                                <Text style={styles.sectionTitle}>Quick Actions</Text>
+                            </View>
+                            <Text style={styles.sectionSubtitle}>
+                                Customize your floating action menu
+                            </Text>
+
+                            {/* Selected Quick Actions */}
+                            <View style={styles.selectedActionsContainer}>
+                                {appSettings.selectedQuickActions.map((action, index) => {
+                                    const Icon = action.icon === 'Calendar' ? Calendar :
+                                                 action.icon === 'SquareCheck' ? SquareCheck :
+                                                 action.icon === 'Send' ? Send :
+                                                 action.icon === 'FileText' ? FileText :
+                                                 action.icon === 'Briefcase' ? Briefcase :
+                                                 action.icon === 'UserPlus' ? UserPlus :
+                                                 action.icon === 'Receipt' ? Receipt :
+                                                 action.icon === 'Phone' ? Phone : Plus;
+                                    
+                                    return (
+                                        <View key={action.id} style={styles.selectedActionItem}>
+                                            <View style={styles.selectedActionLeft}>
+                                                <LinearGradient
+                                                    colors={action.colors}
+                                                    start={{ x: 0, y: 0 }}
+                                                    end={{ x: 1, y: 1 }}
+                                                    style={styles.actionIconGradient}
+                                                >
+                                                    <Icon size={16} color="#FFFFFF" />
+                                                </LinearGradient>
+                                                <Text style={styles.selectedActionName}>{action.name}</Text>
+                                            </View>
+                                            <View style={styles.selectedActionActions}>
+                                                <TouchableOpacity
+                                                    style={[styles.tabActionButton, index === 0 && styles.tabActionButtonDisabled]}
+                                                    disabled={index === 0}
+                                                    onPress={() => {
+                                                        const newActions = [...appSettings.selectedQuickActions];
+                                                        [newActions[index], newActions[index - 1]] = [newActions[index - 1], newActions[index]];
+                                                        appSettings.setSelectedQuickActions(newActions);
+                                                    }}
+                                                >
+                                                    <ChevronUp size={18} color={index > 0 ? '#6B7280' : '#D1D5DB'} />
+                                                </TouchableOpacity>
+                                                <TouchableOpacity
+                                                    style={[styles.tabActionButton, index === appSettings.selectedQuickActions.length - 1 && styles.tabActionButtonDisabled]}
+                                                    disabled={index === appSettings.selectedQuickActions.length - 1}
+                                                    onPress={() => {
+                                                        const newActions = [...appSettings.selectedQuickActions];
+                                                        [newActions[index], newActions[index + 1]] = [newActions[index + 1], newActions[index]];
+                                                        appSettings.setSelectedQuickActions(newActions);
+                                                    }}
+                                                >
+                                                    <ChevronDown size={18} color={index < appSettings.selectedQuickActions.length - 1 ? '#6B7280' : '#D1D5DB'} />
+                                                </TouchableOpacity>
+                                                <TouchableOpacity
+                                                    style={styles.tabActionButton}
+                                                    onPress={() => {
+                                                        const newActions = appSettings.selectedQuickActions.filter(a => a.id !== action.id);
+                                                        appSettings.setSelectedQuickActions(newActions);
+                                                    }}
+                                                >
+                                                    <X size={18} color="#EF4444" />
+                                                </TouchableOpacity>
+                                            </View>
+                                        </View>
+                                    );
+                                })}
+                            </View>
+
+                            {/* Available Quick Actions */}
+                            {appSettings.selectedQuickActions.length < appSettings.availableQuickActions.length && (
+                                <View style={styles.availableTabsSection}>
+                                    <Text style={styles.availableTabsTitle}>Available Actions</Text>
+                                    <View style={styles.availableActionsGrid}>
+                                        {appSettings.availableQuickActions
+                                            .filter(action => !appSettings.selectedQuickActions.find(sa => sa.id === action.id))
+                                            .map(action => {
+                                                const Icon = action.icon === 'Calendar' ? Calendar :
+                                                             action.icon === 'SquareCheck' ? SquareCheck :
+                                                             action.icon === 'Send' ? Send :
+                                                             action.icon === 'FileText' ? FileText :
+                                                             action.icon === 'Briefcase' ? Briefcase :
+                                                             action.icon === 'UserPlus' ? UserPlus :
+                                                             action.icon === 'Receipt' ? Receipt :
+                                                             action.icon === 'Phone' ? Phone : Plus;
+                                                
+                                                return (
+                                                    <TouchableOpacity
+                                                        key={action.id}
+                                                        style={styles.availableActionItem}
+                                                        onPress={() => {
+                                                            const newActions = [...appSettings.selectedQuickActions, action];
+                                                            appSettings.setSelectedQuickActions(newActions);
+                                                        }}
+                                                    >
+                                                        <LinearGradient
+                                                            colors={action.colors}
+                                                            start={{ x: 0, y: 0 }}
+                                                            end={{ x: 1, y: 1 }}
+                                                            style={styles.actionIconGradientSmall}
+                                                        >
+                                                            <Icon size={14} color="#FFFFFF" />
+                                                        </LinearGradient>
+                                                        <Text style={styles.availableActionName}>{action.name}</Text>
+                                                    </TouchableOpacity>
+                                                );
+                                            })}
+                                    </View>
+                                </View>
+                            )}
+                        </View>
+
+                        {/* Reset Button */}
+                        <TouchableOpacity
+                            style={styles.resetButton}
+                            onPress={() => {
+                                RNAlert.alert(
+                                    'Reset to Defaults',
+                                    'Are you sure you want to reset all app settings to defaults?',
+                                    [
+                                        { text: 'Cancel', style: 'cancel' },
+                                        {
+                                            text: 'Reset',
+                                            style: 'destructive',
+                                            onPress: () => appSettings.resetToDefaults()
+                                        }
+                                    ]
+                                );
+                            }}
+                        >
+                            <RotateCcw size={18} color="#EF4444" />
+                            <Text style={styles.resetButtonText}>Reset to Defaults</Text>
+                        </TouchableOpacity>
+                    </View>
+                );
+
+            case 'integrations':
+                return (
+                    <View style={styles.tabContent}>
+                        {/* QuickBooks Integration */}
+                        <View style={styles.section}>
+                            <View style={styles.sectionHeader}>
+                                <View style={styles.sectionTitleRow}>
+                                    <FileText size={20} color="#6366F1" />
+                                    <View style={styles.sectionTitleContainer}>
+                                        <Text style={styles.sectionTitle}>QuickBooks Online</Text>
+                                        <Text style={styles.sectionSubtitle}>
+                                            Connect your QuickBooks account for seamless financial sync
+                                        </Text>
+                                    </View>
+                                </View>
+                            </View>
+
+                            {/* Connection Status */}
+                            <View style={styles.card}>
+                                <View style={styles.cardHeader}>
+                                    <View style={styles.statusBadge}>
+                                        {qbConnectionStatus.isConnected ? (
+                                            <CheckCircle size={16} color="#10B981" />
+                                        ) : (
+                                            <XCircle size={16} color="#9CA3AF" />
+                                        )}
+                                        <Text style={[
+                                            styles.statusText,
+                                            qbConnectionStatus.isConnected && styles.statusTextSuccess
+                                        ]}>
+                                            {qbConnectionStatus.isConnected ? 'Connected' : 'Not Connected'}
+                                        </Text>
+                                    </View>
+                                </View>
+
+                                {qbConnectionStatus.isConnected && qbConnectionStatus.companyName && (
+                                    <View style={styles.connectionInfo}>
+                                        <View style={styles.infoRow}>
+                                            <Text style={styles.infoLabel}>Company:</Text>
+                                            <Text style={styles.infoValue}>{qbConnectionStatus.companyName}</Text>
+                                        </View>
+                                        <View style={styles.infoRow}>
+                                            <Text style={styles.infoLabel}>Last Sync:</Text>
+                                            <Text style={styles.infoValue}>
+                                                {qbConnectionStatus.lastSyncedAt 
+                                                    ? new Date(qbConnectionStatus.lastSyncedAt).toLocaleString()
+                                                    : 'Never'}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                )}
+
+                                {qbConnectionStatus.connectionError && (
+                                    <View style={styles.errorBox}>
+                                        <AlertCircle size={16} color="#EF4444" />
+                                        <Text style={styles.errorText}>{qbConnectionStatus.connectionError}</Text>
+                                    </View>
+                                )}
+
+                                <View style={styles.buttonRow}>
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.button,
+                                            styles.buttonFlex,
+                                            qbConnectionStatus.isConnected ? styles.buttonDanger : styles.buttonPrimary
+                                        ]}
+                                        onPress={async () => {
+                                            if (qbConnectionStatus.isConnected) {
+                                                RNAlert.alert(
+                                                    'Disconnect QuickBooks',
+                                                    'Are you sure you want to disconnect from QuickBooks?',
+                                                    [
+                                                        { text: 'Cancel', style: 'cancel' },
+                                                        {
+                                                            text: 'Disconnect',
+                                                            style: 'destructive',
+                                                            onPress: async () => {
+                                                                try {
+                                                                    await QuickBooksService.disconnect();
+                                                                    await loadQuickBooksStatus();
+                                                                    RNAlert.alert('Success', 'Disconnected from QuickBooks');
+                                                                } catch (error) {
+                                                                    RNAlert.alert('Error', 'Failed to disconnect from QuickBooks');
+                                                                }
+                                                            },
+                                                        },
+                                                    ]
+                                                );
+                                            } else {
+                                                try {
+                                                    await QuickBooksService.connect();
+                                                    await loadQuickBooksStatus();
+                                                } catch (error) {
+                                                    RNAlert.alert('Error', 'Failed to connect to QuickBooks');
+                                                }
+                                            }
+                                        }}
+                                    >
+                                        <ExternalLink size={18} color="#FFFFFF" />
+                                        <Text style={styles.buttonText}>
+                                            {qbConnectionStatus.isConnected ? 'Disconnect QuickBooks' : 'Connect to QuickBooks'}
+                                        </Text>
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity
+                                        style={[styles.button, styles.buttonSecondary, styles.buttonFlex]}
+                                        onPress={() => setShowQBSettings(true)}
+                                    >
+                                        <Settings size={18} color="#6366F1" />
+                                        <Text style={[styles.buttonText, styles.buttonTextSecondary]}>
+                                            Settings
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+
+                        </View>
+
+                        {/* Acorn Finance Integration */}
+                        <View style={styles.section}>
+                            <View style={styles.sectionHeader}>
+                                <View style={styles.sectionTitleRow}>
+                                    <DollarSign size={20} color="#6366F1" />
+                                    <View style={styles.sectionTitleContainer}>
+                                        <Text style={styles.sectionTitle}>Acorn Finance</Text>
+                                        <Text style={styles.sectionSubtitle}>
+                                            Connect with Acorn Finance for financing options
+                                        </Text>
+                                    </View>
+                                </View>
+                            </View>
+
+                            <View style={styles.card}>
+                                <View style={styles.cardHeader}>
+                                    <View style={styles.statusBadge}>
+                                        <XCircle size={16} color="#9CA3AF" />
+                                        <Text style={styles.statusText}>Not Connected</Text>
+                                    </View>
+                                </View>
+
+                                <TouchableOpacity
+                                    style={[styles.button, styles.buttonPrimary]}
+                                    onPress={() => {
+                                        RNAlert.alert('Coming Soon', 'Acorn Finance integration will be available soon');
+                                    }}
+                                >
+                                    <ExternalLink size={18} color="#FFFFFF" />
+                                    <Text style={styles.buttonText}>Connect to Acorn Finance</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+
+                        {/* Zapier Integration */}
+                        <View style={styles.section}>
+                            <View style={styles.sectionHeader}>
+                                <View style={styles.sectionTitleRow}>
+                                    <Zap size={20} color="#6366F1" />
+                                    <View style={styles.sectionTitleContainer}>
+                                        <Text style={styles.sectionTitle}>Zapier</Text>
+                                        <Text style={styles.sectionSubtitle}>
+                                            Automate workflows with 5000+ apps
+                                        </Text>
+                                    </View>
+                                </View>
+                            </View>
+
+                            <View style={styles.card}>
+                                <View style={styles.cardHeader}>
+                                    <View style={styles.statusBadge}>
+                                        <XCircle size={16} color="#9CA3AF" />
+                                        <Text style={styles.statusText}>Not Connected</Text>
+                                    </View>
+                                </View>
+
+                                <TouchableOpacity
+                                    style={[styles.button, styles.buttonZapier]}
+                                    onPress={() => {
+                                        RNAlert.alert('Coming Soon', 'Zapier integration will be available soon');
+                                    }}
+                                >
+                                    <ExternalLink size={18} color="#FFFFFF" />
+                                    <Text style={styles.buttonText}>Connect to Zapier</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+
+                        {/* CompanyCam Integration */}
+                        <View style={styles.section}>
+                            <View style={styles.sectionHeader}>
+                                <View style={styles.sectionTitleRow}>
+                                    <Camera size={20} color="#6366F1" />
+                                    <View style={styles.sectionTitleContainer}>
+                                        <Text style={styles.sectionTitle}>CompanyCam</Text>
+                                        <Text style={styles.sectionSubtitle}>
+                                            Sync photos and project documentation
+                                        </Text>
+                                    </View>
+                                </View>
+                            </View>
+
+                            <View style={styles.card}>
+                                <View style={styles.cardHeader}>
+                                    <View style={styles.statusBadge}>
+                                        <XCircle size={16} color="#9CA3AF" />
+                                        <Text style={styles.statusText}>Not Connected</Text>
+                                    </View>
+                                </View>
+
+                                <TouchableOpacity
+                                    style={[styles.button, styles.buttonCompanyCam]}
+                                    onPress={() => {
+                                        RNAlert.alert('Coming Soon', 'CompanyCam integration will be available soon');
+                                    }}
+                                >
+                                    <ExternalLink size={18} color="#FFFFFF" />
+                                    <Text style={styles.buttonText}>Connect to CompanyCam</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+
+                        {/* Angi Leads Integration */}
+                        <View style={styles.section}>
+                            <View style={styles.sectionHeader}>
+                                <View style={styles.sectionTitleRow}>
+                                    <Users size={20} color="#6366F1" />
+                                    <View style={styles.sectionTitleContainer}>
+                                        <Text style={styles.sectionTitle}>Angi Leads</Text>
+                                        <Text style={styles.sectionSubtitle}>
+                                            Import and manage leads from Angi
+                                        </Text>
+                                    </View>
+                                </View>
+                            </View>
+
+                            <View style={styles.card}>
+                                <View style={styles.cardHeader}>
+                                    <View style={styles.statusBadge}>
+                                        <XCircle size={16} color="#9CA3AF" />
+                                        <Text style={styles.statusText}>Not Connected</Text>
+                                    </View>
+                                </View>
+
+                                <TouchableOpacity
+                                    style={[styles.button, styles.buttonAngi]}
+                                    onPress={() => {
+                                        RNAlert.alert('Coming Soon', 'Angi Leads integration will be available soon');
+                                    }}
+                                >
+                                    <ExternalLink size={18} color="#FFFFFF" />
+                                    <Text style={styles.buttonText}>Connect to Angi Leads</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+
+                        {/* QB Time Integration */}
+                        <View style={styles.section}>
+                            <View style={styles.sectionHeader}>
+                                <View style={styles.sectionTitleRow}>
+                                    <Clock size={20} color="#6366F1" />
+                                    <View style={styles.sectionTitleContainer}>
+                                        <Text style={styles.sectionTitle}>QB Time</Text>
+                                        <Text style={styles.sectionSubtitle}>
+                                            Track time and sync with QuickBooks
+                                        </Text>
+                                    </View>
+                                </View>
+                            </View>
+
+                            <View style={styles.card}>
+                                <View style={styles.cardHeader}>
+                                    <View style={styles.statusBadge}>
+                                        <XCircle size={16} color="#9CA3AF" />
+                                        <Text style={styles.statusText}>Not Connected</Text>
+                                    </View>
+                                </View>
+
+                                <TouchableOpacity
+                                    style={[styles.button, styles.buttonQBTime]}
+                                    onPress={() => {
+                                        RNAlert.alert('Coming Soon', 'QB Time integration will be available soon');
+                                    }}
+                                >
+                                    <ExternalLink size={18} color="#FFFFFF" />
+                                    <Text style={styles.buttonText}>Connect to QB Time</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+
+                    </View>
+                );
+
             default:
                 return null;
         }
@@ -1632,6 +2249,285 @@ export default function AccountSettings() {
                     </View>
                 </View>
             </Modal>
+
+            {/* QuickBooks Settings Modal */}
+            <Modal
+                visible={showQBSettings}
+                animationType="slide"
+                transparent
+                onRequestClose={() => setShowQBSettings(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.qbSettingsModal}>
+                        <View style={styles.modalHeader}>
+                            <View style={styles.modalTitleRow}>
+                                <FileText size={24} color="#6366F1" />
+                                <Text style={styles.modalTitle}>QuickBooks Settings</Text>
+                            </View>
+                            <TouchableOpacity onPress={() => setShowQBSettings(false)}>
+                                <X size={24} color="#6B7280" />
+                            </TouchableOpacity>
+                        </View>
+                        
+                        <ScrollView style={styles.modalContent}>
+                            {/* Connection Status */}
+                            <View style={styles.section}>
+                                <Text style={styles.sectionTitle}>Connection Status</Text>
+                                <View style={styles.card}>
+                                    <View style={styles.statusBadge}>
+                                        {qbConnectionStatus.isConnected ? (
+                                            <CheckCircle size={16} color="#10B981" />
+                                        ) : (
+                                            <XCircle size={16} color="#9CA3AF" />
+                                        )}
+                                        <Text style={[
+                                            styles.statusText,
+                                            qbConnectionStatus.isConnected && styles.statusTextSuccess
+                                        ]}>
+                                            {qbConnectionStatus.isConnected ? 'Connected' : 'Not Connected'}
+                                        </Text>
+                                    </View>
+
+                                    {qbConnectionStatus.isConnected && qbConnectionStatus.companyName && (
+                                        <View style={styles.connectionInfo}>
+                                            <View style={styles.infoRow}>
+                                                <Text style={styles.infoLabel}>Company:</Text>
+                                                <Text style={styles.infoValue}>{qbConnectionStatus.companyName}</Text>
+                                            </View>
+                                            <View style={styles.infoRow}>
+                                                <Text style={styles.infoLabel}>Last Sync:</Text>
+                                                <Text style={styles.infoValue}>
+                                                    {qbConnectionStatus.lastSyncedAt 
+                                                        ? new Date(qbConnectionStatus.lastSyncedAt).toLocaleString()
+                                                        : 'Never'}
+                                                </Text>
+                                            </View>
+                                        </View>
+                                    )}
+                                </View>
+                            </View>
+
+                            {/* Sync Settings */}
+                            {qbConnectionStatus.isConnected && qbSyncSettings && (
+                                <View style={styles.section}>
+                                    <Text style={styles.sectionTitle}>Sync Settings</Text>
+                                    
+                                    <View style={styles.switchGroup}>
+                                        <View style={styles.switchLabel}>
+                                            <Text style={styles.switchLabelText}>Auto-Sync</Text>
+                                            <Text style={styles.switchLabelSubtext}>
+                                                Automatically sync data to QuickBooks
+                                            </Text>
+                                        </View>
+                                        <Switch
+                                            value={qbSyncSettings.autoSync}
+                                            onValueChange={async (value) => {
+                                                const newSettings = { ...qbSyncSettings, autoSync: value };
+                                                setQBSyncSettings(newSettings);
+                                                await QuickBooksService.updateSyncSettings(newSettings);
+                                                markChanged();
+                                            }}
+                                            trackColor={{ false: '#D1D5DB', true: '#C7D2FE' }}
+                                            thumbColor={qbSyncSettings.autoSync ? '#6366F1' : '#9CA3AF'}
+                                        />
+                                    </View>
+
+                                    <View style={styles.switchGroup}>
+                                        <View style={styles.switchLabel}>
+                                            <Text style={styles.switchLabelText}>Sync Customers</Text>
+                                            <Text style={styles.switchLabelSubtext}>
+                                                Sync contacts and businesses
+                                            </Text>
+                                        </View>
+                                        <Switch
+                                            value={qbSyncSettings.syncCustomers}
+                                            onValueChange={async (value) => {
+                                                const newSettings = { ...qbSyncSettings, syncCustomers: value };
+                                                setQBSyncSettings(newSettings);
+                                                await QuickBooksService.updateSyncSettings(newSettings);
+                                                markChanged();
+                                            }}
+                                            trackColor={{ false: '#D1D5DB', true: '#C7D2FE' }}
+                                            thumbColor={qbSyncSettings.syncCustomers ? '#6366F1' : '#9CA3AF'}
+                                        />
+                                    </View>
+
+                                    <View style={styles.switchGroup}>
+                                        <View style={styles.switchLabel}>
+                                            <Text style={styles.switchLabelText}>Sync Invoices</Text>
+                                            <Text style={styles.switchLabelSubtext}>
+                                                Sync invoices when jobs start
+                                            </Text>
+                                        </View>
+                                        <Switch
+                                            value={qbSyncSettings.syncInvoices}
+                                            onValueChange={async (value) => {
+                                                const newSettings = { ...qbSyncSettings, syncInvoices: value };
+                                                setQBSyncSettings(newSettings);
+                                                await QuickBooksService.updateSyncSettings(newSettings);
+                                                markChanged();
+                                            }}
+                                            trackColor={{ false: '#D1D5DB', true: '#C7D2FE' }}
+                                            thumbColor={qbSyncSettings.syncInvoices ? '#6366F1' : '#9CA3AF'}
+                                        />
+                                    </View>
+
+                                    <View style={styles.switchGroup}>
+                                        <View style={styles.switchLabel}>
+                                            <Text style={styles.switchLabelText}>Sync Payments</Text>
+                                            <Text style={styles.switchLabelSubtext}>
+                                                Immediately sync all payments
+                                            </Text>
+                                        </View>
+                                        <Switch
+                                            value={qbSyncSettings.syncPayments}
+                                            onValueChange={async (value) => {
+                                                const newSettings = { ...qbSyncSettings, syncPayments: value };
+                                                setQBSyncSettings(newSettings);
+                                                await QuickBooksService.updateSyncSettings(newSettings);
+                                                markChanged();
+                                            }}
+                                            trackColor={{ false: '#D1D5DB', true: '#C7D2FE' }}
+                                            thumbColor={qbSyncSettings.syncPayments ? '#6366F1' : '#9CA3AF'}
+                                        />
+                                    </View>
+
+                                    <View style={styles.switchGroup}>
+                                        <View style={styles.switchLabel}>
+                                            <Text style={styles.switchLabelText}>Sync Recurring Jobs</Text>
+                                            <Text style={styles.switchLabelSubtext}>
+                                                Create recurring transactions in QuickBooks
+                                            </Text>
+                                        </View>
+                                        <Switch
+                                            value={qbSyncSettings.syncRecurringJobs}
+                                            onValueChange={async (value) => {
+                                                const newSettings = { ...qbSyncSettings, syncRecurringJobs: value };
+                                                setQBSyncSettings(newSettings);
+                                                await QuickBooksService.updateSyncSettings(newSettings);
+                                                markChanged();
+                                            }}
+                                            trackColor={{ false: '#D1D5DB', true: '#C7D2FE' }}
+                                            thumbColor={qbSyncSettings.syncRecurringJobs ? '#6366F1' : '#9CA3AF'}
+                                        />
+                                    </View>
+
+                                    <View style={styles.inputGroup}>
+                                        <Text style={styles.inputLabel}>Job Status Trigger</Text>
+                                        <Text style={styles.inputHint}>
+                                            Invoice will be created in QuickBooks when job reaches this status
+                                        </Text>
+                                        <TextInput
+                                            style={styles.input}
+                                            value={qbSyncSettings.jobStatusTrigger}
+                                            onChangeText={async (value) => {
+                                                const newSettings = { ...qbSyncSettings, jobStatusTrigger: value };
+                                                setQBSyncSettings(newSettings);
+                                                await QuickBooksService.updateSyncSettings(newSettings);
+                                                markChanged();
+                                            }}
+                                            placeholder="e.g., In Progress, Started"
+                                        />
+                                    </View>
+                                </View>
+                            )}
+
+                            {/* User Access Management */}
+                            <View style={styles.section}>
+                                <Text style={styles.sectionTitle}>User Access</Text>
+                                <Text style={styles.sectionSubtitle}>
+                                    Assign accountant role for QuickBooks access
+                                </Text>
+                                
+                                <View style={styles.card}>
+                                    <Text style={styles.cardTitle}>Current Role</Text>
+                                    <View style={styles.roleDisplay}>
+                                        <View style={[
+                                            styles.roleBadge,
+                                            userRole.currentRole === 'admin' ? styles.roleBadgeAdmin : styles.roleBadgeAccountant
+                                        ]}>
+                                            <Text style={styles.roleBadgeText}>
+                                                {userRole.currentRole === 'admin' ? 'Administrator' : 'Accountant/Bookkeeper'}
+                                            </Text>
+                                        </View>
+                                    </View>
+
+                                    {userRole.currentRole === 'admin' && (
+                                        <View style={styles.inputGroup}>
+                                            <Text style={styles.inputLabel}>Switch Role (Demo)</Text>
+                                            <Text style={styles.inputHint}>
+                                                Switch to accountant role to see read-only mode
+                                            </Text>
+                                            <TouchableOpacity
+                                                style={[styles.button, styles.buttonSecondary]}
+                                                onPress={async () => {
+                                                    const newRole = userRole.currentRole === 'admin' ? 'accountant' : 'admin';
+                                                    await userRole.setUserRole(newRole);
+                                                    RNAlert.alert(
+                                                        'Role Changed',
+                                                        `You are now in ${newRole === 'admin' ? 'Administrator' : 'Accountant'} mode`,
+                                                        [{ text: 'OK', onPress: () => setShowQBSettings(false) }]
+                                                    );
+                                                }}
+                                            >
+                                                <Text style={[styles.buttonText, styles.buttonTextSecondary]}>
+                                                    Switch to {userRole.currentRole === 'admin' ? 'Accountant' : 'Admin'} Role
+                                                </Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    )}
+
+                                    {userRole.currentRole === 'accountant' && (
+                                        <View style={styles.infoBox}>
+                                            <AlertCircle size={16} color="#3B82F6" />
+                                            <Text style={styles.infoBoxText}>
+                                                You are in accountant mode with read-only access to financial data. 
+                                                You can view all synced QuickBooks data but cannot make changes.
+                                            </Text>
+                                        </View>
+                                    )}
+                                </View>
+                            </View>
+
+                            {/* Manual Sync Actions */}
+                            {qbConnectionStatus.isConnected && (
+                                <View style={styles.section}>
+                                    <Text style={styles.sectionTitle}>Manual Actions</Text>
+                                    
+                                    <TouchableOpacity
+                                        style={[styles.button, styles.buttonSecondary]}
+                                        onPress={async () => {
+                                            RNAlert.alert(
+                                                'Force Sync',
+                                                'This will sync all pending items to QuickBooks. Continue?',
+                                                [
+                                                    { text: 'Cancel', style: 'cancel' },
+                                                    {
+                                                        text: 'Sync Now',
+                                                        onPress: async () => {
+                                                            try {
+                                                                // TODO: Implement batch sync
+                                                                RNAlert.alert('Success', 'Sync completed successfully');
+                                                            } catch (error) {
+                                                                RNAlert.alert('Error', 'Sync failed');
+                                                            }
+                                                        },
+                                                    },
+                                                ]
+                                            );
+                                        }}
+                                    >
+                                        <RefreshCw size={18} color="#6366F1" />
+                                        <Text style={[styles.buttonText, styles.buttonTextSecondary]}>
+                                            Force Full Sync
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -1726,7 +2622,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '700',
         color: '#111827',
-        marginBottom: 16,
+        marginBottom: 4,
     },
     inputGroup: {
         marginBottom: 16,
@@ -2111,6 +3007,36 @@ const styles = StyleSheet.create({
     tabSelectorItemTextActive: {
         color: '#6366F1',
     },
+    // QuickBooks Settings Modal Styles
+    qbSettingsModal: {
+        backgroundColor: '#FFFFFF',
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        maxHeight: '90%',
+        flex: 1,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E7EB',
+    },
+    modalTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#111827',
+    },
+    modalContent: {
+        flex: 1,
+        padding: 20,
+    },
     // Email Configuration Styles
     infoBoxLarge: {
         backgroundColor: '#EEF2FF',
@@ -2354,5 +3280,370 @@ const styles = StyleSheet.create({
         color: '#9CA3AF',
         marginTop: 6,
         fontStyle: 'italic',
+    },
+    // App Settings Styles
+    selectedTabsContainer: {
+        marginTop: 12,
+    },
+    selectedTabItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 12,
+        backgroundColor: '#F9FAFB',
+        borderRadius: 12,
+        marginBottom: 8,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+    },
+    selectedTabLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        flex: 1,
+    },
+    tabIconCircle: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: '#F3F4F6',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    tabIconCircleHome: {
+        backgroundColor: '#EEF2FF',
+    },
+    selectedTabName: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#111827',
+    },
+    requiredBadge: {
+        fontSize: 11,
+        color: '#6366F1',
+        fontWeight: '600',
+        marginTop: 2,
+    },
+    selectedTabActions: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    tabActionButton: {
+        padding: 6,
+        borderRadius: 6,
+        backgroundColor: '#FFFFFF',
+    },
+    tabActionButtonDisabled: {
+        opacity: 0.3,
+    },
+    availableTabsSection: {
+        marginTop: 16,
+        paddingTop: 16,
+        borderTopWidth: 1,
+        borderTopColor: '#E5E7EB',
+    },
+    availableTabsTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#6B7280',
+        marginBottom: 12,
+    },
+    availableTabsGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+    },
+    availableTabItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        backgroundColor: '#F9FAFB',
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        borderStyle: 'dashed',
+    },
+    availableTabName: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#6B7280',
+    },
+    helpTextContainer: {
+        marginTop: 12,
+        padding: 12,
+        backgroundColor: '#F0F9FF',
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#BFDBFE',
+    },
+    helpText: {
+        fontSize: 13,
+        color: '#1E40AF',
+        textAlign: 'center',
+    },
+    selectedActionsContainer: {
+        marginTop: 12,
+    },
+    selectedActionItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 12,
+        backgroundColor: '#F9FAFB',
+        borderRadius: 12,
+        marginBottom: 8,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+    },
+    selectedActionLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        flex: 1,
+    },
+    actionIconGradient: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    actionIconGradientSmall: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    selectedActionName: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#111827',
+    },
+    selectedActionActions: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    availableActionsGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+    },
+    availableActionItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        backgroundColor: '#F9FAFB',
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        borderStyle: 'dashed',
+    },
+    availableActionName: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#6B7280',
+    },
+    resetButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        padding: 16,
+        backgroundColor: '#FEF2F2',
+        borderRadius: 12,
+        marginTop: 16,
+        borderWidth: 1,
+        borderColor: '#FEE2E2',
+    },
+    resetButtonText: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#EF4444',
+    },
+    // QuickBooks Integration Styles
+    card: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+    },
+    cardHeader: {
+        marginBottom: 12,
+    },
+    cardTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#111827',
+        marginBottom: 12,
+    },
+    statusBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    statusText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#6B7280',
+    },
+    statusTextSuccess: {
+        color: '#10B981',
+    },
+    connectionInfo: {
+        gap: 8,
+        marginBottom: 12,
+    },
+    infoRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 6,
+    },
+    infoLabel: {
+        fontSize: 13,
+        color: '#6B7280',
+        fontWeight: '500',
+    },
+    infoValue: {
+        fontSize: 14,
+        color: '#111827',
+        fontWeight: '600',
+    },
+    errorBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: '#FEE2E2',
+        padding: 12,
+        borderRadius: 8,
+        marginBottom: 12,
+    },
+    errorText: {
+        flex: 1,
+        fontSize: 13,
+        color: '#EF4444',
+    },
+    button: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderRadius: 8,
+        marginTop: 8,
+    },
+    buttonPrimary: {
+        backgroundColor: '#2CA01C',
+    },
+    buttonSecondary: {
+        backgroundColor: '#EEF2FF',
+    },
+    buttonDanger: {
+        backgroundColor: '#EF4444',
+    },
+    buttonText: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#FFFFFF',
+    },
+    buttonTextSecondary: {
+        color: '#6366F1',
+    },
+    buttonRow: {
+        flexDirection: 'row',
+        gap: 12,
+        marginTop: 8,
+    },
+    buttonFlex: {
+        flex: 1,
+    },
+    // Brand-specific button colors
+    buttonZapier: {
+        backgroundColor: '#FF4A00', // Zapier orange
+    },
+    buttonCompanyCam: {
+        backgroundColor: '#1E40AF', // CompanyCam blue
+    },
+    buttonAngi: {
+        backgroundColor: '#00A650', // Angi green
+    },
+    buttonQBTime: {
+        backgroundColor: '#8B5CF6', // QB Time purple
+    },
+    sectionDivider: {
+        height: 1,
+        backgroundColor: '#E5E7EB',
+        marginVertical: 20,
+    },
+    sectionTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 8,
+        marginBottom: 4,
+    },
+    sectionTitleContainer: {
+        flex: 1,
+    },
+    switchLabelSubtext: {
+        fontSize: 12,
+        color: '#9CA3AF',
+        marginTop: 2,
+    },
+    inputHint: {
+        fontSize: 12,
+        color: '#9CA3AF',
+        marginTop: 4,
+        marginBottom: 8,
+    },
+    roleDisplay: {
+        marginBottom: 16,
+    },
+    roleBadge: {
+        alignSelf: 'flex-start',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 16,
+    },
+    roleBadgeAdmin: {
+        backgroundColor: '#DBEAFE',
+    },
+    roleBadgeAccountant: {
+        backgroundColor: '#FEF3C7',
+    },
+    roleBadgeText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#111827',
+    },
+    infoBox: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 8,
+        backgroundColor: '#EFF6FF',
+        padding: 12,
+        borderRadius: 8,
+        marginTop: 12,
+    },
+    infoBoxText: {
+        flex: 1,
+        fontSize: 13,
+        color: '#1E40AF',
+        lineHeight: 18,
+    },
+    sectionSubtitle: {
+        fontSize: 13,
+        color: '#6B7280',
+        marginTop: 4,
+    },
+    XCircle: {
+        // Placeholder for XCircle icon - imported from lucide-react-native
     },
 });

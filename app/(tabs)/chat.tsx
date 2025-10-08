@@ -1,10 +1,15 @@
+import CreateJobModal from '@/components/CreateJobModal';
+import CreateLeadModal from '@/components/CreateLeadModal';
 import DrawerMenu from '@/components/DrawerMenu';
 import FloatingActionMenu from '@/components/FloatingActionMenu';
+import NewAppointmentModal from '@/components/NewAppointmentModal';
+import NewProposalModal from '@/components/NewProposalModal';
+import SendRequestModal from '@/components/SendRequestModal';
 import { useTabBar } from '@/contexts/TabBarContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, Building, Calendar, Camera, ChevronRight, DollarSign, FileText, Image, Mail, MapPin, Phone, Search, Send, TrendingUp, Upload, User, X } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
-import { Dimensions, KeyboardAvoidingView, Modal, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Keyboard, KeyboardAvoidingView, Modal, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -48,6 +53,13 @@ export default function Chat() {
   const [showUserMention, setShowUserMention] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
   const [mentionStart, setMentionStart] = useState(0);
+  
+  // Quick Actions modal states
+  const [showNewAppointment, setShowNewAppointment] = useState(false);
+  const [showNewProposal, setShowNewProposal] = useState(false);
+  const [showSendRequest, setShowSendRequest] = useState(false);
+  const [showCreateLead, setShowCreateLead] = useState(false);
+  const [showCreateJob, setShowCreateJob] = useState(false);
   
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -203,6 +215,26 @@ export default function Chat() {
     return () => setIsVisible(true);
   }, [selectedThread]);
 
+  // Handle keyboard events to scroll to bottom
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    });
+
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    });
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
+
   const handleThreadPress = (thread: ChatThread) => {
     setSelectedThread(thread);
   };
@@ -314,6 +346,27 @@ export default function Chat() {
 
   const currentMessages = selectedThread ? (messages[selectedThread.id] || []) : [];
 
+  // Quick Actions handlers
+  const handleNewAppointment = () => {
+    setShowNewAppointment(true);
+  };
+
+  const handleNewProposal = () => {
+    setShowNewProposal(true);
+  };
+
+  const handleSendRequest = () => {
+    setShowSendRequest(true);
+  };
+
+  const handleCreateLead = () => {
+    setShowCreateLead(true);
+  };
+
+  const handleCreateJob = () => {
+    setShowCreateJob(true);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <DrawerMenu isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
@@ -413,11 +466,48 @@ export default function Chat() {
             </View>
           </ScrollView>
 
-          <FloatingActionMenu isVisible={showFAB} />
+          <FloatingActionMenu
+            onNewAppointment={handleNewAppointment}
+            onNewProposal={handleNewProposal}
+            onSendRequest={handleSendRequest}
+            onNewLead={handleCreateLead}
+            onNewJob={handleCreateJob}
+            isVisible={showFAB}
+          />
+
+          {/* Quick Actions Modals */}
+          <NewAppointmentModal 
+            visible={showNewAppointment}
+            onClose={() => setShowNewAppointment(false)}
+          />
+
+          <NewProposalModal 
+            visible={showNewProposal}
+            onClose={() => setShowNewProposal(false)}
+          />
+
+          <SendRequestModal 
+            visible={showSendRequest}
+            onClose={() => setShowSendRequest(false)}
+          />
+
+          <CreateLeadModal 
+            visible={showCreateLead}
+            onClose={() => setShowCreateLead(false)}
+          />
+
+          <CreateJobModal 
+            visible={showCreateJob}
+            onClose={() => setShowCreateJob(false)}
+          />
         </>
       ) : (
         // Individual Chat Thread View
-        <View style={styles.chatContainer}>
+        <KeyboardAvoidingView 
+          style={styles.chatContainer}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        >
           {/* Chat Header */}
           <LinearGradient
             colors={['#6366F1', '#8B5CF6', '#A855F7']}
@@ -521,6 +611,7 @@ export default function Chat() {
           {/* Message Input */}
           <KeyboardAvoidingView 
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
             style={[
               styles.messageInputContainer,
               isNoteMode && styles.noteInputContainer
@@ -823,7 +914,7 @@ export default function Chat() {
               </View>
             </View>
           </Modal>
-        </View>
+        </KeyboardAvoidingView>
       )}
     </SafeAreaView>
   );

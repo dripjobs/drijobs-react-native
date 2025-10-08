@@ -1,5 +1,10 @@
+import CreateJobModal from '@/components/CreateJobModal';
+import CreateLeadModal from '@/components/CreateLeadModal';
 import DrawerMenu from '@/components/DrawerMenu';
 import FloatingActionMenu from '@/components/FloatingActionMenu';
+import NewAppointmentModal from '@/components/NewAppointmentModal';
+import NewProposalModal from '@/components/NewProposalModal';
+import SendRequestModal from '@/components/SendRequestModal';
 import { useTabBar } from '@/contexts/TabBarContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -48,6 +53,13 @@ export default function Businesses() {
   const [isSaving, setIsSaving] = useState(false);
   const [showFAB, setShowFAB] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  
+  // Quick Actions modal states
+  const [showNewAppointment, setShowNewAppointment] = useState(false);
+  const [showNewProposal, setShowNewProposal] = useState(false);
+  const [showSendRequest, setShowSendRequest] = useState(false);
+  const [showCreateLead, setShowCreateLead] = useState(false);
+  const [showCreateJob, setShowCreateJob] = useState(false);
 
   const industries = [
     'Construction',
@@ -483,6 +495,27 @@ export default function Businesses() {
     return () => setIsTransparent(false);
   }, []);
 
+  // Quick Actions handlers
+  const handleNewAppointment = () => {
+    setShowNewAppointment(true);
+  };
+
+  const handleNewProposal = () => {
+    setShowNewProposal(true);
+  };
+
+  const handleSendRequest = () => {
+    setShowSendRequest(true);
+  };
+
+  const handleCreateLead = () => {
+    setShowCreateLead(true);
+  };
+
+  const handleCreateJob = () => {
+    setShowCreateJob(true);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <DrawerMenu isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
@@ -622,7 +655,40 @@ export default function Businesses() {
         </View>
       </ScrollView>
 
-      <FloatingActionMenu isVisible={showFAB} />
+      <FloatingActionMenu
+        onNewAppointment={handleNewAppointment}
+        onNewProposal={handleNewProposal}
+        onSendRequest={handleSendRequest}
+        onNewLead={handleCreateLead}
+        onNewJob={handleCreateJob}
+        isVisible={showFAB}
+      />
+
+      {/* Quick Actions Modals */}
+      <NewAppointmentModal 
+        visible={showNewAppointment}
+        onClose={() => setShowNewAppointment(false)}
+      />
+
+      <NewProposalModal 
+        visible={showNewProposal}
+        onClose={() => setShowNewProposal(false)}
+      />
+
+      <SendRequestModal 
+        visible={showSendRequest}
+        onClose={() => setShowSendRequest(false)}
+      />
+
+      <CreateLeadModal 
+        visible={showCreateLead}
+        onClose={() => setShowCreateLead(false)}
+      />
+
+      <CreateJobModal 
+        visible={showCreateJob}
+        onClose={() => setShowCreateJob(false)}
+      />
 
       {/* Business Card Modal */}
       <Modal

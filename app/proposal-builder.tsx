@@ -64,6 +64,8 @@ export default function ProposalBuilder() {
   // Parse proposal data from params if editing
   const proposalId = params.id as string | undefined;
   const isEditing = !!proposalId;
+  const proposalStatus = (params.status as string) || 'draft'; // Get status from params
+  const isScheduled = (params.isScheduled as string) === 'true'; // Get scheduled status from params
   
   // Preview mode state
   const [isPreviewMode, setIsPreviewMode] = useState(false);
@@ -90,6 +92,28 @@ export default function ProposalBuilder() {
   const [lineItems, setLineItems] = useState<ProposalLineItem[]>([]);
   const [showAddItemModal, setShowAddItemModal] = useState(false);
   const [isAddingOptionalItem, setIsAddingOptionalItem] = useState(false);
+
+  // Initialize with line item from job creation if provided
+  React.useEffect(() => {
+    const lineItemName = params.lineItemName as string | undefined;
+    const lineItemQuantity = params.lineItemQuantity as string | undefined;
+    const lineItemPrice = params.lineItemPrice as string | undefined;
+
+    if (lineItemName && lineItemQuantity && lineItemPrice && lineItems.length === 0) {
+      const quantity = parseFloat(lineItemQuantity);
+      const unitPrice = parseFloat(lineItemPrice);
+      const newItem: ProposalLineItem = {
+        id: Date.now().toString(),
+        name: lineItemName,
+        description: '',
+        quantity: quantity,
+        unitPrice: unitPrice,
+        totalPrice: quantity * unitPrice,
+        isOptional: false,
+      };
+      setLineItems([newItem]);
+    }
+  }, [params.lineItemName, params.lineItemQuantity, params.lineItemPrice]);
   
   // Area wizard state
   const [showAreaWizard, setShowAreaWizard] = useState(false);
@@ -838,6 +862,35 @@ export default function ProposalBuilder() {
           )}
         </View>
       </LinearGradient>
+
+      {/* Schedule Job Banner */}
+      {proposalStatus === 'accepted' && !isScheduled && (
+        <TouchableOpacity 
+          style={styles.scheduleJobBanner}
+          onPress={() => {
+            // In real app, navigate to scheduling page
+            Alert.alert(
+              'Schedule Job',
+              'This job has been accepted but not scheduled yet. Would you like to schedule it now?',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Schedule Now', onPress: () => {
+                  // Navigate to job schedule page or open schedule modal
+                  console.log('Navigate to scheduling');
+                }}
+              ]
+            );
+          }}
+        >
+          <View style={styles.scheduleJobContent}>
+            <Clock size={20} color="#D97706" />
+            <View style={styles.scheduleJobText}>
+              <Text style={styles.scheduleJobTitle}>Job Not Scheduled</Text>
+              <Text style={styles.scheduleJobDescription}>Tap here to schedule this accepted job</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+      )}
 
       {/* Tab Bar - Hidden in preview mode */}
       {!isPreviewMode && renderTabBar()}
@@ -1855,6 +1908,31 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#15803D',
     lineHeight: 18,
+  },
+  scheduleJobBanner: {
+    backgroundColor: '#FEF3C7',
+    borderBottomWidth: 1,
+    borderBottomColor: '#FCD34D',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+  },
+  scheduleJobContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  scheduleJobText: {
+    flex: 1,
+  },
+  scheduleJobTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#92400E',
+    marginBottom: 2,
+  },
+  scheduleJobDescription: {
+    fontSize: 13,
+    color: '#78350F',
   },
 });
 

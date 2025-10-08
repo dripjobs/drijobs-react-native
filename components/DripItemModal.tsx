@@ -1,4 +1,4 @@
-import { Mail, MessageSquare, Save, Send, X, Zap } from 'lucide-react-native';
+import { AlertCircle, ChevronDown, ChevronUp, Mail, MessageSquare, Save, Send, X, Zap } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
     Alert,
@@ -12,6 +12,8 @@ import {
     View
 } from 'react-native';
 
+type AutomationType = 'send_text' | 'send_email' | 'add_note' | 'create_task' | 'add_discount' | 'ai_followup' | 'add_label' | 'move_stage' | 'change_pipeline';
+
 interface DripItemModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -19,10 +21,11 @@ interface DripItemModalProps {
     type: 'message' | 'automation';
     messageType?: 'email' | 'text';
     subject?: string;
-    content: string;
+    content?: string;
     delay: number;
-    automationType?: string;
+    automationType?: AutomationType;
     config?: any;
+    status: 'draft' | 'active';
   }) => void;
   mode: 'add-item' | 'add-delay';
   prefillDelay?: number;
@@ -42,38 +45,125 @@ export default function DripItemModal({
   const [subject, setSubject] = useState('');
   const [content, setContent] = useState('');
   const [delay, setDelay] = useState(prefillDelay);
-  const [automationType, setAutomationType] = useState('add_note');
+  const [manualDelay, setManualDelay] = useState(String(prefillDelay));
+  const [automationType, setAutomationType] = useState<AutomationType>('add_note');
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
+  const [status, setStatus] = useState<'draft' | 'active'>('draft');
+  const [showMetaTags, setShowMetaTags] = useState(false);
 
   const handleSave = () => {
+    // For add-delay mode, we don't need content
+    if (mode === 'add-delay') {
+      onSave({
+        type: 'automation',
+        delay,
+        status,
+      });
+      resetForm();
+      return;
+    }
+
+    // For messages, require content
     if (itemType === 'message' && !content.trim()) {
       Alert.alert('Error', 'Please enter message content');
       return;
     }
 
-    if (itemType === 'automation' && !content.trim()) {
-      Alert.alert('Error', 'Please enter automation details');
-      return;
+    // For automations that need config, validate based on type
+    if (itemType === 'automation') {
+      if (['send_text', 'send_email'].includes(automationType) && !content.trim()) {
+        Alert.alert('Error', 'Please enter message content');
+        return;
+      }
+      if (['add_note', 'create_task'].includes(automationType) && !content.trim()) {
+        Alert.alert('Error', 'Please enter details');
+        return;
+      }
+    }
+
+    // Show warning if activating with pending contacts
+    if (status === 'active') {
+      Alert.alert(
+        'Activate Drip',
+        'This drip will become active. Any customers currently in this stage will receive this message according to the delay settings.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Activate', 
+            onPress: () => saveItem()
+          }
+        ]
+      );
+    } else {
+      saveItem();
+    }
+  };
+
+  const saveItem = () => {
+    const automationConfig: any = {};
+    
+    if (itemType === 'automation') {
+      if (['send_text', 'send_email'].includes(automationType)) {
+        automationConfig.content = content.trim();
+        if (automationType === 'send_email') {
+          automationConfig.subject = subject.trim();
+        }
+      } else if (automationType === 'add_note') {
+        automationConfig.noteContent = content.trim();
+      } else if (automationType === 'create_task') {
+        automationConfig.taskName = content.trim();
+      }
     }
 
     onSave({
       type: itemType,
-      messageType: itemType === 'message' ? messageType : undefined,
-      subject: itemType === 'message' && messageType === 'email' ? subject : undefined,
-      content: content.trim(),
+      messageType: itemType === 'message' ? messageType : (automationType === 'send_text' ? 'text' : automationType === 'send_email' ? 'email' : undefined),
+      subject: (itemType === 'message' && messageType === 'email') || automationType === 'send_email' ? subject : undefined,
+      content: content.trim() || undefined,
       delay,
       automationType: itemType === 'automation' ? automationType : undefined,
-      config: itemType === 'automation' ? { content: content.trim() } : undefined,
+      config: itemType === 'automation' ? automationConfig : undefined,
+      status,
     });
 
-    // Reset form
+    resetForm();
+  };
+
+  const resetForm = () => {
     setItemType('message');
     setMessageType('email');
     setSubject('');
     setContent('');
     setDelay(60);
+    setManualDelay('60');
     setAutomationType('add_note');
+    setStatus('draft');
+    setShowMetaTags(false);
   };
+
+  const handleManualDelayChange = (text: string) => {
+    setManualDelay(text);
+    const minutes = parseInt(text);
+    if (!isNaN(minutes) && minutes >= 0) {
+      setDelay(minutes);
+    }
+  };
+
+  const insertMetaTag = (tag: string) => {
+    setContent(content + `{{${tag}}}`);
+  };
+
+  const metaTags = [
+    { tag: 'first_name', label: 'First Name', description: 'Contact\'s first name' },
+    { tag: 'last_name', label: 'Last Name', description: 'Contact\'s last name' },
+    { tag: 'company', label: 'Company', description: 'Company name' },
+    { tag: 'phone', label: 'Phone', description: 'Phone number' },
+    { tag: 'email', label: 'Email', description: 'Email address' },
+    { tag: 'address', label: 'Address', description: 'Full address' },
+    { tag: 'city', label: 'City', description: 'City' },
+    { tag: 'state', label: 'State', description: 'State' },
+    { tag: 'zip', label: 'ZIP', description: 'ZIP code' },
+  ];
 
   if (!isOpen) return null;
 
@@ -194,6 +284,36 @@ export default function DripItemModal({
                 <TouchableOpacity
                   style={[
                     styles.automationTypeButton,
+                    automationType === 'send_text' && styles.automationTypeButtonActive
+                  ]}
+                  onPress={() => setAutomationType('send_text')}
+                >
+                  <Text style={[
+                    styles.automationTypeButtonText,
+                    automationType === 'send_text' && styles.automationTypeButtonTextActive
+                  ]}>
+                    Send Text
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.automationTypeButton,
+                    automationType === 'send_email' && styles.automationTypeButtonActive
+                  ]}
+                  onPress={() => setAutomationType('send_email')}
+                >
+                  <Text style={[
+                    styles.automationTypeButtonText,
+                    automationType === 'send_email' && styles.automationTypeButtonTextActive
+                  ]}>
+                    Send Email
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.automationTypeButton,
                     automationType === 'add_note' && styles.automationTypeButtonActive
                   ]}
                   onPress={() => setAutomationType('add_note')}
@@ -239,6 +359,36 @@ export default function DripItemModal({
                 <TouchableOpacity
                   style={[
                     styles.automationTypeButton,
+                    automationType === 'ai_followup' && styles.automationTypeButtonActive
+                  ]}
+                  onPress={() => setAutomationType('ai_followup')}
+                >
+                  <Text style={[
+                    styles.automationTypeButtonText,
+                    automationType === 'ai_followup' && styles.automationTypeButtonTextActive
+                  ]}>
+                    AI Follow-up
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.automationTypeButton,
+                    automationType === 'add_label' && styles.automationTypeButtonActive
+                  ]}
+                  onPress={() => setAutomationType('add_label')}
+                >
+                  <Text style={[
+                    styles.automationTypeButtonText,
+                    automationType === 'add_label' && styles.automationTypeButtonTextActive
+                  ]}>
+                    Add Label
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.automationTypeButton,
                     automationType === 'move_stage' && styles.automationTypeButtonActive
                   ]}
                   onPress={() => setAutomationType('move_stage')}
@@ -248,6 +398,21 @@ export default function DripItemModal({
                     automationType === 'move_stage' && styles.automationTypeButtonTextActive
                   ]}>
                     Move Stage
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.automationTypeButton,
+                    automationType === 'change_pipeline' && styles.automationTypeButtonActive
+                  ]}
+                  onPress={() => setAutomationType('change_pipeline')}
+                >
+                  <Text style={[
+                    styles.automationTypeButtonText,
+                    automationType === 'change_pipeline' && styles.automationTypeButtonTextActive
+                  ]}>
+                    Change Pipeline
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -275,58 +440,133 @@ export default function DripItemModal({
             </View>
           )}
 
-          {/* Content */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
-              {itemType === 'message' ? 'Message Content' : 'Automation Details'}
-            </Text>
-            <View style={[
-              styles.inputContainer,
-              focusedInput === 'content' && styles.inputContainerFocused
-            ]}>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={content}
-                onChangeText={setContent}
-                placeholder={
-                  itemType === 'message' 
-                    ? "Enter your message content..." 
-                    : "Enter automation details..."
-                }
-                placeholderTextColor="#9CA3AF"
-                multiline
-                numberOfLines={4}
-                onFocus={() => setFocusedInput('content')}
-                onBlur={() => setFocusedInput(null)}
-              />
-            </View>
-          </View>
+          {/* Content - Only show for messages or certain automation types, and not for add-delay mode */}
+          {mode !== 'add-delay' && (
+            <>
+              {(itemType === 'message' || ['send_text', 'send_email', 'add_note', 'create_task'].includes(automationType)) && (
+                <View style={styles.section}>
+                  <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>
+                      {itemType === 'message' ? 'Message Content' : 'Automation Details'}
+                    </Text>
+                    {(itemType === 'message' || ['send_text', 'send_email'].includes(automationType)) && (
+                      <TouchableOpacity 
+                        style={styles.metaTagsToggle}
+                        onPress={() => setShowMetaTags(!showMetaTags)}
+                      >
+                        <Text style={styles.metaTagsToggleText}>Meta Tags</Text>
+                        {showMetaTags ? <ChevronUp size={16} color="#6366F1" /> : <ChevronDown size={16} color="#6366F1" />}
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+                  {/* Meta Tags Section */}
+                  {showMetaTags && (itemType === 'message' || ['send_text', 'send_email'].includes(automationType)) && (
+                    <View style={styles.metaTagsSection}>
+                      <Text style={styles.metaTagsTitle}>Available Tags</Text>
+                      <Text style={styles.metaTagsDescription}>Click to insert into your message</Text>
+                      <View style={styles.metaTagsList}>
+                        {metaTags.map((meta) => (
+                          <TouchableOpacity
+                            key={meta.tag}
+                            style={styles.metaTagButton}
+                            onPress={() => insertMetaTag(meta.tag)}
+                          >
+                            <Text style={styles.metaTagLabel}>{meta.label}</Text>
+                            <Text style={styles.metaTagTag}>{'{{' + meta.tag + '}}'}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+
+                  <View style={[
+                    styles.inputContainer,
+                    focusedInput === 'content' && styles.inputContainerFocused
+                  ]}>
+                    <TextInput
+                      style={[styles.input, styles.textArea]}
+                      value={content}
+                      onChangeText={setContent}
+                      placeholder={
+                        itemType === 'message' 
+                          ? "Enter your message content..." 
+                          : automationType === 'add_note'
+                          ? "Enter note content..."
+                          : automationType === 'create_task'
+                          ? "Enter task name..."
+                          : "Enter automation details..."
+                      }
+                      placeholderTextColor="#9CA3AF"
+                      multiline
+                      numberOfLines={4}
+                      onFocus={() => setFocusedInput('content')}
+                      onBlur={() => setFocusedInput(null)}
+                    />
+                  </View>
+                </View>
+              )}
+            </>
+          )}
 
           {/* Delay Settings */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Delay</Text>
             
+            {/* Manual Delay Input */}
+            <View style={styles.manualDelayContainer}>
+              <Text style={styles.manualDelayLabel}>Wait time (minutes):</Text>
+              <View style={[
+                styles.manualDelayInputContainer,
+                focusedInput === 'delay' && styles.inputContainerFocused
+              ]}>
+                <TextInput
+                  style={styles.manualDelayInput}
+                  value={manualDelay}
+                  onChangeText={handleManualDelayChange}
+                  placeholder="Enter minutes..."
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="numeric"
+                  onFocus={() => setFocusedInput('delay')}
+                  onBlur={() => setFocusedInput(null)}
+                />
+                <Text style={styles.manualDelayDisplay}>{formatDelay(delay)}</Text>
+              </View>
+            </View>
+            
             <View style={styles.delayContainer}>
-              <Text style={styles.delayLabel}>Wait time: {formatDelay(delay)}</Text>
+              <Text style={styles.delayLabel}>Current: {formatDelay(delay)}</Text>
               
               <View style={styles.delayButtons}>
                 <TouchableOpacity
                   style={styles.delayButton}
-                  onPress={() => setDelay(Math.max(0, delay - 60))}
+                  onPress={() => {
+                    const newDelay = Math.max(0, delay - 60);
+                    setDelay(newDelay);
+                    setManualDelay(String(newDelay));
+                  }}
                 >
                   <Text style={styles.delayButtonText}>-1h</Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity
                   style={styles.delayButton}
-                  onPress={() => setDelay(delay + 60)}
+                  onPress={() => {
+                    const newDelay = delay + 60;
+                    setDelay(newDelay);
+                    setManualDelay(String(newDelay));
+                  }}
                 >
                   <Text style={styles.delayButtonText}>+1h</Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity
                   style={styles.delayButton}
-                  onPress={() => setDelay(delay + 1440)}
+                  onPress={() => {
+                    const newDelay = delay + 1440;
+                    setDelay(newDelay);
+                    setManualDelay(String(newDelay));
+                  }}
                 >
                   <Text style={styles.delayButtonText}>+1d</Text>
                 </TouchableOpacity>
@@ -339,25 +579,37 @@ export default function DripItemModal({
               <View style={styles.quickDelayButtons}>
                 <TouchableOpacity
                   style={styles.quickDelayButton}
-                  onPress={() => setDelay(0)}
+                  onPress={() => {
+                    setDelay(0);
+                    setManualDelay('0');
+                  }}
                 >
                   <Text style={styles.quickDelayButtonText}>Immediate</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.quickDelayButton}
-                  onPress={() => setDelay(60)}
+                  onPress={() => {
+                    setDelay(60);
+                    setManualDelay('60');
+                  }}
                 >
                   <Text style={styles.quickDelayButtonText}>1 hour</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.quickDelayButton}
-                  onPress={() => setDelay(1440)}
+                  onPress={() => {
+                    setDelay(1440);
+                    setManualDelay('1440');
+                  }}
                 >
                   <Text style={styles.quickDelayButtonText}>1 day</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.quickDelayButton}
-                  onPress={() => setDelay(10080)}
+                  onPress={() => {
+                    setDelay(10080);
+                    setManualDelay('10080');
+                  }}
                 >
                   <Text style={styles.quickDelayButtonText}>1 week</Text>
                 </TouchableOpacity>
@@ -365,36 +617,109 @@ export default function DripItemModal({
             </View>
           </View>
 
-          {/* Preview */}
-          <View style={styles.previewSection}>
-            <Text style={styles.sectionTitle}>Preview</Text>
-            <View style={styles.previewCard}>
-              <View style={styles.previewHeader}>
-                <View style={styles.previewIcon}>
-                  {itemType === 'message' ? (
-                    messageType === 'email' ? <Mail size={16} color="#3B82F6" /> : <Send size={16} color="#10B981" />
-                  ) : (
-                    <Zap size={16} color="#F59E0B" />
-                  )}
-                </View>
-                <View style={styles.previewInfo}>
-                  <Text style={styles.previewTitle}>
-                    {itemType === 'message' 
-                      ? `${messageType === 'email' ? 'Email' : 'Text'} Message`
-                      : 'Automation'
-                    }
-                  </Text>
-                  <Text style={styles.previewDelay}>Delay: {formatDelay(delay)}</Text>
-                </View>
-              </View>
-              {subject && (
-                <Text style={styles.previewSubject}>{subject}</Text>
-              )}
-              <Text style={styles.previewContent} numberOfLines={3}>
-                {content || 'Enter content to see preview...'}
-              </Text>
+          {/* Status Selection */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Status</Text>
+            <View style={styles.statusSelector}>
+              <TouchableOpacity
+                style={[
+                  styles.statusButton,
+                  status === 'draft' && styles.statusButtonActive
+                ]}
+                onPress={() => setStatus('draft')}
+              >
+                <Text style={[
+                  styles.statusButtonText,
+                  status === 'draft' && styles.statusButtonTextActive
+                ]}>
+                  Draft
+                </Text>
+                <Text style={[
+                  styles.statusButtonDescription,
+                  status === 'draft' && styles.statusButtonDescriptionActive
+                ]}>
+                  Save without activating
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.statusButton,
+                  status === 'active' && styles.statusButtonActive
+                ]}
+                onPress={() => setStatus('active')}
+              >
+                <Text style={[
+                  styles.statusButtonText,
+                  status === 'active' && styles.statusButtonTextActive
+                ]}>
+                  Active
+                </Text>
+                <Text style={[
+                  styles.statusButtonDescription,
+                  status === 'active' && styles.statusButtonDescriptionActive
+                ]}>
+                  Start sending immediately
+                </Text>
+              </TouchableOpacity>
             </View>
+
+            {/* Warning for active status */}
+            {status === 'active' && (
+              <View style={styles.warningContainer}>
+                <AlertCircle size={16} color="#F59E0B" />
+                <Text style={styles.warningText}>
+                  Customers currently in this stage will receive this message according to the delay settings.
+                </Text>
+              </View>
+            )}
           </View>
+
+          {/* Preview - Only show for add-item mode */}
+          {mode !== 'add-delay' && (
+            <View style={styles.previewSection}>
+              <Text style={styles.sectionTitle}>Preview</Text>
+              <View style={styles.previewCard}>
+                <View style={styles.previewHeader}>
+                  <View style={styles.previewIcon}>
+                    {itemType === 'message' ? (
+                      messageType === 'email' ? <Mail size={16} color="#3B82F6" /> : <Send size={16} color="#10B981" />
+                    ) : (
+                      <Zap size={16} color="#F59E0B" />
+                    )}
+                  </View>
+                  <View style={styles.previewInfo}>
+                    <Text style={styles.previewTitle}>
+                      {itemType === 'message' 
+                        ? `${messageType === 'email' ? 'Email' : 'Text'} Message`
+                        : automationType.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+                      }
+                    </Text>
+                    <Text style={styles.previewDelay}>Delay: {formatDelay(delay)}</Text>
+                  </View>
+                  <View style={[
+                    styles.previewStatusBadge,
+                    status === 'active' ? styles.previewStatusBadgeActive : styles.previewStatusBadgeDraft
+                  ]}>
+                    <Text style={[
+                      styles.previewStatusText,
+                      status === 'active' ? styles.previewStatusTextActive : styles.previewStatusTextDraft
+                    ]}>
+                      {status === 'active' ? 'Active' : 'Draft'}
+                    </Text>
+                  </View>
+                </View>
+                {subject && (
+                  <Text style={styles.previewSubject}>{subject}</Text>
+                )}
+                {content && (
+                  <Text style={styles.previewContent} numberOfLines={3}>
+                    {content || 'Enter content to see preview...'}
+                  </Text>
+                )}
+              </View>
+            </View>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -679,6 +1004,174 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
     lineHeight: 20,
+  },
+  previewStatusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  previewStatusBadgeActive: {
+    backgroundColor: '#D1FAE5',
+  },
+  previewStatusBadgeDraft: {
+    backgroundColor: '#FEF3C7',
+  },
+  previewStatusText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  previewStatusTextActive: {
+    color: '#065F46',
+  },
+  previewStatusTextDraft: {
+    color: '#92400E',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  metaTagsToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: '#EEF2FF',
+  },
+  metaTagsToggleText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#6366F1',
+  },
+  metaTagsSection: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  metaTagsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 4,
+  },
+  metaTagsDescription: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 12,
+  },
+  metaTagsList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  metaTagButton: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+  },
+  metaTagLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: 2,
+  },
+  metaTagTag: {
+    fontSize: 10,
+    color: '#6366F1',
+    fontFamily: 'monospace',
+  },
+  manualDelayContainer: {
+    marginBottom: 12,
+  },
+  manualDelayLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  manualDelayInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    paddingRight: 12,
+  },
+  manualDelayInput: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#111827',
+    backgroundColor: 'transparent',
+  },
+  manualDelayDisplay: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  statusSelector: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  statusButton: {
+    flex: 1,
+    borderWidth: 2,
+    borderColor: '#D1D5DB',
+    borderRadius: 12,
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+  },
+  statusButtonActive: {
+    borderColor: '#6366F1',
+    backgroundColor: '#EEF2FF',
+  },
+  statusButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 4,
+  },
+  statusButtonTextActive: {
+    color: '#6366F1',
+  },
+  statusButtonDescription: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  statusButtonDescriptionActive: {
+    color: '#6366F1',
+  },
+  warningContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+  },
+  warningText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#92400E',
+    lineHeight: 18,
   },
 });
 

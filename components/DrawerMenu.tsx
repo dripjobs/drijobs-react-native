@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { Activity, BarChart3, Bell, Building2, Calendar, Calendar as CalendarIcon, CheckSquare, CircleUser, Clock, Droplets, FileCheck, FileText, Home, Mail, MessageCircle, MessageSquare, Mic, RotateCcw, Settings2, Star, Users, Wrench, X } from 'lucide-react-native';
+import { Activity, BarChart3, Bell, Building2, Calendar, Calendar as CalendarIcon, CheckSquare, ChevronRight, CircleUser, Clock, Droplets, FileCheck, FileText, Globe, Grid3x3, Hash, Home, Mail, MessageSquare, RotateCcw, Settings2, Star, Users, Wrench, X } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Animated, Dimensions, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { PanGestureHandler } from 'react-native-gesture-handler';
@@ -28,10 +28,10 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
         {
           title: 'Communication',
           items: [
-            { icon: Mic, label: 'Voice', action: () => router.push('/(tabs)/phone') },
+            { icon: Grid3x3, label: 'Voice', action: () => router.push('/(tabs)/phone') },
             { icon: MessageSquare, label: 'Chat', action: () => router.push('/(tabs)/chat') },
             { icon: Mail, label: 'Email', action: () => router.push('/email') },
-            { icon: MessageCircle, label: 'Team Chat', action: () => router.push('/(tabs)/team-chat') },
+            { icon: Hash, label: 'Team Chat', action: () => router.push('/(tabs)/team-chat') },
           ]
         },
     {
@@ -49,7 +49,9 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
         { icon: FileText, label: 'Invoices', action: () => router.push('/invoices') },
         { icon: FileCheck, label: 'Proposals', action: () => router.push('/proposals') },
         { icon: Wrench, label: 'Work Orders', action: () => router.push('/(tabs)/work-orders') },
+        { icon: Users, label: 'Crews', action: () => router.push('/crews') },
         { icon: Star, label: 'Reviews', action: () => router.push('/reviews') },
+        { icon: Globe, label: 'Website', action: () => router.push('/website') },
       ]
     },
         {
@@ -183,31 +185,35 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
               >
                 <View style={styles.header}>
                   <View style={styles.profile}>
-                    <View style={styles.avatar}>
-                      <Text style={styles.avatarText}>JD</Text>
-                    </View>
                     <View style={styles.profileInfo}>
                       <Text style={styles.name}>John Doe</Text>
-                      <Text style={styles.email}>john.doe@company.com</Text>
                       <Text style={styles.role}>Sales Manager</Text>
+                      <Text style={styles.company}>Drip Jobs Inc.</Text>
                     </View>
                   </View>
                   
-                  <View style={styles.headerActions}>
-                    <TouchableOpacity 
-                      style={styles.profileIconButton}
-                      onPress={() => {
-                        console.log('Profile');
-                        onClose();
-                      }}
-                    >
-                      <CircleUser size={20} color="#FFFFFF" />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                      <X size={24} color="#FFFFFF" />
-                    </TouchableOpacity>
-                  </View>
+                  <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                    <X size={24} color="#FFFFFF" />
+                  </TouchableOpacity>
                 </View>
+                
+                {/* My Profile Button */}
+                <TouchableOpacity 
+                  style={styles.myProfileButton}
+                  onPress={() => {
+                    router.push('/account-settings');
+                    onClose();
+                  }}
+                >
+                  <View style={styles.myProfileContent}>
+                    <CircleUser size={18} color="#FFFFFF" />
+                    <View style={styles.myProfileTextContainer}>
+                      <Text style={styles.myProfileText}>My Profile</Text>
+                      <Text style={styles.myProfileSubtext}>Edit personal settings</Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={18} color="rgba(255, 255, 255, 0.7)" />
+                </TouchableOpacity>
               </LinearGradient>
 
               <ScrollView style={styles.menu} showsVerticalScrollIndicator={false}>
@@ -285,7 +291,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerGradient: {
-    paddingBottom: 24,
+    paddingBottom: 16,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
   },
@@ -294,68 +300,68 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  profileIconButton: {
-    padding: 10,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    paddingTop: 16,
+    paddingBottom: 12,
   },
   profile: {
     flex: 1,
   },
-  avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  avatarText: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
   profileInfo: {
-    gap: 4,
+    gap: 2,
   },
   name: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
     color: '#FFFFFF',
-  },
-  email: {
-    fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 2,
   },
   role: {
     fontSize: 13,
     color: 'rgba(255, 255, 255, 0.9)',
     fontWeight: '500',
   },
+  company: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.75)',
+    fontWeight: '400',
+    marginTop: 2,
+  },
   closeButton: {
     padding: 8,
+  },
+  myProfileButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  myProfileContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  myProfileTextContainer: {
+    flex: 1,
+    gap: 2,
+  },
+  myProfileText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  myProfileSubtext: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: '400',
   },
   menu: {
     flex: 1,

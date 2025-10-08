@@ -1,5 +1,10 @@
+import CreateJobModal from '@/components/CreateJobModal';
+import CreateLeadModal from '@/components/CreateLeadModal';
 import DrawerMenu from '@/components/DrawerMenu';
 import FloatingActionMenu from '@/components/FloatingActionMenu';
+import NewAppointmentModal from '@/components/NewAppointmentModal';
+import NewProposalModal from '@/components/NewProposalModal';
+import SendRequestModal from '@/components/SendRequestModal';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
     AlertCircle,
@@ -70,6 +75,13 @@ export default function WorkOrders() {
     hasIssues: false,
     dateRange: 'all' as 'all' | 'this-week' | 'this-month' | 'overdue'
   });
+  
+  // Quick Actions modal states
+  const [showNewAppointment, setShowNewAppointment] = useState(false);
+  const [showNewProposal, setShowNewProposal] = useState(false);
+  const [showSendRequest, setShowSendRequest] = useState(false);
+  const [showCreateLead, setShowCreateLead] = useState(false);
+  const [showCreateJob, setShowCreateJob] = useState(false);
 
   // Mock work orders data
   const mockWorkOrders: WorkOrder[] = [
@@ -287,6 +299,27 @@ export default function WorkOrders() {
 
   const handleCloseDetail = () => {
     setSelectedWorkOrder(null);
+  };
+
+  // Quick Actions handlers
+  const handleNewAppointment = () => {
+    setShowNewAppointment(true);
+  };
+
+  const handleNewProposal = () => {
+    setShowNewProposal(true);
+  };
+
+  const handleSendRequest = () => {
+    setShowSendRequest(true);
+  };
+
+  const handleCreateLead = () => {
+    setShowCreateLead(true);
+  };
+
+  const handleCreateJob = () => {
+    setShowCreateJob(true);
   };
 
   const toggleFilter = (filterType: 'priority' | 'assignedTo', value: string) => {
@@ -762,7 +795,39 @@ export default function WorkOrders() {
         )}
       </Modal>
 
-      <FloatingActionMenu />
+      <FloatingActionMenu
+        onNewAppointment={handleNewAppointment}
+        onNewProposal={handleNewProposal}
+        onSendRequest={handleSendRequest}
+        onNewLead={handleCreateLead}
+        onNewJob={handleCreateJob}
+      />
+
+      {/* Quick Actions Modals */}
+      <NewAppointmentModal 
+        visible={showNewAppointment}
+        onClose={() => setShowNewAppointment(false)}
+      />
+
+      <NewProposalModal 
+        visible={showNewProposal}
+        onClose={() => setShowNewProposal(false)}
+      />
+
+      <SendRequestModal 
+        visible={showSendRequest}
+        onClose={() => setShowSendRequest(false)}
+      />
+
+      <CreateLeadModal 
+        visible={showCreateLead}
+        onClose={() => setShowCreateLead(false)}
+      />
+
+      <CreateJobModal 
+        visible={showCreateJob}
+        onClose={() => setShowCreateJob(false)}
+      />
     </SafeAreaView>
   );
 }

@@ -1,11 +1,17 @@
+import ActiveCallModal from '@/components/ActiveCallModal';
+import CreateJobModal from '@/components/CreateJobModal';
+import CreateLeadModal from '@/components/CreateLeadModal';
 import DrawerMenu from '@/components/DrawerMenu';
 import FloatingActionMenu from '@/components/FloatingActionMenu';
+import NewAppointmentModal from '@/components/NewAppointmentModal';
+import NewProposalModal from '@/components/NewProposalModal';
+import SendRequestModal from '@/components/SendRequestModal';
 import { useTabBar } from '@/contexts/TabBarContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { Calendar, CheckSquare, ChevronDown, ChevronRight, Clock, Copy, DollarSign, Edit, FileText, Filter, Mail, MapPin, MessageSquare, MoreHorizontal, Navigation, Phone, Plus, Search, Tag, Target, TrendingUp, User, X } from 'lucide-react-native';
+import { Calendar, CheckSquare, ChevronDown, ChevronRight, Clock, Copy, DollarSign, Edit, FileText, Filter, Mail, MapPin, MessageCircle, MessageSquare, MoreHorizontal, Navigation, Phone, PhoneCall, Plus, Search, Tag, Target, TrendingUp, User, X } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Alert, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Linking, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function Contacts() {
   const { setIsTransparent } = useTabBar();
@@ -46,6 +52,22 @@ export default function Contacts() {
   const [isSaving, setIsSaving] = useState(false);
   const [showFAB, setShowFAB] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  
+  // Quick Actions modal states
+  const [showNewAppointment, setShowNewAppointment] = useState(false);
+  const [showNewProposal, setShowNewProposal] = useState(false);
+  const [showSendRequest, setShowSendRequest] = useState(false);
+  const [showCreateLead, setShowCreateLead] = useState(false);
+  const [showCreateJob, setShowCreateJob] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [showCallModal, setShowCallModal] = useState(false);
+  const [showMapModal, setShowMapModal] = useState(false);
+  const [showActiveCall, setShowActiveCall] = useState(false);
+  const [selectedPhone, setSelectedPhone] = useState('');
+  const [selectedContactName, setSelectedContactName] = useState('');
+  const [selectedAddress, setSelectedAddress] = useState('');
+  const [filterType, setFilterType] = useState<string>('all');
+  const [filterSource, setFilterSource] = useState<string>('all');
 
   const contacts = [
     { 
@@ -266,7 +288,8 @@ export default function Contacts() {
   };
 
   const handleContactPress = (contact: any) => {
-    console.log('Open contact record:', contact.name);
+    // Make entire card expand/collapse
+    handleExpandContact(contact.id);
   };
 
   const handleExpandContact = (contactId: number) => {
@@ -284,6 +307,71 @@ export default function Contacts() {
 
   const handleExpandDeal = (dealId: number) => {
     setExpandedDeal(expandedDeal === dealId ? null : dealId);
+  };
+
+  // Action handlers
+  const handleCall = (contact: any) => {
+    setSelectedPhone(contact.phone);
+    setSelectedContactName(contact.name);
+    setShowCallModal(true);
+  };
+
+  const handleEmail = (contact: any) => {
+    // Navigate to email screen with pre-filled recipient
+    router.push({
+      pathname: '/email',
+      params: { 
+        to: contact.email,
+        name: contact.name
+      }
+    });
+  };
+
+  const handleText = (contact: any) => {
+    // Navigate to chat screen
+    router.push({
+      pathname: '/(tabs)/chat',
+      params: { 
+        contactId: contact.id,
+        phone: contact.phone,
+        name: contact.name
+      }
+    });
+  };
+
+  const handleNavigate = (contact: any) => {
+    const address = contact.addresses?.find((addr: any) => addr.isPrimary)?.address || contact.address;
+    if (address) {
+      setSelectedAddress(address);
+      setShowMapModal(true);
+    } else {
+      Alert.alert('No Address', 'This contact does not have an address on file.');
+    }
+  };
+
+  const initiateCall = () => {
+    setShowCallModal(false);
+    // Show the active call UI
+    setShowActiveCall(true);
+    // Optionally, also trigger the actual phone call
+    // const phoneNumber = selectedPhone.replace(/[^0-9]/g, '');
+    // Linking.openURL(`tel:${phoneNumber}`);
+  };
+
+  const openInMaps = (mapType: 'apple' | 'google') => {
+    setShowMapModal(false);
+    const encodedAddress = encodeURIComponent(selectedAddress);
+    
+    if (mapType === 'apple') {
+      Linking.openURL(`http://maps.apple.com/?address=${encodedAddress}`);
+    } else {
+      Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodedAddress}`);
+    }
+  };
+
+  const applyFilters = () => {
+    setShowFilterModal(false);
+    // Filter logic would be applied here
   };
 
   const handleViewAppointmentDetails = (appointment: any) => {
@@ -647,6 +735,27 @@ export default function Contacts() {
     </View>
   );
 
+  // Quick Actions handlers
+  const handleNewAppointment = () => {
+    setShowNewAppointment(true);
+  };
+
+  const handleNewProposal = () => {
+    setShowNewProposal(true);
+  };
+
+  const handleSendRequest = () => {
+    setShowSendRequest(true);
+  };
+
+  const handleCreateLead = () => {
+    setShowCreateLead(true);
+  };
+
+  const handleCreateJob = () => {
+    setShowCreateJob(true);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <DrawerMenu isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
@@ -676,14 +785,17 @@ export default function Contacts() {
             </View>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Contacts</Text>
-          <TouchableOpacity style={styles.headerButton}>
+          <TouchableOpacity 
+            style={styles.headerButton}
+            onPress={() => setShowFilterModal(true)}
+          >
             <Filter size={24} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
 
         <View style={styles.searchContainer}>
           <View style={styles.searchBox}>
-            <Search size={20} color="#6B7280" />
+            <Search size={20} color="rgba(255, 255, 255, 0.8)" />
             <TextInput
               style={styles.searchInput}
               placeholder="Search contacts..."
@@ -734,13 +846,7 @@ export default function Contacts() {
                   {!contact.title && !contact.company && <Text style={styles.contactEmail}>{contact.email}</Text>}
                 </View>
                 
-                <TouchableOpacity 
-                  style={styles.expandButton}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    handleExpandContact(contact.id);
-                  }}
-                >
+                <View style={styles.expandButton}>
                   <ChevronRight 
                     size={20} 
                     color="#6B7280" 
@@ -748,26 +854,38 @@ export default function Contacts() {
                       transform: [{ rotate: expandedContact === contact.id ? '90deg' : '0deg' }] 
                     }} 
                   />
-                </TouchableOpacity>
+                </View>
               </TouchableOpacity>
               
               {expandedContact === contact.id && (
                 <View style={styles.expandedContent}>
                   <View style={styles.contactActions}>
-                    <TouchableOpacity style={styles.actionButton}>
-                      <Phone size={16} color="#10B981" />
+                    <TouchableOpacity 
+                      style={styles.actionButton}
+                      onPress={() => handleCall(contact)}
+                    >
+                      <PhoneCall size={18} color="#10B981" />
                       <Text style={styles.actionText}>Call</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.actionButton}>
-                      <Mail size={16} color="#3B82F6" />
+                    <TouchableOpacity 
+                      style={styles.actionButton}
+                      onPress={() => handleEmail(contact)}
+                    >
+                      <Mail size={18} color="#3B82F6" />
                       <Text style={styles.actionText}>Email</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.actionButton}>
-                      <MessageSquare size={16} color="#8B5CF6" />
+                    <TouchableOpacity 
+                      style={styles.actionButton}
+                      onPress={() => handleText(contact)}
+                    >
+                      <MessageCircle size={18} color="#8B5CF6" />
                       <Text style={styles.actionText}>Text</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.actionButton}>
-                      <Navigation size={16} color="#F59E0B" />
+                    <TouchableOpacity 
+                      style={styles.actionButton}
+                      onPress={() => handleNavigate(contact)}
+                    >
+                      <MapPin size={18} color="#F59E0B" />
                       <Text style={styles.actionText}>Navigate</Text>
                     </TouchableOpacity>
                   </View>
@@ -785,7 +903,40 @@ export default function Contacts() {
         </View>
       </ScrollView>
 
-      <FloatingActionMenu isVisible={showFAB} />
+      <FloatingActionMenu
+        onNewAppointment={handleNewAppointment}
+        onNewProposal={handleNewProposal}
+        onSendRequest={handleSendRequest}
+        onNewLead={handleCreateLead}
+        onNewJob={handleCreateJob}
+        isVisible={showFAB}
+      />
+
+      {/* Quick Actions Modals */}
+      <NewAppointmentModal 
+        visible={showNewAppointment}
+        onClose={() => setShowNewAppointment(false)}
+      />
+
+      <NewProposalModal 
+        visible={showNewProposal}
+        onClose={() => setShowNewProposal(false)}
+      />
+
+      <SendRequestModal 
+        visible={showSendRequest}
+        onClose={() => setShowSendRequest(false)}
+      />
+
+      <CreateLeadModal 
+        visible={showCreateLead}
+        onClose={() => setShowCreateLead(false)}
+      />
+
+      <CreateJobModal 
+        visible={showCreateJob}
+        onClose={() => setShowCreateJob(false)}
+      />
 
       {/* Contact Card Modal */}
       <Modal
@@ -2744,6 +2895,204 @@ export default function Contacts() {
           </View>
         </SafeAreaView>
       </Modal>
+
+      {/* Filter Modal */}
+      <Modal
+        visible={showFilterModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowFilterModal(false)}
+      >
+        <View style={styles.filterModalOverlay}>
+          <TouchableOpacity 
+            style={styles.filterModalBackdrop}
+            activeOpacity={1}
+            onPress={() => setShowFilterModal(false)}
+          />
+          <View style={styles.filterModalContent}>
+            <View style={styles.filterModalHandle} />
+            
+            <View style={styles.filterModalHeader}>
+              <Text style={styles.filterModalTitle}>Filter Contacts</Text>
+              <TouchableOpacity onPress={() => setShowFilterModal(false)}>
+                <X size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.filterModalBody}>
+              {/* Contact Type Filter */}
+              <View style={styles.filterSection}>
+                <Text style={styles.filterSectionTitle}>Contact Type</Text>
+                <View style={styles.filterOptions}>
+                  <TouchableOpacity 
+                    style={[styles.filterOption, filterType === 'all' && styles.filterOptionActive]}
+                    onPress={() => setFilterType('all')}
+                  >
+                    <Text style={[styles.filterOptionText, filterType === 'all' && styles.filterOptionTextActive]}>
+                      All
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.filterOption, filterType === 'business' && styles.filterOptionActive]}
+                    onPress={() => setFilterType('business')}
+                  >
+                    <Text style={[styles.filterOptionText, filterType === 'business' && styles.filterOptionTextActive]}>
+                      Business
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.filterOption, filterType === 'homeowner' && styles.filterOptionActive]}
+                    onPress={() => setFilterType('homeowner')}
+                  >
+                    <Text style={[styles.filterOptionText, filterType === 'homeowner' && styles.filterOptionTextActive]}>
+                      Homeowner
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Lead Source Filter */}
+              <View style={styles.filterSection}>
+                <Text style={styles.filterSectionTitle}>Lead Source</Text>
+                <View style={styles.filterOptions}>
+                  <TouchableOpacity 
+                    style={[styles.filterOption, filterSource === 'all' && styles.filterOptionActive]}
+                    onPress={() => setFilterSource('all')}
+                  >
+                    <Text style={[styles.filterOptionText, filterSource === 'all' && styles.filterOptionTextActive]}>
+                      All
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.filterOption, filterSource === 'website' && styles.filterOptionActive]}
+                    onPress={() => setFilterSource('website')}
+                  >
+                    <Text style={[styles.filterOptionText, filterSource === 'website' && styles.filterOptionTextActive]}>
+                      Website
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.filterOption, filterSource === 'referral' && styles.filterOptionActive]}
+                    onPress={() => setFilterSource('referral')}
+                  >
+                    <Text style={[styles.filterOptionText, filterSource === 'referral' && styles.filterOptionTextActive]}>
+                      Referral
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.filterOption, filterSource === 'social' && styles.filterOptionActive]}
+                    onPress={() => setFilterSource('social')}
+                  >
+                    <Text style={[styles.filterOptionText, filterSource === 'social' && styles.filterOptionTextActive]}>
+                      Social Media
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </ScrollView>
+
+            <View style={styles.filterModalFooter}>
+              <TouchableOpacity 
+                style={styles.filterClearButton}
+                onPress={() => {
+                  setFilterType('all');
+                  setFilterSource('all');
+                }}
+              >
+                <Text style={styles.filterClearButtonText}>Clear All</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.filterApplyButton}
+                onPress={applyFilters}
+              >
+                <Text style={styles.filterApplyButtonText}>Apply Filters</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Call Confirmation Modal */}
+      <Modal
+        visible={showCallModal}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setShowCallModal(false)}
+      >
+        <View style={styles.confirmModalOverlay}>
+          <View style={styles.confirmModalContent}>
+            <View style={styles.confirmModalIcon}>
+              <PhoneCall size={32} color="#10B981" />
+            </View>
+            <Text style={styles.confirmModalTitle}>Make Call</Text>
+            <Text style={styles.confirmModalMessage}>
+              Do you want to call {selectedPhone}?
+            </Text>
+            <View style={styles.confirmModalActions}>
+              <TouchableOpacity 
+                style={styles.confirmModalCancel}
+                onPress={() => setShowCallModal(false)}
+              >
+                <Text style={styles.confirmModalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.confirmModalConfirm}
+                onPress={initiateCall}
+              >
+                <Text style={styles.confirmModalConfirmText}>Call Now</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Map Choice Modal */}
+      <Modal
+        visible={showMapModal}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setShowMapModal(false)}
+      >
+        <View style={styles.confirmModalOverlay}>
+          <View style={styles.confirmModalContent}>
+            <View style={styles.confirmModalIcon}>
+              <MapPin size={32} color="#F59E0B" />
+            </View>
+            <Text style={styles.confirmModalTitle}>Choose Map App</Text>
+            <Text style={styles.confirmModalMessage}>
+              Select which app to use for navigation
+            </Text>
+            <View style={styles.mapChoiceButtons}>
+              <TouchableOpacity 
+                style={styles.mapChoiceButton}
+                onPress={() => openInMaps('apple')}
+              >
+                <Text style={styles.mapChoiceButtonText}>Apple Maps</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.mapChoiceButton}
+                onPress={() => openInMaps('google')}
+              >
+                <Text style={styles.mapChoiceButtonText}>Google Maps</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity 
+              style={styles.mapChoiceCancel}
+              onPress={() => setShowMapModal(false)}
+            >
+              <Text style={styles.mapChoiceCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Active Call Modal */}
+      <ActiveCallModal
+        visible={showActiveCall}
+        onClose={() => setShowActiveCall(false)}
+        contactName={selectedContactName}
+        phoneNumber={selectedPhone}
+      />
 
     </SafeAreaView>
   );
@@ -4909,5 +5258,204 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '500',
+  },
+  // Filter Modal Styles
+  filterModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  filterModalBackdrop: {
+    flex: 1,
+  },
+  filterModalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 34,
+    maxHeight: '80%',
+  },
+  filterModalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#D1D5DB',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 20,
+  },
+  filterModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  filterModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  filterModalBody: {
+    paddingHorizontal: 20,
+    maxHeight: 400,
+  },
+  filterSection: {
+    marginBottom: 24,
+  },
+  filterSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 12,
+  },
+  filterOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  filterOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    backgroundColor: '#FFFFFF',
+  },
+  filterOptionActive: {
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
+  },
+  filterOptionText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  filterOptionTextActive: {
+    color: '#FFFFFF',
+  },
+  filterModalFooter: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    gap: 12,
+  },
+  filterClearButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    alignItems: 'center',
+  },
+  filterClearButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  filterApplyButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 8,
+    backgroundColor: '#6366F1',
+    alignItems: 'center',
+  },
+  filterApplyButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  // Confirmation Modal Styles
+  confirmModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  confirmModalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    alignItems: 'center',
+  },
+  confirmModalIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#F0FDF4',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  confirmModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  confirmModalMessage: {
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  confirmModalActions: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 12,
+  },
+  confirmModalCancel: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    alignItems: 'center',
+  },
+  confirmModalCancelText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  confirmModalConfirm: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#10B981',
+    alignItems: 'center',
+  },
+  confirmModalConfirmText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  // Map Choice Modal Styles
+  mapChoiceButtons: {
+    width: '100%',
+    gap: 12,
+    marginBottom: 12,
+  },
+  mapChoiceButton: {
+    paddingVertical: 14,
+    borderRadius: 8,
+    backgroundColor: '#6366F1',
+    alignItems: 'center',
+  },
+  mapChoiceButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  mapChoiceCancel: {
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  mapChoiceCancelText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#6B7280',
   },
 });

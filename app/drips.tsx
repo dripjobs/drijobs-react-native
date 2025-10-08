@@ -1,5 +1,6 @@
 import DripItemModal from '@/components/DripItemModal';
 import NewSequenceModal from '@/components/NewSequenceModal';
+import SequenceSettingsModal from '@/components/SequenceSettingsModal';
 import { useTabBar } from '@/contexts/TabBarContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -10,6 +11,7 @@ import {
     DollarSign,
     Edit,
     Info,
+    Mail,
     MessageSquare,
     MoreHorizontal,
     Plus,
@@ -22,7 +24,6 @@ import {
 import React, { useEffect, useState } from 'react';
 import {
     Dimensions,
-    Modal,
     SafeAreaView,
     ScrollView,
     StyleSheet,
@@ -93,8 +94,67 @@ const mockDripService = {
       totalAutomations: 2,
       totalSent: 1247,
       isDefault: true,
-      messages: [],
-      automations: []
+      messages: [
+        {
+          id: 'm1',
+          sequenceId: '1',
+          type: 'email',
+          subject: 'Welcome to our service!',
+          content: 'Hi there! Thanks for your interest. We\'re excited to work with you.',
+          delay: 0,
+          order: 1,
+          isActive: true,
+          createdAt: '2024-01-01',
+          updatedAt: '2024-01-01'
+        },
+        {
+          id: 'm2',
+          sequenceId: '1',
+          type: 'email',
+          subject: 'Quick question for you',
+          content: 'Just wanted to follow up and see if you had any questions about our services.',
+          delay: 1440,
+          order: 2,
+          isActive: true,
+          createdAt: '2024-01-01',
+          updatedAt: '2024-01-01'
+        },
+        {
+          id: 'm3',
+          sequenceId: '1',
+          type: 'text',
+          content: 'Hey! Just checking in - would love to chat about your project.',
+          delay: 4320,
+          order: 3,
+          isActive: true,
+          createdAt: '2024-01-01',
+          updatedAt: '2024-01-01'
+        }
+      ],
+      automations: [
+        {
+          id: 'a1',
+          sequenceId: '1',
+          type: 'add_note',
+          delay: 60,
+          order: 1,
+          isActive: true,
+          config: { content: 'New lead entered sequence - monitor for responses' },
+          createdAt: '2024-01-01',
+          updatedAt: '2024-01-01'
+        },
+        {
+          id: 'a2',
+          sequenceId: '1',
+          type: 'create_task',
+          delay: 10080,
+          order: 2,
+          isActive: true,
+          config: { content: 'Call lead if no response after 1 week' },
+          createdAt: '2024-01-01',
+          updatedAt: '2024-01-01'
+        }
+      ]
     },
     {
       id: '2',
@@ -106,8 +166,45 @@ const mockDripService = {
       totalMessages: 5,
       totalAutomations: 1,
       totalSent: 892,
-      messages: [],
-      automations: []
+      messages: [
+        {
+          id: 'm4',
+          sequenceId: '2',
+          type: 'email',
+          subject: 'Great talking with you!',
+          content: 'Thanks for the conversation. Here\'s what we discussed...',
+          delay: 0,
+          order: 1,
+          isActive: true,
+          createdAt: '2024-01-01',
+          updatedAt: '2024-01-01'
+        },
+        {
+          id: 'm5',
+          sequenceId: '2',
+          type: 'email',
+          subject: 'Additional information',
+          content: 'I wanted to share some additional details that might be helpful.',
+          delay: 2880,
+          order: 2,
+          isActive: true,
+          createdAt: '2024-01-01',
+          updatedAt: '2024-01-01'
+        }
+      ],
+      automations: [
+        {
+          id: 'a3',
+          sequenceId: '2',
+          type: 'add_label',
+          delay: 1440,
+          order: 1,
+          isActive: true,
+          config: { content: 'Add "Hot Lead" label' },
+          createdAt: '2024-01-01',
+          updatedAt: '2024-01-01'
+        }
+      ]
     }
   ],
   getSequenceAnalytics: (id: string) => ({
@@ -240,7 +337,83 @@ export default function DripsScreen() {
   const handleSaveDripItem = (itemData: any) => {
     // Mock save - replace with actual service call
     console.log('Saving drip item:', itemData);
+    
+    if (selectedSequence) {
+      // Create new message or automation based on itemData
+      if (itemData.type === 'message') {
+        const newMessage = {
+          id: `m${Date.now()}`,
+          sequenceId: selectedSequence.id,
+          type: itemData.messageType,
+          subject: itemData.subject || undefined,
+          content: itemData.content,
+          delay: itemData.delay,
+          order: selectedSequence.messages.length + 1,
+          isActive: itemData.status === 'active',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        
+        // Update the selected sequence with the new message
+        const updatedSequence = {
+          ...selectedSequence,
+          messages: [...selectedSequence.messages, newMessage],
+          totalMessages: selectedSequence.totalMessages + 1,
+        };
+        
+        setSelectedSequence(updatedSequence);
+        
+        // Also update in sequences list
+        setSequences(sequences.map(seq => 
+          seq.id === selectedSequence.id ? updatedSequence : seq
+        ));
+      } else if (itemData.type === 'automation') {
+        const newAutomation = {
+          id: `a${Date.now()}`,
+          sequenceId: selectedSequence.id,
+          type: itemData.automationType || 'add_note',
+          delay: itemData.delay,
+          order: selectedSequence.automations.length + 1,
+          isActive: itemData.status === 'active',
+          config: itemData.config || {},
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        
+        // Update the selected sequence with the new automation
+        const updatedSequence = {
+          ...selectedSequence,
+          automations: [...selectedSequence.automations, newAutomation],
+          totalAutomations: selectedSequence.totalAutomations + 1,
+        };
+        
+        setSelectedSequence(updatedSequence);
+        
+        // Also update in sequences list
+        setSequences(sequences.map(seq => 
+          seq.id === selectedSequence.id ? updatedSequence : seq
+        ));
+      }
+    }
+    
     setShowDripItemModal(false);
+  };
+
+  const handleSaveSequenceSettings = (updates: any) => {
+    // Mock save - replace with actual service call
+    console.log('Saving sequence settings:', updates);
+    if (selectedSequence) {
+      // Update the selected sequence with new data
+      setSelectedSequence({
+        ...selectedSequence,
+        ...updates
+      });
+      // Also update in the sequences list
+      setSequences(sequences.map(seq => 
+        seq.id === selectedSequence.id ? { ...seq, ...updates } : seq
+      ));
+    }
+    setShowSequenceSettings(false);
   };
 
   const handleEditSequence = (sequence: DripSequence) => {
@@ -624,6 +797,132 @@ export default function DripsScreen() {
               </View>
             </View>
 
+            {/* Existing Messages and Automations */}
+            {selectedSequence.messages.map((message, index) => (
+              <View key={`message-${message.id}`} style={styles.timelineItem}>
+                <View style={styles.timelineItemHeader}>
+                  <View style={[styles.timelineItemIcon, { backgroundColor: message.type === 'email' ? '#DBEAFE' : '#D1FAE5' }]}>
+                    {message.type === 'email' ? (
+                      <Mail size={20} color="#3B82F6" />
+                    ) : (
+                      <Send size={20} color="#10B981" />
+                    )}
+                  </View>
+                  <View style={styles.timelineItemInfo}>
+                    <View style={styles.timelineItemTitleRow}>
+                      <Text style={styles.timelineItemTitle}>
+                        {message.type === 'email' ? 'Email' : 'Text'}: {message.subject || 'Message'}
+                      </Text>
+                      <View style={[
+                        styles.itemStatusBadge,
+                        message.isActive ? styles.itemStatusBadgeActive : styles.itemStatusBadgeDraft
+                      ]}>
+                        <Text style={[
+                          styles.itemStatusText,
+                          message.isActive ? styles.itemStatusTextActive : styles.itemStatusTextDraft
+                        ]}>
+                          {message.isActive ? 'Active' : 'Draft'}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.timelineItemSubtitle} numberOfLines={2}>
+                      {message.content}
+                    </Text>
+                  </View>
+                  <View style={styles.timelineItemActions}>
+                    <View style={styles.timelineItemBadge}>
+                      <Text style={styles.timelineItemBadgeText}>
+                        {message.delay === 0 ? 'Immediate' : 
+                         message.delay < 60 ? `${message.delay}m` :
+                         message.delay < 1440 ? `${Math.floor(message.delay / 60)}h` :
+                         `${Math.floor(message.delay / 1440)}d`}
+                      </Text>
+                    </View>
+                    <TouchableOpacity style={styles.timelineItemMenu}>
+                      <MoreHorizontal size={20} color="#6B7280" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            ))}
+
+            {selectedSequence.automations.map((automation, index) => {
+              const getAutomationLabel = (type: string) => {
+                const labels: Record<string, string> = {
+                  'send_text': 'Send Text Message',
+                  'send_email': 'Send Email',
+                  'add_note': 'Add Note',
+                  'create_task': 'Create Task',
+                  'add_discount': 'Add Discount to Proposal',
+                  'ai_followup': 'AI Follow-up',
+                  'add_label': 'Add Label',
+                  'move_stage': 'Move to Stage',
+                  'change_pipeline': 'Change Pipeline',
+                };
+                return labels[type] || type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+              };
+
+              const getAutomationDescription = (automation: DripAutomation) => {
+                if (automation.type === 'send_text' || automation.type === 'send_email') {
+                  return automation.config?.content || 'Message content';
+                }
+                if (automation.type === 'add_note') {
+                  return automation.config?.noteContent || 'Note content';
+                }
+                if (automation.type === 'create_task') {
+                  return automation.config?.taskName || 'Task name';
+                }
+                if (automation.type === 'add_discount') {
+                  return `${automation.config?.discountValue || 0}${automation.config?.discountType === 'percentage' ? '%' : '$'} discount`;
+                }
+                return automation.config?.content || 'Automated action';
+              };
+
+              return (
+                <View key={`automation-${automation.id}`} style={styles.timelineItem}>
+                  <View style={styles.timelineItemHeader}>
+                    <View style={[styles.timelineItemIcon, { backgroundColor: '#FEF3C7' }]}>
+                      <Zap size={20} color="#F59E0B" />
+                    </View>
+                    <View style={styles.timelineItemInfo}>
+                      <View style={styles.timelineItemTitleRow}>
+                        <Text style={styles.timelineItemTitle}>
+                          {getAutomationLabel(automation.type)}
+                        </Text>
+                        <View style={[
+                          styles.itemStatusBadge,
+                          automation.isActive ? styles.itemStatusBadgeActive : styles.itemStatusBadgeDraft
+                        ]}>
+                          <Text style={[
+                            styles.itemStatusText,
+                            automation.isActive ? styles.itemStatusTextActive : styles.itemStatusTextDraft
+                          ]}>
+                            {automation.isActive ? 'Active' : 'Draft'}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={styles.timelineItemSubtitle}>
+                        {getAutomationDescription(automation)}
+                      </Text>
+                    </View>
+                    <View style={styles.timelineItemActions}>
+                      <View style={styles.timelineItemBadge}>
+                        <Text style={styles.timelineItemBadgeText}>
+                          {automation.delay === 0 ? 'Immediate' : 
+                           automation.delay < 60 ? `${automation.delay}m` :
+                           automation.delay < 1440 ? `${Math.floor(automation.delay / 60)}h` :
+                           `${Math.floor(automation.delay / 1440)}d`}
+                        </Text>
+                      </View>
+                      <TouchableOpacity style={styles.timelineItemMenu}>
+                        <MoreHorizontal size={20} color="#6B7280" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              );
+            })}
+
             {/* Add Item Buttons */}
             <View style={styles.addItemSection}>
               <View style={styles.addItemHeader}>
@@ -924,26 +1223,12 @@ export default function DripsScreen() {
         />
 
         {/* Sequence Settings Modal */}
-        <Modal
+        <SequenceSettingsModal
           visible={showSequenceSettings}
-          animationType="slide"
-          presentationStyle="pageSheet"
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <TouchableOpacity onPress={() => setShowSequenceSettings(false)}>
-                <Text style={styles.modalCancel}>Cancel</Text>
-              </TouchableOpacity>
-              <Text style={styles.modalTitle}>Sequence Settings</Text>
-              <TouchableOpacity>
-                <Text style={styles.modalSave}>Save</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalPlaceholder}>Sequence settings form would go here</Text>
-            </View>
-          </View>
-        </Modal>
+          onClose={() => setShowSequenceSettings(false)}
+          sequence={selectedSequence}
+          onSave={handleSaveSequenceSettings}
+        />
       </LinearGradient>
     </SafeAreaView>
   );
@@ -1469,6 +1754,42 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     color: '#FFFFFF',
+  },
+  timelineItemActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  timelineItemMenu: {
+    padding: 4,
+  },
+  timelineItemTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+    gap: 8,
+  },
+  itemStatusBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  itemStatusBadgeActive: {
+    backgroundColor: '#D1FAE5',
+  },
+  itemStatusBadgeDraft: {
+    backgroundColor: '#FEF3C7',
+  },
+  itemStatusText: {
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  itemStatusTextActive: {
+    color: '#065F46',
+  },
+  itemStatusTextDraft: {
+    color: '#92400E',
   },
   addItemSection: {
     backgroundColor: '#FFFFFF',

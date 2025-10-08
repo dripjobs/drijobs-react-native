@@ -1,5 +1,10 @@
+import CreateJobModal from '@/components/CreateJobModal';
+import CreateLeadModal from '@/components/CreateLeadModal';
 import DrawerMenu from '@/components/DrawerMenu';
 import FloatingActionMenu from '@/components/FloatingActionMenu';
+import NewAppointmentModal from '@/components/NewAppointmentModal';
+import NewProposalModal from '@/components/NewProposalModal';
+import SendRequestModal from '@/components/SendRequestModal';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -99,6 +104,13 @@ export default function Tasks() {
   const [newTaskDealId, setNewTaskDealId] = useState('');
   const [newTaskDealTitle, setNewTaskDealTitle] = useState('');
   const [dealSearchQuery, setDealSearchQuery] = useState('');
+  
+  // Quick Actions modal states
+  const [showNewAppointment, setShowNewAppointment] = useState(false);
+  const [showNewProposal, setShowNewProposal] = useState(false);
+  const [showSendRequest, setShowSendRequest] = useState(false);
+  const [showCreateLead, setShowCreateLead] = useState(false);
+  const [showCreateJob, setShowCreateJob] = useState(false);
 
   const currentUser = 'Tanner Mullen';
 
@@ -533,6 +545,27 @@ export default function Tasks() {
 
   // Get all unique tags
   const allTags = Array.from(new Set(mockTasks.flatMap(t => t.tags)));
+
+  // Quick Actions handlers
+  const handleNewAppointment = () => {
+    setShowNewAppointment(true);
+  };
+
+  const handleNewProposal = () => {
+    setShowNewProposal(true);
+  };
+
+  const handleSendRequest = () => {
+    setShowSendRequest(true);
+  };
+
+  const handleCreateLead = () => {
+    setShowCreateLead(true);
+  };
+
+  const handleCreateJob = () => {
+    setShowCreateJob(true);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -1427,7 +1460,40 @@ export default function Tasks() {
         </SafeAreaView>
       </Modal>
 
-      <FloatingActionMenu onNewTask={() => setShowCreateTask(true)} />
+      <FloatingActionMenu
+        onNewAppointment={handleNewAppointment}
+        onNewProposal={handleNewProposal}
+        onSendRequest={handleSendRequest}
+        onNewLead={handleCreateLead}
+        onNewJob={handleCreateJob}
+        onNewTask={() => setShowCreateTask(true)}
+      />
+
+      {/* Quick Actions Modals */}
+      <NewAppointmentModal 
+        visible={showNewAppointment}
+        onClose={() => setShowNewAppointment(false)}
+      />
+
+      <NewProposalModal 
+        visible={showNewProposal}
+        onClose={() => setShowNewProposal(false)}
+      />
+
+      <SendRequestModal 
+        visible={showSendRequest}
+        onClose={() => setShowSendRequest(false)}
+      />
+
+      <CreateLeadModal 
+        visible={showCreateLead}
+        onClose={() => setShowCreateLead(false)}
+      />
+
+      <CreateJobModal 
+        visible={showCreateJob}
+        onClose={() => setShowCreateJob(false)}
+      />
     </SafeAreaView>
   );
 }

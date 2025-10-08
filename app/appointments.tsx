@@ -1,6 +1,9 @@
+import CreateJobModal from '@/components/CreateJobModal';
+import CreateLeadModal from '@/components/CreateLeadModal';
 import FloatingActionMenu from '@/components/FloatingActionMenu';
 import NewAppointmentModal from '@/components/NewAppointmentModal';
 import NewProposalModal from '@/components/NewProposalModal';
+import SendRequestModal from '@/components/SendRequestModal';
 import { useTabBar } from '@/contexts/TabBarContext';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -347,6 +350,9 @@ export default function Appointments() {
   const router = useRouter();
   const [showNewAppointment, setShowNewAppointment] = useState(false);
   const [showNewProposal, setShowNewProposal] = useState(false);
+  const [showSendRequest, setShowSendRequest] = useState(false);
+  const [showCreateLead, setShowCreateLead] = useState(false);
+  const [showCreateJob, setShowCreateJob] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showRequestQueue, setShowRequestQueue] = useState(false);
@@ -707,6 +713,18 @@ export default function Appointments() {
 
   const handleProposalClose = () => {
     setShowNewProposal(false);
+  };
+
+  const handleSendRequest = () => {
+    setShowSendRequest(true);
+  };
+
+  const handleCreateLead = () => {
+    setShowCreateLead(true);
+  };
+
+  const handleCreateJob = () => {
+    setShowCreateJob(true);
   };
 
   // Edit form helper functions
@@ -2083,6 +2101,24 @@ export default function Appointments() {
       <FloatingActionMenu 
         onNewAppointment={handleNewAppointment}
         onNewProposal={handleNewProposal}
+        onSendRequest={handleSendRequest}
+        onNewLead={handleCreateLead}
+        onNewJob={handleCreateJob}
+      />
+
+      <SendRequestModal 
+        visible={showSendRequest}
+        onClose={() => setShowSendRequest(false)}
+      />
+
+      <CreateLeadModal 
+        visible={showCreateLead}
+        onClose={() => setShowCreateLead(false)}
+      />
+
+      <CreateJobModal 
+        visible={showCreateJob}
+        onClose={() => setShowCreateJob(false)}
       />
 
       <Toast />

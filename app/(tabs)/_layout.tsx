@@ -1,7 +1,8 @@
+import { useAppSettings } from '@/contexts/AppSettingsContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useTabBar } from '@/contexts/TabBarContext';
 import { Tabs } from 'expo-router';
-import { Handshake, Hash, House, MessageCircle, Users } from 'lucide-react-native';
+import { BarChart3, Building2, Grid3x3, Hash, House, Mail, MessageCircle, MessageSquare, SquareCheck, Users, Wrench } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 
 // Custom Dialer Icon Component
@@ -33,9 +34,34 @@ const NotificationBadge = ({ count }: { count: number }) => {
   );
 };
 
+// Icon mapper
+const getIconComponent = (iconName: string) => {
+  const icons: Record<string, any> = {
+    House,
+    Users,
+    Handshake,
+    MessageCircle,
+    Hash,
+    Building2,
+    ClipboardList,
+    SquareCheck,
+    Mail,
+  };
+  return icons[iconName] || House;
+};
+
 export default function TabLayout() {
   const { isTransparent, isVisible } = useTabBar();
   const { missedCalls } = useNotifications();
+  const { selectedTabs, isLoading } = useAppSettings();
+
+  // If settings are loading, show default tabs
+  if (isLoading) {
+    return null;
+  }
+
+  // Create a set of selected tab IDs for quick lookup
+  const selectedTabIds = new Set(selectedTabs.map(tab => tab.id));
 
   return (
     <Tabs
@@ -48,10 +74,12 @@ export default function TabLayout() {
         tabBarIconStyle: styles.tabBarIcon,
         tabBarBackground: () => <View style={isTransparent ? styles.transparentTabBarBackground : styles.tabBarBackground} />,
       }}>
+      {/* Dynamically render all tabs based on user preferences */}
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: 'Dashboard',
+          href: selectedTabIds.has('index') ? undefined : null,
           tabBarIcon: ({ size, color }) => (
             <House size={24} color={color} strokeWidth={2} />
           ),
@@ -61,6 +89,7 @@ export default function TabLayout() {
         name="contacts"
         options={{
           title: 'Contacts',
+          href: selectedTabIds.has('contacts') ? undefined : null,
           tabBarIcon: ({ size, color }) => (
             <Users size={24} color={color} strokeWidth={2} />
           ),
@@ -70,59 +99,85 @@ export default function TabLayout() {
         name="pipeline"
         options={{
           title: 'Pipeline',
+          href: selectedTabIds.has('pipeline') ? undefined : null,
           tabBarIcon: ({ size, color }) => (
-            <Handshake size={24} color={color} strokeWidth={2} />
+            <BarChart3 size={24} color={color} strokeWidth={2} />
           ),
         }}
       />
       <Tabs.Screen
         name="phone"
         options={{
-          title: 'Phone',
+          title: 'Voice',
+          href: selectedTabIds.has('phone') ? undefined : null,
           tabBarIcon: ({ size, color }) => (
             <View style={styles.tabIconContainer}>
-              <DialerIcon size={24} color={color} />
+              <Grid3x3 size={24} color={color} strokeWidth={2} />
               <NotificationBadge count={missedCalls} />
             </View>
           ),
         }}
       />
-              <Tabs.Screen
-                name="chat"
-                options={{
-                  title: 'Chat',
-                  tabBarIcon: ({ size, color }) => (
-                    <MessageCircle size={24} color={color} strokeWidth={2} />
-                  ),
-                }}
-              />
-              <Tabs.Screen
-                name="team-chat"
-                options={{
-                  title: 'Team',
-                  tabBarIcon: ({ size, color }) => (
-                    <Hash size={24} color={color} strokeWidth={2} />
-                  ),
-                }}
-              />
-              <Tabs.Screen
-                name="businesses"
-                options={{
-                  href: null, // This hides it from the tab bar
-                }}
-              />
-              <Tabs.Screen
-                name="work-orders"
-                options={{
-                  href: null, // This hides it from the tab bar
-                }}
-              />
-              <Tabs.Screen
-                name="tasks"
-                options={{
-                  href: null, // This hides it from the tab bar
-                }}
-              />
+      <Tabs.Screen
+        name="chat"
+        options={{
+          title: 'Chat',
+          href: selectedTabIds.has('chat') ? undefined : null,
+          tabBarIcon: ({ size, color }) => (
+            <MessageSquare size={24} color={color} strokeWidth={2} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="team-chat"
+        options={{
+          title: 'Team Chat',
+          href: selectedTabIds.has('team-chat') ? undefined : null,
+          tabBarIcon: ({ size, color }) => (
+            <Hash size={24} color={color} strokeWidth={2} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="businesses"
+        options={{
+          title: 'Businesses',
+          href: selectedTabIds.has('businesses') ? undefined : null,
+          tabBarIcon: ({ size, color }) => (
+            <Building2 size={24} color={color} strokeWidth={2} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="email"
+        options={{
+          title: 'Email',
+          href: selectedTabIds.has('email') ? undefined : null,
+          tabBarIcon: ({ size, color }) => (
+            <Mail size={24} color={color} strokeWidth={2} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="work-orders"
+        options={{
+          title: 'Work Orders',
+          href: selectedTabIds.has('work-orders') ? undefined : null,
+          tabBarIcon: ({ size, color }) => (
+            <Wrench size={24} color={color} strokeWidth={2} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="tasks"
+        options={{
+          title: 'Tasks',
+          href: selectedTabIds.has('tasks') ? undefined : null,
+          tabBarIcon: ({ size, color }) => (
+            <SquareCheck size={24} color={color} strokeWidth={2} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }

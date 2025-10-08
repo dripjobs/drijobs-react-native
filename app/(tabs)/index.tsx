@@ -1,3 +1,4 @@
+import CreateJobModal from '@/components/CreateJobModal';
 import CreateLeadModal from '@/components/CreateLeadModal';
 import DrawerMenu from '@/components/DrawerMenu';
 import FloatingActionMenu from '@/components/FloatingActionMenu';
@@ -25,6 +26,7 @@ export default function Dashboard() {
   const [showNewProposal, setShowNewProposal] = useState(false);
   const [showSendRequest, setShowSendRequest] = useState(false);
   const [showCreateLead, setShowCreateLead] = useState(false);
+  const [showCreateJob, setShowCreateJob] = useState(false);
   const [showMeetingDetails, setShowMeetingDetails] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState<any>(null);
   const [meetingDetailsTranslateY] = useState(new Animated.Value(screenHeight));
@@ -445,6 +447,14 @@ export default function Dashboard() {
     setShowCreateLead(false);
   };
 
+  const handleCreateJob = () => {
+    setShowCreateJob(true);
+  };
+
+  const handleCreateJobClose = () => {
+    setShowCreateJob(false);
+  };
+
   // Today's appointments data
   const todaysAppointments = appointments;
   const todaysTasks = tasks;
@@ -636,6 +646,16 @@ export default function Dashboard() {
           : apt
       )
     );
+    
+    // Also update selectedMeeting if it's the same appointment
+    if (selectedMeeting && selectedMeeting.id === appointmentId) {
+      setSelectedMeeting(prev => ({
+        ...prev,
+        status: newStatus,
+        statusColor: statusColorMap[newStatus] || '#6B7280'
+      }));
+    }
+    
     setShowStatusDropdown(null);
   };
 
@@ -1441,11 +1461,12 @@ export default function Dashboard() {
         </View>
       </ScrollView>
 
-      <FloatingActionMenu 
-        onNewAppointment={handleNewAppointment} 
+      <FloatingActionMenu
+        onNewAppointment={handleNewAppointment}
         onNewProposal={handleNewProposal}
         onSendRequest={handleSendRequest}
         onNewLead={handleCreateLead}
+        onNewJob={handleCreateJob}
         isVisible={showFAB} 
       />
       
@@ -1468,9 +1489,34 @@ export default function Dashboard() {
       />
 
       {/* Create Lead Modal */}
-      <CreateLeadModal 
+      <CreateLeadModal
         visible={showCreateLead}
         onClose={handleCreateLeadClose}
+      />
+
+      {/* Create Job Modal */}
+      <CreateJobModal
+        visible={showCreateJob}
+        onClose={handleCreateJobClose}
+        onNavigateToProposal={(proposalId, jobDetails) => {
+          // Navigate to proposal detail page with status=accepted and isScheduled=false
+          // Pass job details to pre-populate the line item
+          router.push({
+            pathname: '/proposal-builder',
+            params: {
+              id: proposalId,
+              status: 'accepted',
+              isScheduled: 'false',
+              lineItemName: jobDetails.jobType,
+              lineItemQuantity: '1',
+              lineItemPrice: jobDetails.jobAmount
+            }
+          });
+        }}
+        onOpenProposalModal={() => {
+          setShowCreateJob(false);
+          setShowNewProposal(true);
+        }}
       />
 
       <StatDetailModal
