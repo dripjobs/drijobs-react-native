@@ -45,11 +45,20 @@ export const RoleImpersonationModal: React.FC<RoleImpersonationModalProps> = ({
         return;
       }
 
-      await setUserRole(role, crewMemberId);
+      // Get permission level from crew member
+      const member = crewMembers.find(m => m.id === crewMemberId);
+      const permissionLevel = member?.permissionLevel || 1;
+
+      await setUserRole(role, crewMemberId, permissionLevel);
+      
+      const levelLabel = permissionLevel === 1 ? 'Level 1 - Basic' : permissionLevel === 2 ? 'Level 2 - Customer Comms' : 'Level 3';
+      
       Alert.alert(
         'Role Changed',
         `You are now viewing the app as ${ROLE_DEFINITIONS[role].label}${
-          crewMemberId ? ` (${crewMembers.find(m => m.id === crewMemberId)?.firstName} ${crewMembers.find(m => m.id === crewMemberId)?.lastName})` : ''
+          crewMemberId 
+            ? ` (${member?.firstName} ${member?.lastName} - ${levelLabel})` 
+            : ''
         }`,
         [{ text: 'OK', onPress: onClose }]
       );
@@ -194,7 +203,20 @@ export const RoleImpersonationModal: React.FC<RoleImpersonationModalProps> = ({
                     <Text style={styles.crewMemberName}>
                       {member.firstName} {member.lastName}
                     </Text>
-                    <Text style={styles.crewMemberRole}>{member.role}</Text>
+                    <View style={styles.badgeRow}>
+                      <Text style={styles.crewMemberRole}>{member.role}</Text>
+                      <View style={[
+                        styles.permissionBadge,
+                        { backgroundColor: member.permissionLevel === 1 ? '#dbeafe' : '#dcfce7' }
+                      ]}>
+                        <Text style={[
+                          styles.permissionBadgeText,
+                          { color: member.permissionLevel === 1 ? '#1e40af' : '#047857' }
+                        ]}>
+                          Level {member.permissionLevel}
+                        </Text>
+                      </View>
+                    </View>
                     <Text style={styles.crewMemberDetails}>
                       {member.employeeNumber} • ${member.hourlyRate}/hr
                     </Text>
@@ -367,11 +389,25 @@ const styles = StyleSheet.create({
     color: '#111827',
     marginBottom: 2,
   },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 2,
+  },
   crewMemberRole: {
     fontSize: 13,
     color: '#3b82f6',
     textTransform: 'capitalize',
-    marginBottom: 2,
+  },
+  permissionBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  permissionBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
   },
   crewMemberDetails: {
     fontSize: 12,

@@ -40,6 +40,7 @@ class CrewService {
           phone: '(555) 123-4568',
         },
         notes: 'Excellent leadership skills',
+        permissionLevel: 2, // Level 2: Can communicate with customers
         createdAt: new Date('2022-01-15').toISOString(),
         updatedAt: new Date().toISOString(),
       },
@@ -64,6 +65,7 @@ class CrewService {
             expiryDate: '2024-12-31',
           },
         ],
+        permissionLevel: 1, // Level 1: Basic crew member
         createdAt: new Date('2023-03-20').toISOString(),
         updatedAt: new Date().toISOString(),
       },

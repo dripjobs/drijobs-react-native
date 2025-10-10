@@ -4,6 +4,7 @@
  */
 
 export type UserRole = 'admin' | 'accountant' | 'crew';
+export type CrewPermissionLevel = 1 | 2 | 3;
 
 export interface UserPermissions {
   // General permissions
@@ -34,6 +35,17 @@ export interface UserPermissions {
   canApproveTimesheets: boolean;
   canViewAssignedJobs: boolean;
   canManageTimeTrackingSettings: boolean;
+
+  // Crew-specific permissions
+  canViewMyDay: boolean;
+  canViewJobSchedule: boolean;
+  canViewWorkOrders: boolean;
+  canViewTeamChat: boolean;
+  canViewOwnTasks: boolean;
+  canEditBasicProfile: boolean;
+  canChatWithCustomers: boolean;
+  canPhoneCustomers: boolean;
+  canViewContactDetails: boolean;
 }
 
 export interface RoleDefinition {
@@ -71,6 +83,15 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       canApproveTimesheets: true,
       canViewAssignedJobs: true,
       canManageTimeTrackingSettings: true,
+      canViewMyDay: true,
+      canViewJobSchedule: true,
+      canViewWorkOrders: true,
+      canViewTeamChat: true,
+      canViewOwnTasks: true,
+      canEditBasicProfile: true,
+      canChatWithCustomers: true,
+      canPhoneCustomers: true,
+      canViewContactDetails: true,
     },
   },
   accountant: {
@@ -99,6 +120,15 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       canApproveTimesheets: false,
       canViewAssignedJobs: false,
       canManageTimeTrackingSettings: false,
+      canViewMyDay: false,
+      canViewJobSchedule: false,
+      canViewWorkOrders: false,
+      canViewTeamChat: false,
+      canViewOwnTasks: false,
+      canEditBasicProfile: false,
+      canChatWithCustomers: false,
+      canPhoneCustomers: false,
+      canViewContactDetails: false,
     },
   },
   crew: {
@@ -127,7 +157,119 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       canApproveTimesheets: false,
       canViewAssignedJobs: true,
       canManageTimeTrackingSettings: false,
+      canViewMyDay: true,
+      canViewJobSchedule: true,
+      canViewWorkOrders: true,
+      canViewTeamChat: true,
+      canViewOwnTasks: true,
+      canEditBasicProfile: true,
+      canChatWithCustomers: false, // Level 2 only
+      canPhoneCustomers: false, // Level 2 only
+      canViewContactDetails: false, // Level 2 only
     },
+  },
+};
+
+// Permission levels for crew members
+export const CREW_PERMISSION_LEVELS: Record<CrewPermissionLevel, UserPermissions> = {
+  1: {
+    // Level 1: Basic crew member
+    canCreate: false,
+    canEdit: false,
+    canDelete: false,
+    canView: false,
+    canAccessQuickBooksSettings: false,
+    canSyncToQuickBooks: false,
+    canViewSyncStatus: false,
+    canExportReports: false,
+    canManageContacts: false,
+    canManageBusinesses: false,
+    canManageInvoices: false,
+    canManagePayments: false,
+    canManageJobs: false,
+    canManageProposals: false,
+    canClockIn: true,
+    canViewOwnTimesheets: true,
+    canViewAllTimesheets: false,
+    canEditTimesheets: false,
+    canApproveTimesheets: false,
+    canViewAssignedJobs: true,
+    canManageTimeTrackingSettings: false,
+    canViewMyDay: true,
+    canViewJobSchedule: true,
+    canViewWorkOrders: true,
+    canViewTeamChat: true,
+    canViewOwnTasks: true,
+    canEditBasicProfile: true,
+    canChatWithCustomers: false,
+    canPhoneCustomers: false,
+    canViewContactDetails: false,
+  },
+  2: {
+    // Level 2: Crew member with customer communication
+    canCreate: false,
+    canEdit: false,
+    canDelete: false,
+    canView: false,
+    canAccessQuickBooksSettings: false,
+    canSyncToQuickBooks: false,
+    canViewSyncStatus: false,
+    canExportReports: false,
+    canManageContacts: false,
+    canManageBusinesses: false,
+    canManageInvoices: false,
+    canManagePayments: false,
+    canManageJobs: false,
+    canManageProposals: false,
+    canClockIn: true,
+    canViewOwnTimesheets: true,
+    canViewAllTimesheets: false,
+    canEditTimesheets: false,
+    canApproveTimesheets: false,
+    canViewAssignedJobs: true,
+    canManageTimeTrackingSettings: false,
+    canViewMyDay: true,
+    canViewJobSchedule: true,
+    canViewWorkOrders: true,
+    canViewTeamChat: true,
+    canViewOwnTasks: true,
+    canEditBasicProfile: true,
+    canChatWithCustomers: true,  // Added in Level 2
+    canPhoneCustomers: true,      // Added in Level 2
+    canViewContactDetails: true,  // Added in Level 2
+  },
+  3: {
+    // Level 3: Reserved for future expansion
+    canCreate: false,
+    canEdit: false,
+    canDelete: false,
+    canView: false,
+    canAccessQuickBooksSettings: false,
+    canSyncToQuickBooks: false,
+    canViewSyncStatus: false,
+    canExportReports: false,
+    canManageContacts: false,
+    canManageBusinesses: false,
+    canManageInvoices: false,
+    canManagePayments: false,
+    canManageJobs: false,
+    canManageProposals: false,
+    canClockIn: true,
+    canViewOwnTimesheets: true,
+    canViewAllTimesheets: false,
+    canEditTimesheets: false,
+    canApproveTimesheets: false,
+    canViewAssignedJobs: true,
+    canManageTimeTrackingSettings: false,
+    canViewMyDay: true,
+    canViewJobSchedule: true,
+    canViewWorkOrders: true,
+    canViewTeamChat: true,
+    canViewOwnTasks: true,
+    canEditBasicProfile: true,
+    canChatWithCustomers: true,
+    canPhoneCustomers: true,
+    canViewContactDetails: true,
   },
 };
 

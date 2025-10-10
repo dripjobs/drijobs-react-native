@@ -23,6 +23,7 @@ export interface CrewMember {
   emergencyContact?: EmergencyContact;
   notes?: string;
   crewId?: string; // ID of the crew this member belongs to (e.g., "Beau's Crew")
+  permissionLevel: 1 | 2 | 3; // Permission level for app access (1 = basic, 2 = +customer comms, 3 = future)
   createdAt: string;
   updatedAt: string;
 }

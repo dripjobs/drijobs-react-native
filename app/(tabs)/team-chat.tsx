@@ -72,6 +72,7 @@ interface TeamChannel {
   lastMessageTime?: string;
   isStarred?: boolean;
   isMuted?: boolean;
+  isArchived?: boolean;
   jobNumber?: string;
   jobAddress?: string;
 }
@@ -143,7 +144,7 @@ export default function TeamChat() {
   const [composeDMSearchQuery, setComposeDMSearchQuery] = useState('');
   const [jobChannelSearchQuery, setJobChannelSearchQuery] = useState('');
   const [showAllJobChannels, setShowAllJobChannels] = useState(false);
-  const [jobChannelFilter, setJobChannelFilter] = useState<'all' | 'active' | 'unread'>('active');
+  const [jobChannelFilter, setJobChannelFilter] = useState<'all' | 'active' | 'unread' | 'archived'>('active');
   const [showSearchModal, setShowSearchModal] = useState(false);
   
   // Quick Actions modal states
@@ -389,6 +390,77 @@ export default function TeamChat() {
       lastMessageTime: '1d ago',
       jobNumber: '#J2457',
       jobAddress: '456 Business Park Dr'
+    },
+    // Archived Job Channels (Completed Jobs)
+    {
+      id: '14',
+      name: 'patio-installation',
+      type: 'public',
+      channelType: 'job',
+      description: 'Roberts Patio Installation - #J2401',
+      memberCount: 3,
+      unreadCount: 0,
+      lastMessage: 'Final walkthrough completed',
+      lastMessageTime: '15d ago',
+      jobNumber: '#J2401',
+      jobAddress: '890 Garden Lane',
+      isArchived: true
+    },
+    {
+      id: '15',
+      name: 'fence-replacement',
+      type: 'public',
+      channelType: 'job',
+      description: 'Miller Fence Replacement - #J2398',
+      memberCount: 2,
+      unreadCount: 0,
+      lastMessage: 'Job complete, invoice sent',
+      lastMessageTime: '22d ago',
+      jobNumber: '#J2398',
+      jobAddress: '456 Greenway Drive',
+      isArchived: true
+    },
+    {
+      id: '16',
+      name: 'hvac-upgrade',
+      type: 'public',
+      channelType: 'job',
+      description: 'Brown HVAC Upgrade - #J2395',
+      memberCount: 4,
+      unreadCount: 0,
+      lastMessage: 'System running perfectly',
+      lastMessageTime: '28d ago',
+      jobNumber: '#J2395',
+      jobAddress: '123 Wintergreen St',
+      isArchived: true
+    },
+    {
+      id: '17',
+      name: 'window-replacement',
+      type: 'public',
+      channelType: 'job',
+      description: 'Taylor Window Replacement - #J2390',
+      memberCount: 3,
+      unreadCount: 0,
+      lastMessage: 'Customer satisfied, closed',
+      lastMessageTime: '35d ago',
+      jobNumber: '#J2390',
+      jobAddress: '789 Highland Ave',
+      isArchived: true
+    },
+    {
+      id: '18',
+      name: 'flooring-install',
+      type: 'public',
+      channelType: 'job',
+      description: 'Lewis Flooring Installation - #J2385',
+      memberCount: 2,
+      unreadCount: 0,
+      lastMessage: 'Payment received',
+      lastMessageTime: '42d ago',
+      jobNumber: '#J2385',
+      jobAddress: '234 Oakmont Circle',
+      isArchived: true
     }
   ];
 
@@ -785,13 +857,20 @@ export default function TeamChat() {
     let filtered = channels.filter(c => c.channelType === 'job');
     
     // Apply status filter
-    if (jobChannelFilter === 'unread') {
-      filtered = filtered.filter(c => c.unreadCount > 0);
+    if (jobChannelFilter === 'archived') {
+      // Show only archived channels
+      filtered = filtered.filter(c => c.isArchived === true);
+    } else if (jobChannelFilter === 'unread') {
+      // Show only non-archived channels with unread messages
+      filtered = filtered.filter(c => c.unreadCount > 0 && !c.isArchived);
     } else if (jobChannelFilter === 'active') {
-      // Show channels with recent activity (< 1 day)
+      // Show non-archived channels with recent activity (< 1 day)
       filtered = filtered.filter(c => 
-        !c.lastMessageTime?.includes('d ago')
+        !c.lastMessageTime?.includes('d ago') && !c.isArchived
       );
+    } else if (jobChannelFilter === 'all') {
+      // Show only non-archived channels
+      filtered = filtered.filter(c => !c.isArchived);
     }
     
     // Sort: Unread channels first, then by most recent activity
@@ -1013,6 +1092,20 @@ export default function TeamChat() {
                     jobChannelFilter === 'all' && styles.jobFilterTabTextActive
                   ]}>
                     All Jobs
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.jobFilterTab,
+                    jobChannelFilter === 'archived' && styles.jobFilterTabActive
+                  ]}
+                  onPress={() => setJobChannelFilter('archived')}
+                >
+                  <Text style={[
+                    styles.jobFilterTabText,
+                    jobChannelFilter === 'archived' && styles.jobFilterTabTextActive
+                  ]}>
+                    Archive
                   </Text>
                 </TouchableOpacity>
               </View>

@@ -1,13 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
-import { AccountantAccessLog, ROLE_DEFINITIONS, UserPermissions, UserRole } from '../types/userRoles';
+import { AccountantAccessLog, CREW_PERMISSION_LEVELS, CrewPermissionLevel, ROLE_DEFINITIONS, UserPermissions, UserRole } from '../types/userRoles';
 
 export interface UserRoleContextType {
   currentRole: UserRole;
   permissions: UserPermissions;
   isLoading: boolean;
   impersonatingCrewMemberId: string | null;
-  setUserRole: (role: UserRole, crewMemberId?: string) => Promise<void>;
+  permissionLevel: CrewPermissionLevel;
+  setUserRole: (role: UserRole, crewMemberId?: string, permissionLevel?: CrewPermissionLevel) => Promise<void>;
+  setPermissionLevel: (level: CrewPermissionLevel) => Promise<void>;
   checkPermission: (permission: keyof UserPermissions) => boolean;
   logAccountantAction: (action: string, entityType?: string, entityId?: string, details?: string) => Promise<void>;
   getAccountantLogs: () => Promise<AccountantAccessLog[]>;
@@ -32,6 +34,7 @@ const STORAGE_KEYS = {
   USER_ROLE: '@user_role',
   ACCOUNTANT_LOGS: '@accountant_access_logs',
   IMPERSONATING_CREW_MEMBER: '@impersonating_crew_member',
+  PERMISSION_LEVEL: '@crew_permission_level',
 };
 
 export const UserRoleProvider: React.FC<UserRoleProviderProps> = ({ children }) => {
@@ -39,6 +42,7 @@ export const UserRoleProvider: React.FC<UserRoleProviderProps> = ({ children }) 
   const [permissions, setPermissions] = useState<UserPermissions>(ROLE_DEFINITIONS.admin.permissions);
   const [isLoading, setIsLoading] = useState(true);
   const [impersonatingCrewMemberId, setImpersonatingCrewMemberId] = useState<string | null>(null);
+  const [permissionLevel, setPermissionLevelState] = useState<CrewPermissionLevel>(1);
 
   // Load saved role on mount
   useEffect(() => {
@@ -49,11 +53,22 @@ export const UserRoleProvider: React.FC<UserRoleProviderProps> = ({ children }) 
     try {
       const savedRole = await AsyncStorage.getItem(STORAGE_KEYS.USER_ROLE);
       const savedCrewMemberId = await AsyncStorage.getItem(STORAGE_KEYS.IMPERSONATING_CREW_MEMBER);
+      const savedPermissionLevel = await AsyncStorage.getItem(STORAGE_KEYS.PERMISSION_LEVEL);
       
       if (savedRole && (savedRole === 'admin' || savedRole === 'accountant' || savedRole === 'crew')) {
         const role = savedRole as UserRole;
         setCurrentRole(role);
-        setPermissions(ROLE_DEFINITIONS[role].permissions);
+        
+        // Load permission level for crew
+        const level = savedPermissionLevel ? parseInt(savedPermissionLevel) as CrewPermissionLevel : 1;
+        setPermissionLevelState(level);
+        
+        // Set permissions based on role and level
+        if (role === 'crew') {
+          setPermissions(CREW_PERMISSION_LEVELS[level]);
+        } else {
+          setPermissions(ROLE_DEFINITIONS[role].permissions);
+        }
         
         if (savedCrewMemberId) {
           setImpersonatingCrewMemberId(savedCrewMemberId);
@@ -66,11 +81,21 @@ export const UserRoleProvider: React.FC<UserRoleProviderProps> = ({ children }) 
     }
   };
 
-  const setUserRole = async (role: UserRole, crewMemberId?: string) => {
+  const setUserRole = async (role: UserRole, crewMemberId?: string, newPermissionLevel?: CrewPermissionLevel) => {
     try {
       setCurrentRole(role);
-      setPermissions(ROLE_DEFINITIONS[role].permissions);
       await AsyncStorage.setItem(STORAGE_KEYS.USER_ROLE, role);
+      
+      // Handle permission level for crew
+      if (role === 'crew') {
+        const level = newPermissionLevel || 1;
+        setPermissionLevelState(level);
+        setPermissions(CREW_PERMISSION_LEVELS[level]);
+        await AsyncStorage.setItem(STORAGE_KEYS.PERMISSION_LEVEL, level.toString());
+      } else {
+        setPermissions(ROLE_DEFINITIONS[role].permissions);
+        setPermissionLevelState(1); // Reset to 1 for non-crew roles
+      }
       
       if (role === 'crew' && crewMemberId) {
         setImpersonatingCrewMemberId(crewMemberId);
@@ -81,6 +106,19 @@ export const UserRoleProvider: React.FC<UserRoleProviderProps> = ({ children }) 
       }
     } catch (error) {
       console.error('Error saving user role:', error);
+      throw error;
+    }
+  };
+
+  const setPermissionLevel = async (level: CrewPermissionLevel) => {
+    try {
+      setPermissionLevelState(level);
+      if (currentRole === 'crew') {
+        setPermissions(CREW_PERMISSION_LEVELS[level]);
+      }
+      await AsyncStorage.setItem(STORAGE_KEYS.PERMISSION_LEVEL, level.toString());
+    } catch (error) {
+      console.error('Error saving permission level:', error);
       throw error;
     }
   };
@@ -155,7 +193,9 @@ export const UserRoleProvider: React.FC<UserRoleProviderProps> = ({ children }) 
         permissions,
         isLoading,
         impersonatingCrewMemberId,
+        permissionLevel,
         setUserRole,
+        setPermissionLevel,
         checkPermission,
         logAccountantAction,
         getAccountantLogs,
@@ -189,4 +229,10 @@ export const useIsAdmin = (): boolean => {
 export const useIsCrew = (): boolean => {
   const { currentRole } = useUserRole();
   return currentRole === 'crew';
+};
+
+// Convenience hook for crew permission level
+export const useCrewPermissionLevel = (): CrewPermissionLevel => {
+  const { permissionLevel } = useUserRole();
+  return permissionLevel;
 };
