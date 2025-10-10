@@ -15,7 +15,6 @@ export const ActiveTimerDisplay: React.FC<ActiveTimerDisplayProps> = ({
   showBreakButton = true,
 }) => {
   const [displayTime, setDisplayTime] = useState('00:00:00');
-  const [totalMinutes, setTotalMinutes] = useState(0);
 
   useEffect(() => {
     // Update timer every second
@@ -31,21 +30,10 @@ export const ActiveTimerDisplay: React.FC<ActiveTimerDisplayProps> = ({
       setDisplayTime(
         `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
       );
-      setTotalMinutes(Math.floor(elapsed / 60));
     }, 1000);
 
     return () => clearInterval(interval);
   }, [session.clockInTime]);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-    }).format(amount);
-  };
-
-  const estimatedCost = (totalMinutes / 60) * session.hourlyRate;
 
   return (
     <View style={styles.container}>
@@ -85,19 +73,6 @@ export const ActiveTimerDisplay: React.FC<ActiveTimerDisplayProps> = ({
             <Text style={styles.jobAddressText}>{session.jobAddress}</Text>
           </View>
         )}
-      </View>
-
-      {/* Cost Estimate */}
-      <View style={styles.costCard}>
-        <View style={styles.costRow}>
-          <Text style={styles.costLabel}>Estimated Labor Cost</Text>
-          <Text style={styles.costValue}>{formatCurrency(estimatedCost)}</Text>
-        </View>
-        <View style={styles.costBreakdown}>
-          <Text style={styles.costBreakdownText}>
-            {(totalMinutes / 60).toFixed(2)} hrs × ${session.hourlyRate}/hr
-          </Text>
-        </View>
       </View>
 
       {/* Break Button */}
@@ -224,36 +199,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6b7280',
     flex: 1,
-  },
-  costCard: {
-    backgroundColor: '#f0f9ff',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#bfdbfe',
-  },
-  costRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  costLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1e40af',
-  },
-  costValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1e40af',
-  },
-  costBreakdown: {
-    alignItems: 'flex-end',
-  },
-  costBreakdownText: {
-    fontSize: 12,
-    color: '#3b82f6',
   },
   breakButton: {
     flexDirection: 'row',
