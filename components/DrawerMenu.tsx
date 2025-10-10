@@ -4,6 +4,7 @@ import { Activity, BarChart3, Bell, Building2, Calendar, Calendar as CalendarIco
 import { useEffect, useState } from 'react';
 import { Animated, Dimensions, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { PanGestureHandler } from 'react-native-gesture-handler';
+import { RoleImpersonationModal } from './RoleImpersonationModal';
 
 interface DrawerMenuProps {
   isOpen: boolean;
@@ -13,6 +14,7 @@ interface DrawerMenuProps {
 export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
   const [translateX] = useState(new Animated.Value(-280));
   const [mainTranslateX] = useState(new Animated.Value(0));
+  const [showRoleModal, setShowRoleModal] = useState(false);
   const screenWidth = Dimensions.get('window').width;
 
   const menuSections = [
@@ -69,6 +71,7 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
       title: 'System',
       items: [
         { icon: Bell, label: 'Notifications', action: () => router.push('/notifications') },
+        { icon: CircleUser, label: 'Switch Role', action: () => { onClose(); setShowRoleModal(true); } },
         { icon: Settings2, label: 'Settings', action: () => router.push('/account-settings') },
       ]
     }
@@ -149,23 +152,24 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
   };
 
   return (
-    <Modal
-      visible={isOpen}
-      transparent
-      animationType="none"
-      onRequestClose={onClose}
-    >
-      <View style={styles.overlay}>
-        <Animated.View 
-          style={[
-            styles.mainContent,
-            {
-              transform: [{ translateX: mainTranslateX }]
-            }
-          ]}
-        >
-          <TouchableOpacity style={styles.backdrop} onPress={onClose} />
-        </Animated.View>
+    <>
+      <Modal
+        visible={isOpen}
+        transparent
+        animationType="none"
+        onRequestClose={onClose}
+      >
+        <View style={styles.overlay}>
+          <Animated.View 
+            style={[
+              styles.mainContent,
+              {
+                transform: [{ translateX: mainTranslateX }]
+              }
+            ]}
+          >
+            <TouchableOpacity style={styles.backdrop} onPress={onClose} />
+          </Animated.View>
         
         <PanGestureHandler
           onGestureEvent={handleSwipeMove}
@@ -262,6 +266,12 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
         </PanGestureHandler>
       </View>
     </Modal>
+
+    <RoleImpersonationModal
+      visible={showRoleModal}
+      onClose={() => setShowRoleModal(false)}
+    />
+  </>
   );
 }
 
