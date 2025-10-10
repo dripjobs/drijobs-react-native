@@ -1,4 +1,5 @@
-import { useCrewPermissionLevel, useIsCrew } from '@/contexts/UserRoleContext';
+import { useCrewPermissionLevel, useIsCrew, useUserRole } from '@/contexts/UserRoleContext';
+import { crewService } from '@/services/CrewService';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Activity, BarChart3, Bell, Building2, Calendar, Calendar as CalendarIcon, CheckSquare, ChevronRight, CircleUser, Clock, Droplets, FileCheck, FileText, Globe, Grid3x3, Hash, Home, Mail, MessageSquare, Package, RotateCcw, Settings2, Star, Users, Wrench, X, Zap } from 'lucide-react-native';
@@ -20,6 +21,12 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
   
   const isCrew = useIsCrew();
   const permissionLevel = useCrewPermissionLevel();
+  const { impersonatingCrewMemberId } = useUserRole();
+  
+  // Load crew member info if impersonating
+  const crewMember = isCrew && impersonatingCrewMemberId 
+    ? crewService.getCrewMembers().find(m => m.id === impersonatingCrewMemberId)
+    : null;
 
   // Crew Member Menu (Simplified)
   const crewMenuSections = [
@@ -240,8 +247,16 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
                 <View style={styles.header}>
                   <View style={styles.profile}>
                     <View style={styles.profileInfo}>
-                      <Text style={styles.name}>John Doe</Text>
-                      <Text style={styles.role}>Sales Manager</Text>
+                      <Text style={styles.name}>
+                        {isCrew && crewMember 
+                          ? `${crewMember.firstName} ${crewMember.lastName}`
+                          : 'John Doe'}
+                      </Text>
+                      <Text style={styles.role}>
+                        {isCrew && crewMember 
+                          ? crewMember.role 
+                          : 'Sales Manager'}
+                      </Text>
                       <Text style={styles.company}>Drip Jobs Inc.</Text>
                     </View>
                   </View>

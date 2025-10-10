@@ -31,7 +31,7 @@ interface CrewJob {
   priority: 'low' | 'medium' | 'high';
 }
 
-type JobFilter = 'active' | 'completed' | 'all';
+type JobFilter = 'scheduled' | 'active' | 'completed' | 'all';
 
 export default function CrewJobsScreen() {
   const { setIsVisible } = useTabBar();
@@ -41,7 +41,7 @@ export default function CrewJobsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [jobs, setJobs] = useState<CrewJob[]>([]);
-  const [filter, setFilter] = useState<JobFilter>('active');
+  const [filter, setFilter] = useState<JobFilter>('scheduled');
 
   const currentCrewMemberId = isCrew ? impersonatingCrewMemberId || '1' : null;
 
@@ -110,8 +110,10 @@ export default function CrewJobsScreen() {
 
   const getFilteredJobs = () => {
     switch (filter) {
+      case 'scheduled':
+        return jobs.filter(j => j.status === 'scheduled');
       case 'active':
-        return jobs.filter(j => j.status === 'scheduled' || j.status === 'in-progress');
+        return jobs.filter(j => j.status === 'in-progress');
       case 'completed':
         return jobs.filter(j => j.status === 'completed');
       case 'all':
@@ -197,6 +199,14 @@ export default function CrewJobsScreen() {
       {/* Filter Tabs */}
       <View style={styles.filterContainer}>
         <TouchableOpacity
+          style={[styles.filterTab, filter === 'scheduled' && styles.filterTabActive]}
+          onPress={() => setFilter('scheduled')}
+        >
+          <Text style={[styles.filterTabText, filter === 'scheduled' && styles.filterTabTextActive]}>
+            Scheduled
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
           style={[styles.filterTab, filter === 'active' && styles.filterTabActive]}
           onPress={() => setFilter('active')}
         >
@@ -233,7 +243,8 @@ export default function CrewJobsScreen() {
             <Ionicons name="briefcase-outline" size={64} color="#d1d5db" />
             <Text style={styles.emptyStateTitle}>No Jobs Found</Text>
             <Text style={styles.emptyStateText}>
-              {filter === 'active' && 'You have no active jobs at this time'}
+              {filter === 'scheduled' && 'No scheduled jobs at this time'}
+              {filter === 'active' && 'You have no active jobs in progress'}
               {filter === 'completed' && 'No completed jobs in the last 30 days'}
               {filter === 'all' && 'No jobs assigned to you'}
             </Text>

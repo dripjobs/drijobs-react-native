@@ -1,19 +1,21 @@
+import { ClockedInBanner } from '@/components/ClockedInBanner';
 import { useTabBar } from '@/contexts/TabBarContext';
 import { useIsCrew, useUserRole } from '@/contexts/UserRoleContext';
 import { timeTrackingService } from '@/services/TimeTrackingService';
 import { ActiveClockSession } from '@/types/crew';
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, router } from 'expo-router';
+import { DrawerActions } from '@react-navigation/native';
+import { Stack, router, useNavigation } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    RefreshControl,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  RefreshControl,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 // Mock data types
@@ -46,6 +48,7 @@ export default function MyDayScreen() {
   const { setIsVisible } = useTabBar();
   const { impersonatingCrewMemberId } = useUserRole();
   const isCrew = useIsCrew();
+  const navigation = useNavigation();
 
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -209,9 +212,20 @@ export default function MyDayScreen() {
     <SafeAreaView style={styles.safeArea}>
       <Stack.Screen options={{ headerShown: false }} />
 
+      {/* Clocked-In Banner */}
+      {currentCrewMemberId && (
+        <ClockedInBanner crewMemberId={currentCrewMemberId} />
+      )}
+
       {/* Header */}
       <View style={styles.header}>
-        <View>
+        <TouchableOpacity 
+          onPress={() => navigation.dispatch(DrawerActions.openDrawer())} 
+          style={styles.menuButton}
+        >
+          <Ionicons name="menu" size={28} color="#111827" />
+        </TouchableOpacity>
+        <View style={styles.headerCenter}>
           <Text style={styles.greeting}>{getGreeting()}</Text>
           <Text style={styles.date}>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</Text>
         </View>
@@ -269,7 +283,7 @@ export default function MyDayScreen() {
             todayJobs.map(job => {
               const statusColors = getStatusColor(job.status);
               return (
-                <TouchableOpacity key={job.id} style={styles.jobCard}>
+                <View key={job.id} style={styles.jobCard}>
                   <View style={styles.jobHeader}>
                     <View style={styles.jobInfo}>
                       <Text style={styles.jobName}>{job.jobName}</Text>
@@ -291,7 +305,22 @@ export default function MyDayScreen() {
                       <Text style={styles.jobDetailText}>{job.address}</Text>
                     </View>
                   </View>
-                </TouchableOpacity>
+                  
+                  {/* Action Buttons */}
+                  <View style={styles.jobActions}>
+                    <TouchableOpacity 
+                      style={styles.workOrderButton}
+                      onPress={() => router.push('/(tabs)/work-orders')}
+                    >
+                      <Ionicons name="document-text-outline" size={18} color="#6366f1" />
+                      <Text style={styles.workOrderButtonText}>Work Order</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.directionsButton}>
+                      <Ionicons name="navigate-outline" size={18} color="#10b981" />
+                      <Text style={styles.directionsButtonText}>Navigate</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
               );
             })
           )}
@@ -368,40 +397,6 @@ export default function MyDayScreen() {
           </View>
         )}
 
-        {/* Quick Actions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <View style={styles.quickActionsGrid}>
-            <TouchableOpacity
-              style={styles.quickActionCard}
-              onPress={() => router.push('/timesheets')}
-            >
-              <Ionicons name="time" size={32} color="#6366f1" />
-              <Text style={styles.quickActionText}>Timesheets</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.quickActionCard}
-              onPress={() => router.push('/job-schedule')}
-            >
-              <Ionicons name="calendar" size={32} color="#10b981" />
-              <Text style={styles.quickActionText}>Schedule</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.quickActionCard}
-              onPress={() => router.push('/(tabs)/team-chat')}
-            >
-              <Ionicons name="chatbubbles" size={32} color="#f59e0b" />
-              <Text style={styles.quickActionText}>Team Chat</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.quickActionCard}
-              onPress={() => router.push('/crew-jobs')}
-            >
-              <Ionicons name="briefcase" size={32} color="#ef4444" />
-              <Text style={styles.quickActionText}>My Jobs</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -433,6 +428,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6',
+  },
+  menuButton: {
+    padding: 8,
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
   },
   greeting: {
     fontSize: 24,
@@ -583,6 +585,44 @@ const styles = StyleSheet.create({
   jobDetailText: {
     fontSize: 14,
     color: '#6b7280',
+  },
+  jobActions: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: '#f3f4f6',
+    paddingTop: 12,
+    marginTop: 12,
+    gap: 8,
+  },
+  workOrderButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    backgroundColor: '#eef2ff',
+    borderRadius: 8,
+  },
+  workOrderButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366f1',
+  },
+  directionsButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    backgroundColor: '#d1fae5',
+    borderRadius: 8,
+  },
+  directionsButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#10b981',
   },
   taskCard: {
     flexDirection: 'row',
