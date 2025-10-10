@@ -1,19 +1,19 @@
 import { useTabBar } from '@/contexts/TabBarContext';
-import { useUserRole, useIsCrew } from '@/contexts/UserRoleContext';
+import { useIsCrew, useUserRole } from '@/contexts/UserRoleContext';
 import { timeTrackingService } from '@/services/TimeTrackingService';
 import { ActiveClockSession } from '@/types/crew';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  RefreshControl,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    RefreshControl,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 // Mock data types

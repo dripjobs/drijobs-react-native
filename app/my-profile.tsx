@@ -1,20 +1,19 @@
 import { useTabBar } from '@/contexts/TabBarContext';
-import { useUserRole, useIsCrew, useCrewPermissionLevel } from '@/contexts/UserRoleContext';
+import { useCrewPermissionLevel, useIsCrew, useUserRole } from '@/contexts/UserRoleContext';
 import { crewService } from '@/services/CrewService';
 import { CrewMember } from '@/types/crew';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
-  Alert,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Switch,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 export default function MyProfileScreen() {

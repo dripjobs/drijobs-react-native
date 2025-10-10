@@ -1,4 +1,4 @@
-import { useUserRole, useCrewPermissionLevel, useIsCrew } from '@/contexts/UserRoleContext';
+import { useCrewPermissionLevel, useIsCrew } from '@/contexts/UserRoleContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Activity, BarChart3, Bell, Building2, Calendar, Calendar as CalendarIcon, CheckSquare, ChevronRight, CircleUser, Clock, Droplets, FileCheck, FileText, Globe, Grid3x3, Hash, Home, Mail, MessageSquare, Package, RotateCcw, Settings2, Star, Users, Wrench, X, Zap } from 'lucide-react-native';
