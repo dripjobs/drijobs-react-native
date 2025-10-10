@@ -1,21 +1,21 @@
 import { ClockedInBanner } from '@/components/ClockedInBanner';
+import DrawerMenu from '@/components/DrawerMenu';
 import { useTabBar } from '@/contexts/TabBarContext';
 import { useIsCrew, useUserRole } from '@/contexts/UserRoleContext';
 import { timeTrackingService } from '@/services/TimeTrackingService';
 import { ActiveClockSession } from '@/types/crew';
 import { Ionicons } from '@expo/vector-icons';
-import { DrawerActions } from '@react-navigation/native';
-import { Stack, router, useNavigation } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  RefreshControl,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    RefreshControl,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 // Mock data types
@@ -48,10 +48,10 @@ export default function MyDayScreen() {
   const { setIsVisible } = useTabBar();
   const { impersonatingCrewMemberId } = useUserRole();
   const isCrew = useIsCrew();
-  const navigation = useNavigation();
 
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeSession, setActiveSession] = useState<ActiveClockSession | null>(null);
   const [todayJobs, setTodayJobs] = useState<TodayJob[]>([]);
   const [todayTasks, setTodayTasks] = useState<TodayTask[]>([]);
@@ -220,7 +220,7 @@ export default function MyDayScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity 
-          onPress={() => navigation.dispatch(DrawerActions.openDrawer())} 
+          onPress={() => setDrawerOpen(true)} 
           style={styles.menuButton}
         >
           <Ionicons name="menu" size={28} color="#111827" />
@@ -400,6 +400,9 @@ export default function MyDayScreen() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Drawer Menu */}
+      <DrawerMenu isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </SafeAreaView>
   );
 }

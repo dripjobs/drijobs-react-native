@@ -15,7 +15,7 @@ import { useIsCrew } from '@/contexts/UserRoleContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Bell, Building, Calendar, CheckSquare, ChevronDown, ChevronRight, Clock, Copy, DollarSign, Edit, Eye, FileText, Handshake, Lightbulb, Mail, MapPin, MessageSquare, MoreVertical, Navigation, Phone, Search, Target, TrendingUp, User, Users, X, Zap } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Animated, Dimensions, Linking, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
 
