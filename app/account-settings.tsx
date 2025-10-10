@@ -1,3 +1,4 @@
+import { CrewPermissionSettingsModal } from '@/components/CrewPermissionSettingsModal';
 import FacebookIntegrationsManager from '@/components/FacebookIntegrationsManager';
 import { useAppSettings } from '@/contexts/AppSettingsContext';
 import { useUserRole } from '@/contexts/UserRoleContext';
@@ -101,6 +102,7 @@ export default function AccountSettings() {
     const [isEditing, setIsEditing] = useState(false);
     const [showTabSelector, setShowTabSelector] = useState(false);
     const [showQBSettings, setShowQBSettings] = useState(false);
+    const [showCrewPermissions, setShowCrewPermissions] = useState(false);
     const [hasChanges, setHasChanges] = useState(false);
     
     // App Settings Context
@@ -267,6 +269,7 @@ export default function AccountSettings() {
         { id: 'events', label: 'Event Types', icon: Calendar },
         { id: 'payments', label: 'Payments', icon: CreditCard },
         { id: 'reminders', label: 'Reminders', icon: Bell },
+        { id: 'crew', label: 'Crew Permissions', icon: Users },
         { id: 'integrations', label: 'Integrations', icon: Link },
     ];
 
