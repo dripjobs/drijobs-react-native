@@ -11,6 +11,7 @@ import SendRequestModal from '@/components/SendRequestModal';
 import StatCard from '@/components/StatCard';
 import StatDetailModal from '@/components/StatDetailModal';
 import { useTabBar } from '@/contexts/TabBarContext';
+import { useIsCrew } from '@/contexts/UserRoleContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Bell, Building, Calendar, CheckSquare, ChevronDown, ChevronRight, Clock, Copy, DollarSign, Edit, Eye, FileText, Handshake, Lightbulb, Mail, MapPin, MessageSquare, MoreVertical, Navigation, Phone, Search, Target, TrendingUp, User, Users, X, Zap } from 'lucide-react-native';
@@ -23,7 +24,15 @@ const { height: screenHeight } = Dimensions.get('window');
 export default function Dashboard() {
   const router = useRouter();
   const { setIsTransparent } = useTabBar();
+  const isCrew = useIsCrew();
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Redirect crew members to My Day
+  useEffect(() => {
+    if (isCrew) {
+      router.replace('/my-day');
+    }
+  }, [isCrew]);
   const [showNewAppointment, setShowNewAppointment] = useState(false);
   const [showNewProposal, setShowNewProposal] = useState(false);
   const [showSendRequest, setShowSendRequest] = useState(false);
@@ -1493,16 +1502,18 @@ export default function Dashboard() {
         </View>
       </ScrollView>
 
-      <FloatingActionMenu
-        onNewAppointment={handleNewAppointment}
-        onNewProposal={handleNewProposal}
-        onSendRequest={handleSendRequest}
-        onNewLead={handleCreateLead}
-        onNewJob={handleCreateJob}
-        onPhoneCall={handlePhoneCall}
-        onSendText={handleText}
-        isVisible={showFAB} 
-      />
+      {!isCrew && (
+        <FloatingActionMenu
+          onNewAppointment={handleNewAppointment}
+          onNewProposal={handleNewProposal}
+          onSendRequest={handleSendRequest}
+          onNewLead={handleCreateLead}
+          onNewJob={handleCreateJob}
+          onPhoneCall={handlePhoneCall}
+          onSendText={handleText}
+          isVisible={showFAB} 
+        />
+      )}
       
       {/* New Appointment Modal */}
       <NewAppointmentModal 
