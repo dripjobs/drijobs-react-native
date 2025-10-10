@@ -1,3 +1,4 @@
+import { useUserRole, useCrewPermissionLevel, useIsCrew } from '@/contexts/UserRoleContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Activity, BarChart3, Bell, Building2, Calendar, Calendar as CalendarIcon, CheckSquare, ChevronRight, CircleUser, Clock, Droplets, FileCheck, FileText, Globe, Grid3x3, Hash, Home, Mail, MessageSquare, Package, RotateCcw, Settings2, Star, Users, Wrench, X, Zap } from 'lucide-react-native';
@@ -16,8 +17,54 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
   const [mainTranslateX] = useState(new Animated.Value(0));
   const [showRoleModal, setShowRoleModal] = useState(false);
   const screenWidth = Dimensions.get('window').width;
+  
+  const isCrew = useIsCrew();
+  const permissionLevel = useCrewPermissionLevel();
 
-  const menuSections = [
+  // Crew Member Menu (Simplified)
+  const crewMenuSections = [
+    {
+      title: 'My Work',
+      items: [
+        { icon: Home, label: 'My Day', action: () => router.push('/my-day'), primary: true },
+        { icon: Wrench, label: 'Jobs', action: () => router.push('/crew-jobs'), primary: true },
+        { icon: FileText, label: 'Work Orders', action: () => router.push('/(tabs)/work-orders'), primary: true },
+      ]
+    },
+    {
+      title: 'Schedule',
+      items: [
+        { icon: Calendar, label: 'Job Schedule', action: () => router.push('/job-schedule') },
+        { icon: Clock, label: 'Timesheets', action: () => router.push('/timesheets') },
+      ]
+    },
+    {
+      title: 'Communication',
+      items: [
+        { icon: Hash, label: 'Team Chat', action: () => router.push('/(tabs)/team-chat') },
+        ...(permissionLevel >= 2 ? [
+          { icon: MessageSquare, label: 'Chat', action: () => router.push('/(tabs)/chat') },
+          { icon: Grid3x3, label: 'Phone', action: () => router.push('/(tabs)/phone') },
+        ] : []),
+      ]
+    },
+    {
+      title: 'Tasks',
+      items: [
+        { icon: CheckSquare, label: 'Tasks', action: () => router.push('/(tabs)/tasks') },
+      ]
+    },
+    {
+      title: 'Account',
+      items: [
+        { icon: Bell, label: 'Notifications', action: () => router.push('/notifications') },
+        { icon: CircleUser, label: 'My Profile', action: () => router.push('/my-profile') },
+      ]
+    }
+  ];
+
+  // Admin/Full Menu
+  const adminMenuSections = [
     {
       title: 'Core',
       items: [
@@ -208,15 +255,21 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
                 <TouchableOpacity 
                   style={styles.myProfileButton}
                   onPress={() => {
-                    router.push('/account-settings');
+                    router.push(isCrew ? '/my-profile' : '/account-settings');
                     onClose();
                   }}
                 >
                   <View style={styles.myProfileContent}>
                     <CircleUser size={18} color="#FFFFFF" />
                     <View style={styles.myProfileTextContainer}>
-                      <Text style={styles.myProfileText}>My Profile</Text>
-                      <Text style={styles.myProfileSubtext}>Edit personal settings</Text>
+                      <Text style={styles.myProfileText}>
+                        {isCrew ? 'My Profile' : 'My Profile'}
+                      </Text>
+                      <Text style={styles.myProfileSubtext}>
+                        {isCrew 
+                          ? `Level ${permissionLevel} Crew Member` 
+                          : 'Edit personal settings'}
+                      </Text>
                     </View>
                   </View>
                   <ChevronRight size={18} color="rgba(255, 255, 255, 0.7)" />
@@ -224,7 +277,7 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
               </LinearGradient>
 
               <ScrollView style={styles.menu} showsVerticalScrollIndicator={false}>
-                {menuSections.map((section, sectionIndex) => (
+                {(isCrew ? crewMenuSections : adminMenuSections).map((section, sectionIndex) => (
                   <View key={sectionIndex} style={styles.section}>
                     <Text style={styles.sectionTitle}>{section.title}</Text>
                     <View style={styles.sectionItems}>
