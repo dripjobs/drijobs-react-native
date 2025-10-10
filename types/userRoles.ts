@@ -3,7 +3,7 @@
  * Defines user roles and permissions for DripJobs
  */
 
-export type UserRole = 'admin' | 'accountant';
+export type UserRole = 'admin' | 'accountant' | 'crew';
 
 export interface UserPermissions {
   // General permissions
@@ -25,6 +25,15 @@ export interface UserPermissions {
   canManagePayments: boolean;
   canManageJobs: boolean;
   canManageProposals: boolean;
+
+  // Time tracking permissions
+  canClockIn: boolean;
+  canViewOwnTimesheets: boolean;
+  canViewAllTimesheets: boolean;
+  canEditTimesheets: boolean;
+  canApproveTimesheets: boolean;
+  canViewAssignedJobs: boolean;
+  canManageTimeTrackingSettings: boolean;
 }
 
 export interface RoleDefinition {
@@ -55,6 +64,13 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       canManagePayments: true,
       canManageJobs: true,
       canManageProposals: true,
+      canClockIn: true,
+      canViewOwnTimesheets: true,
+      canViewAllTimesheets: true,
+      canEditTimesheets: true,
+      canApproveTimesheets: true,
+      canViewAssignedJobs: true,
+      canManageTimeTrackingSettings: true,
     },
   },
   accountant: {
@@ -76,6 +92,41 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       canManagePayments: false,
       canManageJobs: false,
       canManageProposals: false,
+      canClockIn: false,
+      canViewOwnTimesheets: false,
+      canViewAllTimesheets: true,
+      canEditTimesheets: false,
+      canApproveTimesheets: false,
+      canViewAssignedJobs: false,
+      canManageTimeTrackingSettings: false,
+    },
+  },
+  crew: {
+    role: 'crew',
+    label: 'Crew Member',
+    description: 'Field worker with time tracking and job access',
+    permissions: {
+      canCreate: false,
+      canEdit: false,
+      canDelete: false,
+      canView: false,
+      canAccessQuickBooksSettings: false,
+      canSyncToQuickBooks: false,
+      canViewSyncStatus: false,
+      canExportReports: false,
+      canManageContacts: false,
+      canManageBusinesses: false,
+      canManageInvoices: false,
+      canManagePayments: false,
+      canManageJobs: false,
+      canManageProposals: false,
+      canClockIn: true,
+      canViewOwnTimesheets: true,
+      canViewAllTimesheets: false,
+      canEditTimesheets: false,
+      canApproveTimesheets: false,
+      canViewAssignedJobs: true,
+      canManageTimeTrackingSettings: false,
     },
   },
 };

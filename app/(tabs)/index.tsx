@@ -1,3 +1,5 @@
+import CallInitiationModal from '@/components/CallInitiationModal';
+import ContactPickerModal from '@/components/ContactPickerModal';
 import CreateJobModal from '@/components/CreateJobModal';
 import CreateLeadModal from '@/components/CreateLeadModal';
 import DrawerMenu from '@/components/DrawerMenu';
@@ -48,6 +50,9 @@ export default function Dashboard() {
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [jobDetailsTranslateY] = useState(new Animated.Value(screenHeight));
   const [expandedActionItem, setExpandedActionItem] = useState<string | null>(null);
+  const [showContactPicker, setShowContactPicker] = useState(false);
+  const [showCallInitiation, setShowCallInitiation] = useState(false);
+  const [callContact, setCallContact] = useState({ name: '', phone: '' });
   const [appointments, setAppointments] = useState([
     { 
       id: 1, 
@@ -562,11 +567,38 @@ export default function Dashboard() {
   };
 
   const handleCall = () => {
-    console.log('Call:', selectedMeeting?.phone);
+    if (selectedMeeting?.customer && selectedMeeting?.phone) {
+      setCallContact({ 
+        name: selectedMeeting.customer, 
+        phone: selectedMeeting.phone 
+      });
+      setShowCallInitiation(true);
+    }
+  };
+
+  const handleOpenContactPicker = () => {
+    setShowContactPicker(true);
+  };
+
+  const handleContactSelected = (contact: any) => {
+    setCallContact({ name: contact.name, phone: contact.phone });
+    setShowContactPicker(false);
+    setShowCallInitiation(true);
   };
 
   const handleText = () => {
-    console.log('Text:', selectedMeeting?.phone);
+    if (selectedMeeting) {
+      // Navigate to chat screen with customer data
+      router.push({
+        pathname: '/(tabs)/chat',
+        params: { 
+          customerId: selectedMeeting.id.toString(),
+          customerName: selectedMeeting.customer,
+          customerPhone: selectedMeeting.phone,
+          composeMode: 'true' // Flag to indicate we want to compose a new message
+        }
+      });
+    }
   };
 
   const handleEmail = () => {
@@ -1467,6 +1499,8 @@ export default function Dashboard() {
         onSendRequest={handleSendRequest}
         onNewLead={handleCreateLead}
         onNewJob={handleCreateJob}
+        onPhoneCall={handlePhoneCall}
+        onSendText={handleText}
         isVisible={showFAB} 
       />
       
@@ -2075,6 +2109,21 @@ export default function Dashboard() {
       <NotificationModal 
         visible={showNotificationModal}
         onClose={() => setShowNotificationModal(false)}
+      />
+
+      {/* Contact Picker Modal */}
+      <ContactPickerModal
+        visible={showContactPicker}
+        onClose={() => setShowContactPicker(false)}
+        onSelectContact={handleContactSelected}
+      />
+
+      {/* Call Initiation Modal */}
+      <CallInitiationModal
+        visible={showCallInitiation}
+        onClose={() => setShowCallInitiation(false)}
+        contactName={callContact.name}
+        phoneNumber={callContact.phone}
       />
     </SafeAreaView>
   );

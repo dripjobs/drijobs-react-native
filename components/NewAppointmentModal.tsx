@@ -1,6 +1,6 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Building, Calendar, Check, ChevronRight, Clock, MapPin, Search, User as UserIcon, X } from 'lucide-react-native';
-import React, { useState } from 'react';
+import { Building, Calendar, Check, ChevronRight, Clock, Lock, MapPin, Search, User as UserIcon, X } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
 import { Modal, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 interface NewAppointmentModalProps {
@@ -20,6 +20,7 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
   const [selectedCalendarDay, setSelectedCalendarDay] = useState<Date | null>(null);
   const [pickerDate, setPickerDate] = useState(new Date());
   const [pickerTime, setPickerTime] = useState(new Date());
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [appointmentData, setAppointmentData] = useState({
     customerType: '', // 'individual' or 'business'
     customerStatus: '', // 'new' or 'existing'
@@ -34,6 +35,8 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
     gateCode: '',
     reminders: true,
     reminderType: 'both',
+    leadSource: '',
+    jobSource: '',
     // Individual customer fields
     firstName: '',
     lastName: '',
@@ -50,17 +53,49 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
 
   // Sample data for existing customers and businesses
   const existingCustomers = [
-    { id: 1, name: 'Jane Doe', email: 'jane@email.com', phone: '(555) 123-4567' },
-    { id: 2, name: 'Bob Johnson', email: 'bob@email.com', phone: '(555) 987-6543' },
-    { id: 3, name: 'Sarah Wilson', email: 'sarah@email.com', phone: '(555) 456-7890' },
-    { id: 4, name: 'Mike Davis', email: 'mike@email.com', phone: '(555) 321-0987' },
+    { id: 1, name: 'Jane Doe', email: 'jane@email.com', phone: '(555) 123-4567', originalLeadSource: 'Website' },
+    { id: 2, name: 'Bob Johnson', email: 'bob@email.com', phone: '(555) 987-6543', originalLeadSource: 'Referral' },
+    { id: 3, name: 'Sarah Wilson', email: 'sarah@email.com', phone: '(555) 456-7890', originalLeadSource: 'Social Media' },
+    { id: 4, name: 'Mike Davis', email: 'mike@email.com', phone: '(555) 321-0987', originalLeadSource: 'Google' },
   ];
 
   const existingBusinesses = [
-    { id: 1, name: 'ABC Construction', email: 'contact@abcconstruction.com', phone: '(555) 111-2222' },
-    { id: 2, name: 'XYZ Builders', email: 'info@xyzbuilders.com', phone: '(555) 333-4444' },
-    { id: 3, name: 'TechCorp Solutions', email: 'hello@techcorp.com', phone: '(555) 555-6666' },
+    { id: 1, name: 'ABC Construction', email: 'contact@abcconstruction.com', phone: '(555) 111-2222', originalLeadSource: 'BNI Networking Group' },
+    { id: 2, name: 'XYZ Builders', email: 'info@xyzbuilders.com', phone: '(555) 333-4444', originalLeadSource: 'Trade Show' },
+    { id: 3, name: 'TechCorp Solutions', email: 'hello@techcorp.com', phone: '(555) 555-6666', originalLeadSource: 'Cold Call' },
   ];
+
+  const leadSources = [
+    { id: '1', name: 'Website', category: 'Digital' },
+    { id: '2', name: 'Referral', category: 'Word of Mouth' },
+    { id: '3', name: 'Social Media', category: 'Digital' },
+    { id: '4', name: 'Cold Call', category: 'Outbound' },
+    { id: '5', name: 'Google', category: 'Digital' }
+  ];
+
+  const jobSources = [
+    { id: '1', name: 'Repeat Customer', category: 'Retention' },
+    { id: '2', name: 'Referral from Existing', category: 'Retention' },
+    { id: '3', name: 'Upsell/Cross-sell', category: 'Expansion' },
+    { id: '4', name: 'Seasonal Service', category: 'Recurring' },
+    { id: '5', name: 'Emergency/Urgent', category: 'Reactive' },
+    { id: '6', name: 'Networking Event', category: 'Outreach' },
+    { id: '7', name: 'Previous Quote Follow-up', category: 'Follow-up' }
+  ];
+
+  const [selectedSource, setSelectedSource] = useState<any>(null);
+
+  // Auto-populate job source when existing customer is selected
+  useEffect(() => {
+    if (appointmentData.customerStatus === 'existing' && selectedCustomer && selectedCustomer.originalLeadSource) {
+      // Set the default job source to "Repeat Customer"
+      const repeatCustomerSource = jobSources.find(source => source.name === 'Repeat Customer');
+      if (repeatCustomerSource && !selectedSource) {
+        setSelectedSource(repeatCustomerSource);
+        setAppointmentData(prev => ({ ...prev, jobSource: repeatCustomerSource.name }));
+      }
+    }
+  }, [selectedCustomer, appointmentData.customerStatus]);
 
   // Sample appointment data for calendar
   const sampleAppointments = [
@@ -99,13 +134,17 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
           return selectedCustomer !== null;
         }
         return true; // For new customers, we'll validate required fields later
+      case 3:
+        return appointmentData.eventType !== '';
+      case 4:
+        return selectedSource !== null;
       default:
         return true;
     }
   };
 
   const handleNext = () => {
-    if (canProceedToNext() && appointmentStep < 6) {
+    if (canProceedToNext() && appointmentStep < 5) {
       setAppointmentStep(appointmentStep + 1);
     }
   };
@@ -121,6 +160,7 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
     setAppointmentStep(1);
     setSearchQuery('');
     setSelectedCustomer(null);
+    setSelectedSource(null);
     setAppointmentData({
       customerType: '',
       customerStatus: '',
@@ -135,6 +175,8 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
       gateCode: '',
       reminders: true,
       reminderType: 'both',
+      leadSource: '',
+      jobSource: '',
       firstName: '',
       lastName: '',
       email: '',
@@ -356,25 +398,35 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
                 <View style={styles.formRow}>
                   <View style={styles.formField}>
                     <Text style={styles.fieldLabel}>First Name *</Text>
-                    <View style={styles.inputContainer}>
+                    <View style={[
+                      styles.inputContainer,
+                      focusedInput === 'firstName' && styles.inputContainerFocused
+                    ]}>
                       <TextInput 
                         style={styles.inputText}
                         placeholder="Enter first name"
                         placeholderTextColor="#9CA3AF"
                         value={appointmentData.firstName}
                         onChangeText={(text) => setAppointmentData({...appointmentData, firstName: text})}
+                        onFocus={() => setFocusedInput('firstName')}
+                        onBlur={() => setFocusedInput(null)}
                       />
                     </View>
                   </View>
                   <View style={styles.formField}>
                     <Text style={styles.fieldLabel}>Last Name *</Text>
-                    <View style={styles.inputContainer}>
+                    <View style={[
+                      styles.inputContainer,
+                      focusedInput === 'lastName' && styles.inputContainerFocused
+                    ]}>
                       <TextInput 
                         style={styles.inputText}
                         placeholder="Enter last name"
                         placeholderTextColor="#9CA3AF"
                         value={appointmentData.lastName}
                         onChangeText={(text) => setAppointmentData({...appointmentData, lastName: text})}
+                        onFocus={() => setFocusedInput('lastName')}
+                        onBlur={() => setFocusedInput(null)}
                       />
                     </View>
                   </View>
@@ -382,7 +434,10 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
                 
                 <View style={styles.formField}>
                   <Text style={styles.fieldLabel}>Email</Text>
-                  <View style={styles.inputContainer}>
+                  <View style={[
+                    styles.inputContainer,
+                    focusedInput === 'email' && styles.inputContainerFocused
+                  ]}>
                     <TextInput 
                       style={styles.inputText}
                       placeholder="customer@email.com"
@@ -391,13 +446,18 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
                       onChangeText={(text) => setAppointmentData({...appointmentData, email: text})}
                       keyboardType="email-address"
                       autoCapitalize="none"
+                      onFocus={() => setFocusedInput('email')}
+                      onBlur={() => setFocusedInput(null)}
                     />
                   </View>
                 </View>
                 
                 <View style={styles.formField}>
                   <Text style={styles.fieldLabel}>Phone</Text>
-                  <View style={styles.inputContainer}>
+                  <View style={[
+                    styles.inputContainer,
+                    focusedInput === 'phone' && styles.inputContainerFocused
+                  ]}>
                     <TextInput 
                       style={styles.inputText}
                       placeholder="(555) 123-4567"
@@ -405,6 +465,8 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
                       value={appointmentData.phone}
                       onChangeText={(text) => setAppointmentData({...appointmentData, phone: text})}
                       keyboardType="phone-pad"
+                      onFocus={() => setFocusedInput('phone')}
+                      onBlur={() => setFocusedInput(null)}
                     />
                   </View>
                 </View>
@@ -420,13 +482,18 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
               <View style={styles.formContainer}>
                 <View style={styles.formField}>
                   <Text style={styles.fieldLabel}>Business Name *</Text>
-                  <View style={styles.inputContainer}>
+                  <View style={[
+                    styles.inputContainer,
+                    focusedInput === 'businessName' && styles.inputContainerFocused
+                  ]}>
                     <TextInput 
                       style={styles.inputText}
                       placeholder="Enter business name"
                       placeholderTextColor="#9CA3AF"
                       value={appointmentData.businessName}
                       onChangeText={(text) => setAppointmentData({...appointmentData, businessName: text})}
+                      onFocus={() => setFocusedInput('businessName')}
+                      onBlur={() => setFocusedInput(null)}
                     />
                   </View>
                 </View>
@@ -440,25 +507,35 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
                 <View style={styles.formRow}>
                   <View style={styles.formField}>
                     <Text style={styles.fieldLabel}>First Name *</Text>
-                    <View style={styles.inputContainer}>
+                    <View style={[
+                      styles.inputContainer,
+                      focusedInput === 'contactFirstName' && styles.inputContainerFocused
+                    ]}>
                       <TextInput 
                         style={styles.inputText}
                         placeholder="Enter first name"
                         placeholderTextColor="#9CA3AF"
                         value={appointmentData.contactFirstName}
                         onChangeText={(text) => setAppointmentData({...appointmentData, contactFirstName: text})}
+                        onFocus={() => setFocusedInput('contactFirstName')}
+                        onBlur={() => setFocusedInput(null)}
                       />
                     </View>
                   </View>
                   <View style={styles.formField}>
                     <Text style={styles.fieldLabel}>Last Name *</Text>
-                    <View style={styles.inputContainer}>
+                    <View style={[
+                      styles.inputContainer,
+                      focusedInput === 'contactLastName' && styles.inputContainerFocused
+                    ]}>
                       <TextInput 
                         style={styles.inputText}
                         placeholder="Enter last name"
                         placeholderTextColor="#9CA3AF"
                         value={appointmentData.contactLastName}
                         onChangeText={(text) => setAppointmentData({...appointmentData, contactLastName: text})}
+                        onFocus={() => setFocusedInput('contactLastName')}
+                        onBlur={() => setFocusedInput(null)}
                       />
                     </View>
                   </View>
@@ -467,7 +544,10 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
                 <View style={styles.formRow}>
                   <View style={styles.formField}>
                     <Text style={styles.fieldLabel}>Email *</Text>
-                    <View style={styles.inputContainer}>
+                    <View style={[
+                      styles.inputContainer,
+                      focusedInput === 'contactEmail' && styles.inputContainerFocused
+                    ]}>
                       <TextInput 
                         style={styles.inputText}
                         placeholder="contact@email.com"
@@ -476,12 +556,17 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
                         onChangeText={(text) => setAppointmentData({...appointmentData, contactEmail: text})}
                         keyboardType="email-address"
                         autoCapitalize="none"
+                        onFocus={() => setFocusedInput('contactEmail')}
+                        onBlur={() => setFocusedInput(null)}
                       />
                     </View>
                   </View>
                   <View style={styles.formField}>
                     <Text style={styles.fieldLabel}>Phone *</Text>
-                    <View style={styles.inputContainer}>
+                    <View style={[
+                      styles.inputContainer,
+                      focusedInput === 'contactPhone' && styles.inputContainerFocused
+                    ]}>
                       <TextInput 
                         style={styles.inputText}
                         placeholder="(555) 123-4567"
@@ -489,6 +574,8 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
                         value={appointmentData.contactPhone}
                         onChangeText={(text) => setAppointmentData({...appointmentData, contactPhone: text})}
                         keyboardType="phone-pad"
+                        onFocus={() => setFocusedInput('contactPhone')}
+                        onBlur={() => setFocusedInput(null)}
                       />
                     </View>
                   </View>
@@ -496,13 +583,18 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
                 
                 <View style={styles.formField}>
                   <Text style={styles.fieldLabel}>Title (Optional)</Text>
-                  <View style={styles.inputContainer}>
+                  <View style={[
+                    styles.inputContainer,
+                    focusedInput === 'contactTitle' && styles.inputContainerFocused
+                  ]}>
                     <TextInput 
                       style={styles.inputText}
                       placeholder="e.g., CEO, Manager, Owner"
                       placeholderTextColor="#9CA3AF"
                       value={appointmentData.contactTitle}
                       onChangeText={(text) => setAppointmentData({...appointmentData, contactTitle: text})}
+                      onFocus={() => setFocusedInput('contactTitle')}
+                      onBlur={() => setFocusedInput(null)}
                     />
                   </View>
                 </View>
@@ -532,7 +624,10 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
                 </Text>
                 
                 {/* Search Bar */}
-                <View style={styles.searchContainer}>
+                <View style={[
+                  styles.searchContainer,
+                  focusedInput === 'search' && styles.inputContainerFocused
+                ]}>
                   <Search size={20} color="#6B7280" />
                   <TextInput
                     style={styles.searchPlaceholder}
@@ -540,6 +635,8 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
                     placeholderTextColor="#9CA3AF"
                     value={searchQuery}
                     onChangeText={setSearchQuery}
+                    onFocus={() => setFocusedInput('search')}
+                    onBlur={() => setFocusedInput(null)}
                   />
                 </View>
                 
@@ -651,6 +748,63 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
         );
 
       case 4:
+        return (
+          <View style={styles.appointmentStep}>
+            <Text style={styles.stepTitle}>Source Attribution</Text>
+            <Text style={styles.stepSubtitle}>Track where this appointment came from</Text>
+            
+            {/* Show Original Lead Source Badge for Existing Customers */}
+            {appointmentData.customerStatus === 'existing' && selectedCustomer?.originalLeadSource && (
+              <View style={styles.originalLeadSourceBadge}>
+                <Lock size={16} color="#6B7280" style={{ marginRight: 8 }} />
+                <Text style={styles.originalLeadSourceText}>
+                  Original Lead Source: <Text style={styles.originalLeadSourceValue}>{selectedCustomer.originalLeadSource}</Text>
+                </Text>
+              </View>
+            )}
+            
+            <Text style={styles.fieldLabel}>
+              {appointmentData.customerStatus === 'new' ? 'Lead Source *' : 'Job Source *'}
+            </Text>
+            
+            {/* Helper Text for Job Source */}
+            {appointmentData.customerStatus === 'existing' && (
+              <Text style={styles.helperText}>
+                Track where this specific appointment came from. The original lead source shows how this customer first found you.
+              </Text>
+            )}
+            
+            <View style={styles.sourceContainer}>
+              {(appointmentData.customerStatus === 'new' ? leadSources : jobSources).map((source) => (
+                <TouchableOpacity
+                  key={source.id}
+                  style={[
+                    styles.sourceCard,
+                    selectedSource?.id === source.id && styles.sourceCardSelected
+                  ]}
+                  onPress={() => {
+                    setSelectedSource(source);
+                    if (appointmentData.customerStatus === 'new') {
+                      setAppointmentData({...appointmentData, leadSource: source.name});
+                    } else {
+                      setAppointmentData({...appointmentData, jobSource: source.name});
+                    }
+                  }}
+                >
+                  <View style={styles.sourceCardContent}>
+                    <Text style={styles.sourceCardTitle}>{source.name}</Text>
+                    <Text style={styles.sourceCardSubtitle}>{source.category}</Text>
+                  </View>
+                  {selectedSource?.id === source.id && (
+                    <Check size={20} color="#6366F1" />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        );
+
+      case 5:
         return (
           <View style={styles.appointmentStep}>
             <Text style={styles.stepTitle}>Schedule Details</Text>
@@ -785,7 +939,10 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
             <Text style={styles.stepSubtitle}>Add any additional details or special instructions for this appointment</Text>
             
             <View style={styles.notesContainer}>
-              <View style={styles.textAreaContainer}>
+              <View style={[
+                styles.textAreaContainer,
+                focusedInput === 'notes' && styles.inputContainerFocused
+              ]}>
                 <TextInput
                   style={styles.textAreaPlaceholder}
                   placeholder="Enter any notes, special requirements, or additional information for this appointment..."
@@ -795,18 +952,25 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
                   multiline
                   numberOfLines={6}
                   textAlignVertical="top"
+                  onFocus={() => setFocusedInput('notes')}
+                  onBlur={() => setFocusedInput(null)}
                 />
               </View>
 
               <View style={styles.scheduleField}>
                 <Text style={styles.fieldLabel}>Gate or Lockbox Code (Optional)</Text>
-                <View style={styles.inputContainer}>
+                <View style={[
+                  styles.inputContainer,
+                  focusedInput === 'gateCode' && styles.inputContainerFocused
+                ]}>
                   <TextInput 
                     style={styles.inputText}
                     placeholder="Enter gate or lockbox code"
                     placeholderTextColor="#9CA3AF"
                     value={appointmentData.gateCode}
                     onChangeText={(text) => setAppointmentData({...appointmentData, gateCode: text})}
+                    onFocus={() => setFocusedInput('gateCode')}
+                    onBlur={() => setFocusedInput(null)}
                   />
                 </View>
               </View>
@@ -1381,13 +1545,25 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 12,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: '#E5E7EB',
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0,
+    shadowRadius: 4,
+    elevation: 0,
+  },
+  inputContainerFocused: {
+    borderColor: '#6366F1',
+    backgroundColor: '#F5F7FF',
+    shadowOpacity: 0.15,
+    elevation: 2,
   },
   inputText: {
     fontSize: 16,
     color: '#1F2937',
     fontWeight: '500',
+    backgroundColor: 'transparent',
   },
   durationNote: {
     fontSize: 14,
@@ -1424,15 +1600,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
     borderRadius: 8,
     padding: 16,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: '#E5E7EB',
     minHeight: 120,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0,
+    shadowRadius: 4,
+    elevation: 0,
   },
   textAreaPlaceholder: {
     fontSize: 16,
     color: '#1F2937',
     lineHeight: 24,
     flex: 1,
+    backgroundColor: 'transparent',
   },
   // Reminders Styles
   remindersContainer: {
@@ -1685,15 +1867,21 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 12,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: '#E5E7EB',
     gap: 8,
     marginBottom: 16,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0,
+    shadowRadius: 4,
+    elevation: 0,
   },
   searchPlaceholder: {
     fontSize: 16,
     color: '#1F2937',
     flex: 1,
+    backgroundColor: 'transparent',
   },
   customerList: {
     gap: 8,
@@ -2022,5 +2210,63 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: '#374151',
+  },
+  originalLeadSourceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  originalLeadSourceText: {
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  originalLeadSourceValue: {
+    color: '#111827',
+    fontWeight: '600',
+  },
+  helperText: {
+    fontSize: 13,
+    color: '#6B7280',
+    lineHeight: 18,
+    marginTop: 4,
+    marginBottom: 16,
+  },
+  sourceContainer: {
+    gap: 12,
+    marginTop: 12,
+  },
+  sourceCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+  },
+  sourceCardSelected: {
+    borderColor: '#6366F1',
+    backgroundColor: '#EEF2FF',
+  },
+  sourceCardContent: {
+    flex: 1,
+  },
+  sourceCardTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  sourceCardSubtitle: {
+    fontSize: 13,
+    color: '#6B7280',
   },
 });

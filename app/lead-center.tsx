@@ -40,10 +40,15 @@ interface LeadSource {
   instructions: string[];
   setupUrl?: string;
   stage: string;
-  dripMessage: string;
+  dripSequenceId: string | null;
 }
 
-const defaultDripMessage = "Thanks for reaching out! We received your request and one of our team members will be in touch within 24 hours to discuss your project.";
+interface DripSequence {
+  id: string;
+  name: string;
+  description?: string;
+  stage: string;
+}
 
 const stages = [
   { value: 'new-leads', label: 'New Leads' },
@@ -51,6 +56,16 @@ const stages = [
   { value: 'qualified', label: 'Qualified' },
   { value: 'proposal-sent', label: 'Proposal Sent' },
   { value: 'negotiation', label: 'Negotiation' },
+];
+
+// Mock drip sequences - in production, this would come from a service/API
+const mockDripSequences: DripSequence[] = [
+  { id: 'drip-1', name: 'Welcome New Leads', description: 'Initial welcome sequence for new leads', stage: 'new-leads' },
+  { id: 'drip-2', name: 'Follow Up Sequence', description: 'Follow up with prospects who showed interest', stage: 'new-leads' },
+  { id: 'drip-3', name: 'Re-engagement Campaign', description: 'Re-engage cold leads', stage: 'contacted' },
+  { id: 'drip-4', name: 'Qualification Nurture', description: 'Nurture qualified leads', stage: 'qualified' },
+  { id: 'drip-5', name: 'Proposal Follow-up', description: 'Follow up after proposal sent', stage: 'proposal-sent' },
+  { id: 'drip-6', name: 'Negotiation Support', description: 'Support during negotiation phase', stage: 'negotiation' },
 ];
 
 export default function LeadCenter() {
@@ -71,7 +86,7 @@ export default function LeadCenter() {
       ],
       setupUrl: 'https://ads.google.com/localservices',
       stage: 'new-leads',
-      dripMessage: defaultDripMessage,
+      dripSequenceId: null,
     },
     {
       id: 'facebook',
@@ -90,7 +105,7 @@ export default function LeadCenter() {
       ],
       setupUrl: 'https://business.facebook.com',
       stage: 'new-leads',
-      dripMessage: defaultDripMessage,
+      dripSequenceId: null,
     },
     {
       id: 'angi',
@@ -109,7 +124,7 @@ export default function LeadCenter() {
       ],
       setupUrl: 'https://pro.angi.com',
       stage: 'new-leads',
-      dripMessage: defaultDripMessage,
+      dripSequenceId: null,
     },
     {
       id: 'thumbtack',
@@ -128,7 +143,7 @@ export default function LeadCenter() {
       ],
       setupUrl: 'https://www.thumbtack.com/pro',
       stage: 'new-leads',
-      dripMessage: defaultDripMessage,
+      dripSequenceId: null,
     },
     {
       id: 'website',
@@ -145,7 +160,7 @@ export default function LeadCenter() {
         'Set up notifications for new submissions',
       ],
       stage: 'new-leads',
-      dripMessage: defaultDripMessage,
+      dripSequenceId: null,
     },
     {
       id: 'phone',
@@ -162,7 +177,7 @@ export default function LeadCenter() {
         'Leads are created automatically from call data',
       ],
       stage: 'new-leads',
-      dripMessage: defaultDripMessage,
+      dripSequenceId: null,
     },
   ]);
 
@@ -170,14 +185,19 @@ export default function LeadCenter() {
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [editingApiKey, setEditingApiKey] = useState('');
   const [editingStage, setEditingStage] = useState('new-leads');
-  const [editingDripMessage, setEditingDripMessage] = useState('');
+  const [editingDripSequenceId, setEditingDripSequenceId] = useState<string | null>(null);
   const [showStageDropdown, setShowStageDropdown] = useState(false);
+  const [showDripSequenceDropdown, setShowDripSequenceDropdown] = useState(false);
+  const [availableDripSequences, setAvailableDripSequences] = useState<DripSequence[]>([]);
 
   const handleConfigureSource = (source: LeadSource) => {
     setSelectedSource(source);
     setEditingApiKey(source.apiKey || '');
     setEditingStage(source.stage);
-    setEditingDripMessage(source.dripMessage);
+    setEditingDripSequenceId(source.dripSequenceId);
+    // Load available drip sequences for the selected stage
+    const sequencesForStage = mockDripSequences.filter(seq => seq.stage === source.stage);
+    setAvailableDripSequences(sequencesForStage);
     setShowConfigModal(true);
   };
 
@@ -189,7 +209,7 @@ export default function LeadCenter() {
               ...source, 
               apiKey: editingApiKey,
               stage: editingStage,
-              dripMessage: editingDripMessage,
+              dripSequenceId: editingDripSequenceId,
               isConnected: editingApiKey.length > 0 
             }
           : source
@@ -435,6 +455,13 @@ export default function LeadCenter() {
                         onPress={() => {
                           setEditingStage(stage.value);
                           setShowStageDropdown(false);
+                          // Update available drip sequences when stage changes
+                          const sequencesForStage = mockDripSequences.filter(seq => seq.stage === stage.value);
+                          setAvailableDripSequences(sequencesForStage);
+                          // Reset drip sequence selection if current selection is not valid for new stage
+                          if (editingDripSequenceId && !sequencesForStage.find(seq => seq.id === editingDripSequenceId)) {
+                            setEditingDripSequenceId(null);
+                          }
                         }}
                       >
                         <Text style={[
@@ -452,24 +479,82 @@ export default function LeadCenter() {
                 )}
               </View>
 
-              {/* Drip Message */}
+              {/* Drip Sequence Selection */}
               <View style={styles.modalSection}>
-                <Text style={styles.sectionTitle}>Auto-Response Message</Text>
+                <Text style={styles.sectionTitle}>Drip Sequence</Text>
                 <Text style={styles.sectionDescription}>
-                  This message will be sent automatically when a new lead comes in
+                  Select which drip sequence will be automatically triggered when a lead comes in from this source
                 </Text>
-                <TextInput
-                  style={styles.textArea}
-                  placeholder="Enter your auto-response message..."
-                  value={editingDripMessage}
-                  onChangeText={setEditingDripMessage}
-                  multiline
-                  numberOfLines={4}
-                  textAlignVertical="top"
-                />
-                <Text style={styles.characterCount}>
-                  {editingDripMessage.length} characters
-                </Text>
+                <TouchableOpacity 
+                  style={styles.dropdown}
+                  onPress={() => setShowDripSequenceDropdown(!showDripSequenceDropdown)}
+                >
+                  <Text style={[
+                    styles.dropdownText,
+                    !editingDripSequenceId && { color: '#9CA3AF' }
+                  ]}>
+                    {editingDripSequenceId 
+                      ? availableDripSequences.find(seq => seq.id === editingDripSequenceId)?.name || 'Select a sequence...'
+                      : 'Select a sequence...'}
+                  </Text>
+                  <ChevronDown size={20} color="#6B7280" />
+                </TouchableOpacity>
+                {showDripSequenceDropdown && (
+                  <View style={styles.dropdownMenu}>
+                    <TouchableOpacity
+                      style={styles.dropdownItem}
+                      onPress={() => {
+                        setEditingDripSequenceId(null);
+                        setShowDripSequenceDropdown(false);
+                      }}
+                    >
+                      <Text style={[
+                        styles.dropdownItemText,
+                        !editingDripSequenceId && styles.dropdownItemTextActive
+                      ]}>
+                        None (No automatic sequence)
+                      </Text>
+                      {!editingDripSequenceId && (
+                        <CheckCircle size={16} color="#6366F1" />
+                      )}
+                    </TouchableOpacity>
+                    {availableDripSequences.length === 0 ? (
+                      <View style={styles.dropdownItem}>
+                        <Text style={styles.dropdownItemText}>
+                          No sequences available for this stage
+                        </Text>
+                      </View>
+                    ) : (
+                      availableDripSequences.map((sequence) => (
+                        <TouchableOpacity
+                          key={sequence.id}
+                          style={styles.dropdownItem}
+                          onPress={() => {
+                            setEditingDripSequenceId(sequence.id);
+                            setShowDripSequenceDropdown(false);
+                          }}
+                        >
+                          <View style={{ flex: 1 }}>
+                            <Text style={[
+                              styles.dropdownItemText,
+                              editingDripSequenceId === sequence.id && styles.dropdownItemTextActive
+                            ]}>
+                              {sequence.name}
+                            </Text>
+                            {sequence.description && (
+                              <Text style={styles.dropdownItemDescription}>
+                                {sequence.description}
+                              </Text>
+                            )}
+                          </View>
+                          {editingDripSequenceId === sequence.id && (
+                            <CheckCircle size={16} color="#6366F1" />
+                          )}
+                        </TouchableOpacity>
+                      ))
+                    )}
+                  </View>
+                )}
               </View>
 
               {/* Save Button */}
@@ -872,6 +957,12 @@ const styles = StyleSheet.create({
   dropdownItemTextActive: {
     color: '#6366F1',
     fontWeight: '600',
+  },
+  dropdownItemDescription: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 4,
+    lineHeight: 16,
   },
   textArea: {
     backgroundColor: '#F9FAFB',

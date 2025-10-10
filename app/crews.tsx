@@ -17,7 +17,7 @@ type CrewView = 'members' | 'subcontractors' | 'timesheets';
 type DetailView = 'list' | 'member_detail' | 'subcontractor_detail';
 
 export default function CrewsScreen() {
-  const { setIsTabBarVisible } = useTabBar();
+  const { setIsVisible } = useTabBar();
   const [activeView, setActiveView] = useState<CrewView>('members');
   const [detailView, setDetailView] = useState<DetailView>('list');
   const [metrics, setMetrics] = useState<CrewMetrics | null>(null);
@@ -29,9 +29,9 @@ export default function CrewsScreen() {
   const [subcontractorFormMode, setSubcontractorFormMode] = useState<'create' | 'edit'>('create');
 
   useEffect(() => {
-    setIsTabBarVisible(false);
+    setIsVisible(false);
     loadMetrics();
-    return () => setIsTabBarVisible(true);
+    return () => setIsVisible(true);
   }, []);
 
   const loadMetrics = () => {

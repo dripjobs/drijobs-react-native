@@ -1,6 +1,6 @@
 import { useAppSettings } from '@/contexts/AppSettingsContext';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Briefcase, Calendar, FileText, Phone, Plus, Receipt, Send, SquareCheck, UserPlus } from 'lucide-react-native';
+import { Briefcase, Calendar, FileText, MessageSquare, Phone, Plus, Receipt, Send, SquareCheck, UserPlus } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -13,7 +13,14 @@ interface FloatingActionMenuProps {
   onNewJob?: () => void;
   onNewInvoice?: () => void;
   onPhoneCall?: () => void;
+  onSendText?: () => void;
   isVisible?: boolean;
+  customAction?: {
+    icon: any;
+    label: string;
+    onPress: () => void;
+    color: string;
+  };
 }
 
 // Icon mapper for quick actions
@@ -27,6 +34,7 @@ const getQuickActionIcon = (iconName: string) => {
     UserPlus,
     Receipt,
     Phone,
+    MessageSquare,
   };
   return icons[iconName] || Plus;
 };
@@ -40,7 +48,9 @@ export default function FloatingActionMenu({
   onNewJob,
   onNewInvoice,
   onPhoneCall,
-  isVisible = true 
+  onSendText,
+  isVisible = true,
+  customAction
 }: FloatingActionMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [animation] = useState(new Animated.Value(0));
@@ -114,15 +124,26 @@ export default function FloatingActionMenu({
     lead: () => onNewLead?.(),
     invoice: () => onNewInvoice?.(),
     call: () => onPhoneCall?.(),
+    text: () => onSendText?.(),
   };
 
   // Build menu items from selected quick actions
-  const menuItems = selectedQuickActions.map(action => ({
+  let menuItems = selectedQuickActions.map(action => ({
     icon: getQuickActionIcon(action.icon),
     label: action.label,
     colors: action.colors,
     action: actionHandlers[action.id] || (() => {}),
   }));
+
+  // Add custom action if provided
+  if (customAction) {
+    menuItems = [{
+      icon: customAction.icon,
+      label: customAction.label,
+      colors: [customAction.color, customAction.color],
+      action: customAction.onPress,
+    }, ...menuItems];
+  }
 
   const containerStyle = {
     opacity: visibilityAnimation,

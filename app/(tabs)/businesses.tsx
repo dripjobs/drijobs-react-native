@@ -1,3 +1,4 @@
+import CreateBusinessModal from '@/components/CreateBusinessModal';
 import CreateJobModal from '@/components/CreateJobModal';
 import CreateLeadModal from '@/components/CreateLeadModal';
 import DrawerMenu from '@/components/DrawerMenu';
@@ -8,7 +9,7 @@ import SendRequestModal from '@/components/SendRequestModal';
 import { useTabBar } from '@/contexts/TabBarContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { Building2, Calendar, CheckSquare, ChevronDown, ChevronRight, Copy, DollarSign, Edit, FileText, Filter, Mail, MapPin, MessageSquare, MoreHorizontal, Navigation, Phone, Plus, Search, Star, Tag, User, Users, X } from 'lucide-react-native';
+import { Building2, Calendar, CheckSquare, ChevronDown, ChevronRight, Copy, DollarSign, Edit, FileText, Filter, Mail, MapPin, MessageSquare, MoreHorizontal, Navigation, Paperclip, Phone, Plus, Search, Star, StickyNote, Tag, User, UserPlus, Users, X } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Alert, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -53,6 +54,7 @@ export default function Businesses() {
   const [isSaving, setIsSaving] = useState(false);
   const [showFAB, setShowFAB] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [showQuickActionsSlider, setShowQuickActionsSlider] = useState(false);
   
   // Quick Actions modal states
   const [showNewAppointment, setShowNewAppointment] = useState(false);
@@ -60,6 +62,7 @@ export default function Businesses() {
   const [showSendRequest, setShowSendRequest] = useState(false);
   const [showCreateLead, setShowCreateLead] = useState(false);
   const [showCreateJob, setShowCreateJob] = useState(false);
+  const [showCreateBusiness, setShowCreateBusiness] = useState(false);
 
   const industries = [
     'Construction',
@@ -516,24 +519,38 @@ export default function Businesses() {
     setShowCreateJob(true);
   };
 
+  const handleCreateBusiness = () => {
+    setShowCreateBusiness(true);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <DrawerMenu isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
       
       <LinearGradient colors={['#6366F1', '#8B5CF6']} style={styles.gradientHeader}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.pullOutMenu} onPress={() => setDrawerOpen(true)}>
+          <TouchableOpacity onPress={() => setDrawerOpen(true)} style={styles.pullOutMenu}>
             <View style={styles.pullOutIndicator}>
               <View style={styles.pullOutDot} />
               <View style={styles.pullOutDot} />
               <View style={styles.pullOutDot} />
             </View>
-            <ChevronRight size={20} color="#FFFFFF" style={styles.pullOutArrow} />
+            <View style={styles.pullOutArrow}>
+              <ChevronRight size={16} color="#FFFFFF" />
+            </View>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Businesses</Text>
-          <TouchableOpacity style={styles.headerButton}>
-            <Filter size={20} color="#FFFFFF" />
-          </TouchableOpacity>
+          <View style={styles.headerButtons}>
+            <TouchableOpacity 
+              style={styles.createBusinessButton}
+              onPress={handleCreateBusiness}
+            >
+              <UserPlus size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.headerButton}>
+              <Filter size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.searchContainer}>
@@ -690,6 +707,15 @@ export default function Businesses() {
         onClose={() => setShowCreateJob(false)}
       />
 
+      <CreateBusinessModal 
+        visible={showCreateBusiness}
+        onClose={() => setShowCreateBusiness(false)}
+        onBusinessCreated={(business) => {
+          setSelectedBusiness(business);
+          setShowBusinessCard(true);
+        }}
+      />
+
       {/* Business Card Modal */}
       <Modal
         visible={showBusinessCard}
@@ -810,6 +836,113 @@ export default function Businesses() {
                     <Text style={styles.metricCardValue}>{selectedBusiness.contactCount || 0}</Text>
                     <Text style={styles.metricCardLabel}>Contacts</Text>
                   </View>
+                </View>
+
+                {/* Quick Action Buttons */}
+                <View style={styles.quickActionsSection}>
+                  <View style={styles.primaryActions}>
+                    <TouchableOpacity 
+                      style={styles.primaryActionButton}
+                      onPress={() => {
+                        setShowBusinessCard(false);
+                        setTimeout(() => setShowNewProposal(true), 300);
+                      }}
+                    >
+                      <FileText size={20} color="#FFFFFF" />
+                      <Text style={styles.primaryActionText}>Create Proposal</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={styles.primaryActionButton}
+                      onPress={() => {
+                        setShowBusinessCard(false);
+                        setTimeout(() => setShowNewAppointment(true), 300);
+                      }}
+                    >
+                      <Calendar size={20} color="#FFFFFF" />
+                      <Text style={styles.primaryActionText}>Create Appointment</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={styles.primaryActionButton}
+                      onPress={() => {
+                        Alert.alert('Create Invoice', 'Invoice creation coming soon!');
+                      }}
+                    >
+                      <DollarSign size={20} color="#FFFFFF" />
+                      <Text style={styles.primaryActionText}>Create Invoice</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* More Actions Slider */}
+                  <TouchableOpacity 
+                    style={styles.moreActionsButton}
+                    onPress={() => setShowQuickActionsSlider(!showQuickActionsSlider)}
+                  >
+                    <Plus size={18} color="#6366F1" />
+                    <Text style={styles.moreActionsButtonText}>
+                      {showQuickActionsSlider ? 'Hide More Actions' : 'More Actions'}
+                    </Text>
+                    <ChevronDown 
+                      size={18} 
+                      color="#6366F1" 
+                      style={{
+                        transform: [{ rotate: showQuickActionsSlider ? '180deg' : '0deg' }]
+                      }}
+                    />
+                  </TouchableOpacity>
+
+                  {showQuickActionsSlider && (
+                    <View style={styles.secondaryActionsSlider}>
+                      <TouchableOpacity 
+                        style={styles.secondaryActionButton}
+                        onPress={() => {
+                          Alert.alert('Add Task', 'Task creation coming soon!');
+                        }}
+                      >
+                        <View style={styles.secondaryActionIcon}>
+                          <CheckSquare size={20} color="#6366F1" />
+                        </View>
+                        <View style={styles.secondaryActionContent}>
+                          <Text style={styles.secondaryActionTitle}>Add Task</Text>
+                          <Text style={styles.secondaryActionSubtitle}>Create a new task for this business</Text>
+                        </View>
+                        <ChevronRight size={18} color="#9CA3AF" />
+                      </TouchableOpacity>
+
+                      <TouchableOpacity 
+                        style={styles.secondaryActionButton}
+                        onPress={() => {
+                          Alert.alert('Add Note', 'Note creation coming soon!');
+                        }}
+                      >
+                        <View style={styles.secondaryActionIcon}>
+                          <StickyNote size={20} color="#F59E0B" />
+                        </View>
+                        <View style={styles.secondaryActionContent}>
+                          <Text style={styles.secondaryActionTitle}>Add Note</Text>
+                          <Text style={styles.secondaryActionSubtitle}>Add a note to this business record</Text>
+                        </View>
+                        <ChevronRight size={18} color="#9CA3AF" />
+                      </TouchableOpacity>
+
+                      <TouchableOpacity 
+                        style={styles.secondaryActionButton}
+                        onPress={() => {
+                          Alert.alert('Add Attachment', 'Attachment upload coming soon!');
+                        }}
+                      >
+                        <View style={styles.secondaryActionIcon}>
+                          <Paperclip size={20} color="#10B981" />
+                        </View>
+                        <View style={styles.secondaryActionContent}>
+                          <Text style={styles.secondaryActionTitle}>Add Attachment</Text>
+                          <Text style={styles.secondaryActionSubtitle}>Upload files, photos, or documents</Text>
+                        </View>
+                        <ChevronRight size={18} color="#9CA3AF" />
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </View>
               </>
             )}
@@ -1504,6 +1637,20 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  createBusinessButton: {
+    padding: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 12,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerButton: {
     padding: 8,
@@ -2350,6 +2497,99 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  // Quick Actions Section
+  quickActionsSection: {
+    marginHorizontal: 20,
+    marginTop: 8,
+    marginBottom: 24,
+  },
+  primaryActions: {
+    flexDirection: 'column',
+    gap: 12,
+    marginBottom: 12,
+  },
+  primaryActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: '#6366F1',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 14,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  primaryActionText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  moreActionsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#EEF2FF',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#6366F1',
+    borderStyle: 'dashed',
+  },
+  moreActionsButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  secondaryActionsSlider: {
+    marginTop: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  secondaryActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    marginBottom: 4,
+  },
+  secondaryActionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  secondaryActionContent: {
+    flex: 1,
+  },
+  secondaryActionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  secondaryActionSubtitle: {
+    fontSize: 13,
+    color: '#6B7280',
+    lineHeight: 18,
   },
 });
 

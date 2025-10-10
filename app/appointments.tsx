@@ -1,3 +1,4 @@
+import CallInitiationModal from '@/components/CallInitiationModal';
 import CreateJobModal from '@/components/CreateJobModal';
 import CreateLeadModal from '@/components/CreateLeadModal';
 import FloatingActionMenu from '@/components/FloatingActionMenu';
@@ -366,6 +367,8 @@ export default function Appointments() {
   const [selectedType, setSelectedType] = useState('All Types');
   const [translateY] = useState(new Animated.Value(0));
   const [meetingDetailsTranslateY] = useState(new Animated.Value(0));
+  const [showCallInitiation, setShowCallInitiation] = useState(false);
+  const [callContact, setCallContact] = useState({ name: '', phone: '' });
   
   // Edit appointment form state
   const [editForm, setEditForm] = useState({
@@ -678,17 +681,28 @@ export default function Appointments() {
 
   // Handle call action
   const handleCall = () => {
-    if (selectedMeeting?.phone) {
-      // In a real app, this would initiate a call
-      console.log('Calling:', selectedMeeting.phone);
+    if (selectedMeeting?.name && selectedMeeting?.phone) {
+      setCallContact({ 
+        name: selectedMeeting.name, 
+        phone: selectedMeeting.phone 
+      });
+      setShowCallInitiation(true);
     }
   };
 
   // Handle text action
   const handleText = () => {
-    if (selectedMeeting?.phone) {
-      // In a real app, this would open messaging
-      console.log('Texting:', selectedMeeting.phone);
+    if (selectedMeeting) {
+      // Navigate to chat screen with customer data
+      router.push({
+        pathname: '/(tabs)/chat',
+        params: { 
+          customerId: selectedMeeting.id.toString(),
+          customerName: selectedMeeting.customer,
+          customerPhone: selectedMeeting.phone,
+          composeMode: 'true' // Flag to indicate we want to compose a new message
+        }
+      });
     }
   };
 
@@ -2119,6 +2133,14 @@ export default function Appointments() {
       <CreateJobModal 
         visible={showCreateJob}
         onClose={() => setShowCreateJob(false)}
+      />
+
+      {/* Call Initiation Modal */}
+      <CallInitiationModal
+        visible={showCallInitiation}
+        onClose={() => setShowCallInitiation(false)}
+        contactName={callContact.name}
+        phoneNumber={callContact.phone}
       />
 
       <Toast />

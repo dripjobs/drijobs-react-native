@@ -1,3 +1,5 @@
+import CallInitiationModal from '@/components/CallInitiationModal';
+import ContactPickerModal from '@/components/ContactPickerModal';
 import CreateJobModal from '@/components/CreateJobModal';
 import CreateLeadModal from '@/components/CreateLeadModal';
 import DrawerMenu from '@/components/DrawerMenu';
@@ -5,11 +7,12 @@ import FloatingActionMenu from '@/components/FloatingActionMenu';
 import NewAppointmentModal from '@/components/NewAppointmentModal';
 import NewProposalModal from '@/components/NewProposalModal';
 import SendRequestModal from '@/components/SendRequestModal';
+import { useCall } from '@/contexts/CallContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useTabBar } from '@/contexts/TabBarContext';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronRight, Clock, FileText, MessageSquare, Mic, MicOff, Pause, Phone as PhoneIcon, PhoneOff, Play, Search, Settings, Sparkles, UserPlus, Volume2 } from 'lucide-react-native';
+import { ChevronRight, Clock, FileText, MessageSquare, Phone as PhoneIcon, Play, Search, Settings, Sparkles, UserPlus, Volume2 } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Alert, Animated, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { PanGestureHandler } from 'react-native-gesture-handler';
@@ -17,6 +20,7 @@ import { PanGestureHandler } from 'react-native-gesture-handler';
 export default function Phone() {
   const { setIsTransparent } = useTabBar();
   const { missedCalls, setMissedCalls, clearMissedCalls, hasViewedCallHistory, setHasViewedCallHistory } = useNotifications();
+  const { startCall } = useCall();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [showContactSearch, setShowContactSearch] = useState(false);
@@ -24,11 +28,6 @@ export default function Phone() {
   const [showCallHistory, setShowCallHistory] = useState(false);
   const [translateY] = useState(new Animated.Value(0));
   const [contactTranslateY] = useState(new Animated.Value(0));
-  const [isCallActive, setIsCallActive] = useState(false);
-  const [callDuration, setCallDuration] = useState(0);
-  const [isRecording, setIsRecording] = useState(false);
-  const [isOnHold, setIsOnHold] = useState(false);
-  const [activeCallContact, setActiveCallContact] = useState(null);
   const [selectedContact, setSelectedContact] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [settingsTranslateY] = useState(new Animated.Value(0));
@@ -42,6 +41,9 @@ export default function Phone() {
   const [showSendRequest, setShowSendRequest] = useState(false);
   const [showCreateLead, setShowCreateLead] = useState(false);
   const [showCreateJob, setShowCreateJob] = useState(false);
+  const [showContactPicker, setShowContactPicker] = useState(false);
+  const [showCallInitiation, setShowCallInitiation] = useState(false);
+  const [callContact, setCallContact] = useState({ name: '', phone: '' });
 
   const dialpadNumbers = [
     [{ number: '1', letters: '' }, { number: '2', letters: 'ABC' }, { number: '3', letters: 'DEF' }],
@@ -179,17 +181,6 @@ export default function Phone() {
     }
   };
 
-  // Call timer effect
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isCallActive && !isOnHold) {
-      interval = setInterval(() => {
-        setCallDuration(prev => prev + 1);
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [isCallActive, isOnHold]);
-
   const handleCall = () => {
     // Add haptic feedback for call button press
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -202,29 +193,11 @@ export default function Phone() {
     
     // Find contact info if available (compare with cleaned numbers)
     const contact = allContacts.find(c => c.phone.replace(/\D/g, '') === cleanedNumber);
-    setActiveCallContact(contact || { name: phoneNumber, company: '', title: '' });
+    const contactName = contact?.name || phoneNumber;
     
-    // Start the call
-    setIsCallActive(true);
-    setCallDuration(0);
+    // Start the call using context
+    startCall(contactName, phoneNumber);
     setPhoneNumber('');
-  };
-
-  const handleEndCall = () => {
-    setIsCallActive(false);
-    setCallDuration(0);
-    setIsRecording(false);
-    setIsOnHold(false);
-    setActiveCallContact(null);
-    setSelectedContact(null);
-  };
-
-  const handleToggleRecording = () => {
-    setIsRecording(!isRecording);
-  };
-
-  const handleToggleHold = () => {
-    setIsOnHold(!isOnHold);
   };
 
   const formatDuration = (seconds: number) => {
@@ -257,11 +230,10 @@ export default function Phone() {
     // Add haptic feedback for recent calls button
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     
-    setShowCallHistory(true);
+    // Navigate to call history page
+    router.push('/call-history');
     // Clear missed calls when user opens call history
     clearMissedCalls();
-    // Reset animation
-    translateY.setValue(0);
   };
 
   const handleAddContactPress = () => {
@@ -453,6 +425,16 @@ export default function Phone() {
     setShowCreateJob(true);
   };
 
+  const handlePhoneCall = () => {
+    setShowContactPicker(true);
+  };
+
+  const handleContactSelected = (contact: any) => {
+    setCallContact({ name: contact.name, phone: contact.phone });
+    setShowContactPicker(false);
+    setShowCallInitiation(true);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <DrawerMenu isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
@@ -599,92 +581,6 @@ export default function Phone() {
               </ScrollView>
             </Animated.View>
           </PanGestureHandler>
-        </View>
-      </Modal>
-
-      {/* Active Call Modal */}
-      <Modal
-        visible={isCallActive}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={handleEndCall}
-      >
-        <View style={styles.callModalOverlay}>
-          <View style={styles.callModal}>
-            {/* Contact Info */}
-            <View style={styles.callContactInfo}>
-              <View style={styles.callAvatar}>
-                <Text style={styles.callAvatarText}>
-                  {activeCallContact?.name ? activeCallContact.name.split(' ').map(n => n[0]).join('') : '?'}
-                </Text>
-              </View>
-              <Text style={styles.callContactName}>
-                {activeCallContact?.name || 'Unknown'}
-              </Text>
-              {activeCallContact?.company && (
-                <Text style={styles.callContactCompany}>
-                  {activeCallContact.company}
-                </Text>
-              )}
-              {activeCallContact?.title && (
-                <Text style={styles.callContactTitle}>
-                  {activeCallContact.title}
-                </Text>
-              )}
-            </View>
-
-            {/* Call Status */}
-            <View style={styles.callStatus}>
-              <Text style={styles.callDuration}>
-                {formatDuration(callDuration)}
-              </Text>
-              <View style={styles.callStatusIndicators}>
-                {isRecording && (
-                  <View style={styles.recordingIndicator}>
-                    <View style={styles.recordingDot} />
-                    <Text style={styles.recordingText}>Recording</Text>
-                  </View>
-                )}
-                {isOnHold && (
-                  <View style={styles.holdIndicator}>
-                    <Text style={styles.holdText}>On Hold</Text>
-                  </View>
-                )}
-              </View>
-            </View>
-
-            {/* Call Controls */}
-            <View style={styles.callControls}>
-              <TouchableOpacity 
-                style={[styles.callControlButton, styles.recordButton, isRecording && styles.recordButtonActive]}
-                onPress={handleToggleRecording}
-              >
-                {isRecording ? (
-                  <MicOff size={24} color="#FFFFFF" />
-                ) : (
-                  <Mic size={24} color="#FFFFFF" />
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={[styles.callControlButton, styles.holdButton, isOnHold && styles.holdButtonActive]}
-                onPress={handleToggleHold}
-              >
-                {isOnHold ? (
-                  <Play size={24} color="#FFFFFF" />
-                ) : (
-                  <Pause size={24} color="#FFFFFF" />
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={[styles.callControlButton, styles.hangupButton]}
-                onPress={handleEndCall}
-              >
-                <PhoneOff size={28} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View>
-          </View>
         </View>
       </Modal>
 
@@ -1055,6 +951,7 @@ export default function Phone() {
         onSendRequest={handleSendRequest}
         onNewLead={handleCreateLead}
         onNewJob={handleCreateJob}
+        onPhoneCall={handlePhoneCall}
       />
 
       {/* Quick Actions Modals */}
@@ -1081,6 +978,21 @@ export default function Phone() {
       <CreateJobModal 
         visible={showCreateJob}
         onClose={() => setShowCreateJob(false)}
+      />
+
+      {/* Contact Picker Modal */}
+      <ContactPickerModal
+        visible={showContactPicker}
+        onClose={() => setShowContactPicker(false)}
+        onSelectContact={handleContactSelected}
+      />
+
+      {/* Call Initiation Modal */}
+      <CallInitiationModal
+        visible={showCallInitiation}
+        onClose={() => setShowCallInitiation(false)}
+        contactName={callContact.name}
+        phoneNumber={callContact.phone}
       />
     </SafeAreaView>
   );

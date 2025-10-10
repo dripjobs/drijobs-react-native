@@ -5,8 +5,10 @@ import FloatingActionMenu from '@/components/FloatingActionMenu';
 import NewAppointmentModal from '@/components/NewAppointmentModal';
 import NewProposalModal from '@/components/NewProposalModal';
 import SendRequestModal from '@/components/SendRequestModal';
+import TextComposeModal from '@/components/TextComposeModal';
 import { useTabBar } from '@/contexts/TabBarContext';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Building, Calendar, Camera, ChevronRight, DollarSign, FileText, Image, Mail, MapPin, Phone, Search, Send, TrendingUp, Upload, User, X } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import { Dimensions, Keyboard, KeyboardAvoidingView, Modal, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -38,6 +40,7 @@ interface Message {
 
 export default function Chat() {
   const { setIsTransparent, setIsVisible } = useTabBar();
+  const params = useLocalSearchParams();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedThread, setSelectedThread] = useState<ChatThread | null>(null);
@@ -54,6 +57,10 @@ export default function Chat() {
   const [mentionQuery, setMentionQuery] = useState('');
   const [mentionStart, setMentionStart] = useState(0);
   
+  // Compose mode states
+  const [showTextCompose, setShowTextCompose] = useState(false);
+  const [composeCustomer, setComposeCustomer] = useState<any>(null);
+  
   // Quick Actions modal states
   const [showNewAppointment, setShowNewAppointment] = useState(false);
   const [showNewProposal, setShowNewProposal] = useState(false);
@@ -62,6 +69,21 @@ export default function Chat() {
   const [showCreateJob, setShowCreateJob] = useState(false);
   
   const scrollViewRef = useRef<ScrollView>(null);
+
+  // Handle route parameters for compose mode
+  useEffect(() => {
+    if (params.composeMode === 'true' && params.customerName) {
+      // Set up compose mode with customer data
+      const customer = {
+        id: params.customerId || params.contactId,
+        name: params.customerName,
+        phone: params.customerPhone,
+        email: params.customerEmail
+      };
+      setComposeCustomer(customer);
+      setShowTextCompose(true);
+    }
+  }, [params]);
 
   // Mock chat threads data
   const chatThreads: ChatThread[] = [
@@ -367,6 +389,45 @@ export default function Chat() {
     setShowCreateJob(true);
   };
 
+  const handleSendTextMessage = async (message: string, customer: any) => {
+    try {
+      // Create a new chat thread if one doesn't exist
+      const threadId = customer.id || Date.now();
+      
+      // Create the message
+      const newMsg: Message = {
+        id: Date.now(),
+        text: message,
+        sender: 'business',
+        timestamp: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+        status: 'sent',
+        senderName: 'You',
+        senderInitials: 'YO'
+      };
+
+      // Add message to the thread
+      setMessages(prevMessages => {
+        const threadMessages = prevMessages[threadId] || [];
+        return {
+          ...prevMessages,
+          [threadId]: [...threadMessages, newMsg]
+        };
+      });
+
+      // If this is a new thread, add it to the chat threads list
+      // In a real app, this would be handled by the backend
+      console.log('Text message sent:', { message, customer });
+      
+      // Close the compose modal
+      setShowTextCompose(false);
+      setComposeCustomer(null);
+      
+    } catch (error) {
+      console.error('Error sending text message:', error);
+      throw error;
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <DrawerMenu isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
@@ -472,6 +533,7 @@ export default function Chat() {
             onSendRequest={handleSendRequest}
             onNewLead={handleCreateLead}
             onNewJob={handleCreateJob}
+            onSendText={() => setShowTextCompose(true)}
             isVisible={showFAB}
           />
 
@@ -499,6 +561,13 @@ export default function Chat() {
           <CreateJobModal 
             visible={showCreateJob}
             onClose={() => setShowCreateJob(false)}
+          />
+
+          <TextComposeModal 
+            visible={showTextCompose}
+            onClose={() => setShowTextCompose(false)}
+            customer={composeCustomer}
+            onSendMessage={handleSendTextMessage}
           />
         </>
       ) : (

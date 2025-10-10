@@ -20,11 +20,14 @@ export default function CallInitiationModal({
   const { startCall } = useCall();
 
   const handleStartCall = () => {
+    console.log('Starting call from CallInitiationModal:', contactName, phoneNumber);
     startCall(contactName, phoneNumber);
+    console.log('Call started, closing modal');
     onClose();
   };
 
   const handleCancel = () => {
+    console.log('Call cancelled');
     onClose();
   };
 

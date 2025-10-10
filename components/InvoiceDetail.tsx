@@ -124,6 +124,7 @@ export const InvoiceDetail: React.FC<InvoiceDetailProps> = ({ invoice, onBack, o
   const [sendMethod, setSendMethod] = useState<'email' | 'text'>('email');
   const [messageSubject, setMessageSubject] = useState(`Invoice ${invoice.invoiceNumber} - ${invoice.subject}`);
   const [messageBody, setMessageBody] = useState('');
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -941,25 +942,39 @@ export const InvoiceDetail: React.FC<InvoiceDetailProps> = ({ invoice, onBack, o
             {/* Message */}
             <View style={styles.modalSection}>
               <Text style={styles.modalSectionTitle}>Subject</Text>
-              <TextInput
-                style={styles.input}
-                value={messageSubject}
-                onChangeText={setMessageSubject}
-                placeholder="Invoice subject..."
-              />
+              <View style={[
+                styles.inputContainer,
+                focusedInput === 'messageSubject' && styles.inputContainerFocused
+              ]}>
+                <TextInput
+                  style={styles.input}
+                  value={messageSubject}
+                  onChangeText={setMessageSubject}
+                  placeholder="Invoice subject..."
+                  onFocus={() => setFocusedInput('messageSubject')}
+                  onBlur={() => setFocusedInput(null)}
+                />
+              </View>
             </View>
 
             <View style={styles.modalSection}>
               <Text style={styles.modalSectionTitle}>Message</Text>
-              <TextInput
-                style={styles.textArea}
-                value={messageBody}
-                onChangeText={setMessageBody}
-                placeholder={`Hi ${invoice.contactName},\n\nPlease find attached invoice ${invoice.invoiceNumber}...`}
-                multiline
-                numberOfLines={8}
-                textAlignVertical="top"
-              />
+              <View style={[
+                styles.textAreaContainer,
+                focusedInput === 'messageBody' && styles.inputContainerFocused
+              ]}>
+                <TextInput
+                  style={styles.textArea}
+                  value={messageBody}
+                  onChangeText={setMessageBody}
+                  placeholder={`Hi ${invoice.contactName},\n\nPlease find attached invoice ${invoice.invoiceNumber}...`}
+                  multiline
+                  numberOfLines={8}
+                  textAlignVertical="top"
+                  onFocus={() => setFocusedInput('messageBody')}
+                  onBlur={() => setFocusedInput(null)}
+                />
+              </View>
             </View>
 
             <TouchableOpacity 
@@ -1012,13 +1027,20 @@ export const InvoiceDetail: React.FC<InvoiceDetailProps> = ({ invoice, onBack, o
 
             <View style={styles.discountSection}>
               <Text style={styles.discountLabel}>Discount Value</Text>
-              <TextInput
-                style={styles.input}
-                value={discountValue}
-                onChangeText={setDiscountValue}
-                placeholder={discountType === 'percentage' ? 'Enter percentage' : 'Enter amount'}
-                keyboardType="decimal-pad"
-              />
+              <View style={[
+                styles.inputContainer,
+                focusedInput === 'discountValue' && styles.inputContainerFocused
+              ]}>
+                <TextInput
+                  style={styles.input}
+                  value={discountValue}
+                  onChangeText={setDiscountValue}
+                  placeholder={discountType === 'percentage' ? 'Enter percentage' : 'Enter amount'}
+                  keyboardType="decimal-pad"
+                  onFocus={() => setFocusedInput('discountValue')}
+                  onBlur={() => setFocusedInput(null)}
+                />
+              </View>
             </View>
 
             <View style={styles.discountPreview}>
@@ -1885,26 +1907,48 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6B7280',
   },
-  input: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
+  inputContainer: {
+    borderWidth: 2,
     borderColor: '#E5E7EB',
     borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0,
+    shadowRadius: 4,
+    elevation: 0,
+  },
+  inputContainerFocused: {
+    borderColor: '#6366F1',
+    backgroundColor: '#F5F7FF',
+    shadowOpacity: 0.15,
+    elevation: 2,
+  },
+  input: {
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 15,
     color: '#111827',
+    backgroundColor: 'transparent',
   },
-  textArea: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
+  textAreaContainer: {
+    borderWidth: 2,
     borderColor: '#E5E7EB',
     borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0,
+    shadowRadius: 4,
+    elevation: 0,
+  },
+  textArea: {
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 15,
     color: '#111827',
     minHeight: 150,
+    backgroundColor: 'transparent',
   },
   sendButton: {
     flexDirection: 'row',

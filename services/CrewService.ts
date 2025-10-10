@@ -324,6 +324,8 @@ class CrewService {
       expiringCertifications,
       totalSubcontractors: this.subcontractors.length,
       pendingTimesheets,
+      currentlyClockedIn: 0, // Will be updated by TimeTrackingService
+      totalLaborCostToday: 0, // Will be updated by TimeTrackingService
     };
   }
 }

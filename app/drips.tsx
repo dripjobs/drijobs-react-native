@@ -1196,13 +1196,17 @@ export default function DripsScreen() {
 
         {selectedSequence && renderViewModeTabs()}
 
-        <View style={styles.content}>
+        <ScrollView 
+          style={styles.content}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.contentContainer}
+        >
           {selectedSequence ? (
             viewMode === 'timeline' ? renderTimelineView() : 
             viewMode === 'analytics' ? renderAnalyticsView() : 
             renderSequencesList()
           ) : renderSequencesList()}
-        </View>
+        </ScrollView>
 
         {/* New Sequence Modal */}
         <NewSequenceModal
@@ -1373,8 +1377,10 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
+  contentContainer: {
+    flexGrow: 1,
+  },
   sequencesList: {
-    flex: 1,
     padding: 20,
   },
   sequencesHeader: {
@@ -1646,7 +1652,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   timelineView: {
-    flex: 1,
     padding: 20,
   },
   timelineHeader: {
@@ -1878,7 +1883,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   analyticsView: {
-    flex: 1,
     padding: 20,
   },
   analyticsHeader: {

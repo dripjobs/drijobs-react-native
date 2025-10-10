@@ -1,3 +1,4 @@
+import CallInitiationModal from '@/components/CallInitiationModal';
 import DrawerMenu from '@/components/DrawerMenu';
 import { useTabBar } from '@/contexts/TabBarContext';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -248,6 +249,8 @@ export default function JobSchedule() {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [hideWeekends, setHideWeekends] = useState(false);
   const [expandedActionItem, setExpandedActionItem] = useState<string | null>(null);
+  const [showCallInitiation, setShowCallInitiation] = useState(false);
+  const [callContact, setCallContact] = useState({ name: '', phone: '' });
   
   // Edit Event Modal State
   const [showEditEventModal, setShowEditEventModal] = useState(false);
@@ -343,6 +346,16 @@ export default function JobSchedule() {
 
   const handleCopyAddress = (address: string) => {
     console.log('Copy address:', address);
+  };
+
+  const handleCall = () => {
+    if (selectedJob?.customer && selectedJob?.customerPhone) {
+      setCallContact({ 
+        name: selectedJob.customer, 
+        phone: selectedJob.customerPhone 
+      });
+      setShowCallInitiation(true);
+    }
   };
 
   const handleToggleActionMenu = (item: string) => {
@@ -1036,7 +1049,7 @@ export default function JobSchedule() {
                     {/* Quick Actions - Contact Customer */}
                     {selectedJob.customer && (
                       <View style={styles.quickActionsRow}>
-                        <TouchableOpacity style={styles.quickActionCall}>
+                        <TouchableOpacity style={styles.quickActionCall} onPress={handleCall}>
                           <Phone size={20} color="#FFFFFF" />
                           <Text style={styles.quickActionText}>Call</Text>
                         </TouchableOpacity>
@@ -1458,6 +1471,14 @@ export default function JobSchedule() {
               )}
         </SafeAreaView>
       </Modal>
+
+      {/* Call Initiation Modal */}
+      <CallInitiationModal
+        visible={showCallInitiation}
+        onClose={() => setShowCallInitiation(false)}
+        contactName={callContact.name}
+        phoneNumber={callContact.phone}
+      />
     </SafeAreaView>
   );
 }

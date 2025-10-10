@@ -1,3 +1,4 @@
+import CallInitiationModal from '@/components/CallInitiationModal';
 import CreateJobModal from '@/components/CreateJobModal';
 import CreateLeadModal from '@/components/CreateLeadModal';
 import DrawerMenu from '@/components/DrawerMenu';
@@ -136,6 +137,8 @@ export default function TeamChat() {
   const [showDMModal, setShowDMModal] = useState(false);
   const [showComposeDM, setShowComposeDM] = useState(false);
   const [composeDMRecipient, setComposeDMRecipient] = useState('');
+  const [showCallInitiation, setShowCallInitiation] = useState(false);
+  const [callContact, setCallContact] = useState({ name: '', phone: '' });
   const [composeDMMessage, setComposeDMMessage] = useState('');
   const [composeDMSearchQuery, setComposeDMSearchQuery] = useState('');
   const [jobChannelSearchQuery, setJobChannelSearchQuery] = useState('');
@@ -620,6 +623,15 @@ export default function TeamChat() {
     setSelectedDM(null);
   };
 
+  const handleCall = () => {
+    // Mock phone number for the job contact - in real app this would come from the job data
+    setCallContact({ 
+      name: 'Mike Stewart', 
+      phone: '(555) 123-4567' 
+    });
+    setShowCallInitiation(true);
+  };
+
   const handleSendMessage = () => {
     if (newMessage.trim() && (selectedChannel || selectedDM)) {
       const now = new Date();
@@ -781,6 +793,15 @@ export default function TeamChat() {
         !c.lastMessageTime?.includes('d ago')
       );
     }
+    
+    // Sort: Unread channels first, then by most recent activity
+    filtered = filtered.sort((a, b) => {
+      // Unread channels come first
+      if (a.unreadCount > 0 && b.unreadCount === 0) return -1;
+      if (a.unreadCount === 0 && b.unreadCount > 0) return 1;
+      // Within same category, sort by unread count (higher first)
+      return b.unreadCount - a.unreadCount;
+    });
     
     // Limit display if not showing all
     if (!showAllJobChannels) {
@@ -996,32 +1017,36 @@ export default function TeamChat() {
                 </TouchableOpacity>
               </View>
               
-              {filteredJobChannels.map((channel) => (
+              {filteredJobChannels.map((channel, index) => (
                 <TouchableOpacity
                   key={channel.id}
-                  style={styles.channelItem}
+                  style={[
+                    styles.channelItem,
+                    channel.unreadCount === 0 && styles.channelItemRead
+                  ]}
                   onPress={() => handleChannelPress(channel)}
                 >
                   <View style={styles.jobChannelIcon}>
-                    <Hash size={16} color="#FFFFFF" />
+                    <Hash size={18} color="#FFFFFF" />
                   </View>
                   
                   <View style={styles.channelInfo}>
                     <View style={styles.channelHeader}>
-                      <Text style={styles.channelName}>#{channel.name}</Text>
+                      <Text style={styles.channelName}>
+                        #{channel.name.split('-')[0]}
+                      </Text>
                       {channel.jobNumber && (
                         <View style={styles.jobNumberBadge}>
                           <Text style={styles.jobNumberText}>{channel.jobNumber}</Text>
                         </View>
                       )}
                     </View>
-                    <Text style={styles.channelDescription}>{channel.description}</Text>
                     {channel.jobAddress && (
-                      <Text style={styles.jobAddress}>📍 {channel.jobAddress}</Text>
+                      <View style={styles.jobAddressRow}>
+                        <MapPin size={12} color="#9CA3AF" />
+                        <Text style={styles.jobAddressText}>{channel.jobAddress}</Text>
+                      </View>
                     )}
-                    <Text style={styles.channelMeta}>
-                      {channel.memberCount} members • {channel.lastMessageTime}
-                    </Text>
                   </View>
                   
                   {channel.unreadCount > 0 && (
@@ -1073,17 +1098,29 @@ export default function TeamChat() {
                 </TouchableOpacity>
               </View>
               
-              {channels.filter(channel => channel.channelType === 'team').map((channel) => (
+              {channels
+                .filter(channel => channel.channelType === 'team')
+                .sort((a, b) => {
+                  // Unread channels come first
+                  if (a.unreadCount > 0 && b.unreadCount === 0) return -1;
+                  if (a.unreadCount === 0 && b.unreadCount > 0) return 1;
+                  // Within same category, sort by unread count (higher first)
+                  return b.unreadCount - a.unreadCount;
+                })
+                .map((channel, index) => (
                 <TouchableOpacity
                   key={channel.id}
-                  style={styles.channelItem}
+                  style={[
+                    styles.channelItem,
+                    channel.unreadCount === 0 && styles.channelItemRead
+                  ]}
                   onPress={() => handleChannelPress(channel)}
                 >
                   <View style={styles.channelIcon}>
                     {channel.type === 'private' ? (
-                      <Lock size={16} color="#6B7280" />
+                      <Lock size={20} color="#6B7280" />
                     ) : (
-                      <Hash size={16} color="#6B7280" />
+                      <Hash size={20} color="#6B7280" />
                     )}
                   </View>
                   
@@ -2211,7 +2248,7 @@ export default function TeamChat() {
             {/* Quick Actions - Contact */}
             <View style={styles.quickActionsSection}>
               <View style={styles.quickActionsRow}>
-                <TouchableOpacity style={[styles.quickActionButton, styles.callButton]}>
+                <TouchableOpacity style={[styles.quickActionButton, styles.callButton]} onPress={handleCall}>
                   <Phone size={20} color="#FFFFFF" />
                   <Text style={styles.quickActionText}>Call</Text>
                 </TouchableOpacity>
@@ -2359,6 +2396,14 @@ export default function TeamChat() {
           </ScrollView>
         </SafeAreaView>
       </Modal>
+
+      {/* Call Initiation Modal */}
+      <CallInitiationModal
+        visible={showCallInitiation}
+        onClose={() => setShowCallInitiation(false)}
+        contactName={callContact.name}
+        phoneNumber={callContact.phone}
+      />
     </SafeAreaView>
   );
 }
@@ -2366,7 +2411,7 @@ export default function TeamChat() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F3F4F6',
   },
   header: {
     paddingTop: 10,
@@ -2421,6 +2466,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 20,
+    paddingBottom: 120,
   },
   channelViewToggle: {
     flexDirection: 'row',
@@ -2535,31 +2581,43 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    marginBottom: 8,
+    borderRadius: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  channelItemRead: {
+    backgroundColor: '#F3F4F6',
+    borderColor: '#D1D5DB',
+    opacity: 0.7,
   },
   channelIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 14,
   },
   jobChannelIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 10,
     backgroundColor: '#6366F1',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 2,
   },
   jobNumberBadge: {
     backgroundColor: '#EEF2FF',
@@ -2573,10 +2631,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#6366F1',
   },
-  jobAddress: {
-    fontSize: 12,
+  jobAddressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+  },
+  jobAddressText: {
+    fontSize: 13,
     color: '#6B7280',
-    marginTop: 2,
+    fontWeight: '500',
   },
   jobSearchContainer: {
     flexDirection: 'row',
@@ -2642,32 +2706,41 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   channelName: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
     color: '#111827',
+    letterSpacing: -0.3,
   },
   channelDescription: {
     fontSize: 14,
     color: '#6B7280',
-    marginBottom: 4,
+    marginBottom: 6,
+    lineHeight: 20,
   },
   channelMeta: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#9CA3AF',
+    fontWeight: '500',
   },
   dmItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    marginBottom: 8,
+    borderRadius: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  dmItemAlt: {
+    backgroundColor: '#F3F4F6',
+    borderColor: '#D1D5DB',
   },
   dmAvatar: {
     width: 40,
@@ -2718,16 +2791,22 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   unreadBadge: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    minWidth: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: '#EF4444',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 8,
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 2,
   },
   unreadText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#FFFFFF',
   },
   chatContainer: {

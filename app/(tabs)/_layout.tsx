@@ -2,7 +2,7 @@ import { useAppSettings } from '@/contexts/AppSettingsContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useTabBar } from '@/contexts/TabBarContext';
 import { Tabs } from 'expo-router';
-import { BarChart3, Building2, Grid3x3, Hash, House, Mail, MessageCircle, MessageSquare, SquareCheck, Users, Wrench } from 'lucide-react-native';
+import { BarChart3, Building2, Calendar, CalendarDays, Grid3x3, Hash, House, Mail, MessageCircle, MessageSquare, Package, SquareCheck, TrendingUp, Users, Wrench } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 
 // Custom Dialer Icon Component
@@ -106,6 +106,16 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="metrics"
+        options={{
+          title: 'Metrics',
+          href: selectedTabIds.has('metrics') ? undefined : null,
+          tabBarIcon: ({ size, color }) => (
+            <TrendingUp size={24} color={color} strokeWidth={2} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="phone"
         options={{
           title: 'Voice',
@@ -175,6 +185,36 @@ export default function TabLayout() {
           href: selectedTabIds.has('tasks') ? undefined : null,
           tabBarIcon: ({ size, color }) => (
             <SquareCheck size={24} color={color} strokeWidth={2} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="products"
+        options={{
+          title: 'Products',
+          href: selectedTabIds.has('products') ? undefined : null,
+          tabBarIcon: ({ size, color }) => (
+            <Package size={24} color={color} strokeWidth={2} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="appointments"
+        options={{
+          title: 'Appointments',
+          href: selectedTabIds.has('appointments') ? undefined : null,
+          tabBarIcon: ({ size, color }) => (
+            <Calendar size={24} color={color} strokeWidth={2} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="job-schedule"
+        options={{
+          title: 'Job Schedule',
+          href: selectedTabIds.has('job-schedule') ? undefined : null,
+          tabBarIcon: ({ size, color }) => (
+            <CalendarDays size={24} color={color} strokeWidth={2} />
           ),
         }}
       />

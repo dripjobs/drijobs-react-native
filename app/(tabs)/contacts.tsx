@@ -1,4 +1,5 @@
 import ActiveCallModal from '@/components/ActiveCallModal';
+import CreateContactModal from '@/components/CreateContactModal';
 import CreateJobModal from '@/components/CreateJobModal';
 import CreateLeadModal from '@/components/CreateLeadModal';
 import DrawerMenu from '@/components/DrawerMenu';
@@ -9,7 +10,7 @@ import SendRequestModal from '@/components/SendRequestModal';
 import { useTabBar } from '@/contexts/TabBarContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { Calendar, CheckSquare, ChevronDown, ChevronRight, Clock, Copy, DollarSign, Edit, FileText, Filter, Mail, MapPin, MessageCircle, MessageSquare, MoreHorizontal, Navigation, Phone, PhoneCall, Plus, Search, Tag, Target, TrendingUp, User, X } from 'lucide-react-native';
+import { Calendar, CheckSquare, ChevronDown, ChevronRight, Clock, Copy, DollarSign, Edit, FileText, Filter, Mail, MapPin, MessageCircle, MessageSquare, MoreHorizontal, Navigation, Paperclip, Phone, PhoneCall, Plus, Search, StickyNote, Tag, Target, TrendingUp, User, UserPlus, X } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Alert, Linking, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -52,6 +53,22 @@ export default function Contacts() {
   const [isSaving, setIsSaving] = useState(false);
   const [showFAB, setShowFAB] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [showLeadSourceDropdown, setShowLeadSourceDropdown] = useState(false);
+  
+  // Lead source options
+  const leadSourceOptions = [
+    'Website',
+    'Referral',
+    'Google Ads',
+    'Facebook Ads',
+    'Direct Mail',
+    'Cold Call',
+    'Walk-in',
+    'Trade Show',
+    'Email Campaign',
+    'Other'
+  ];
   
   // Quick Actions modal states
   const [showNewAppointment, setShowNewAppointment] = useState(false);
@@ -59,6 +76,7 @@ export default function Contacts() {
   const [showSendRequest, setShowSendRequest] = useState(false);
   const [showCreateLead, setShowCreateLead] = useState(false);
   const [showCreateJob, setShowCreateJob] = useState(false);
+  const [showCreateContact, setShowCreateContact] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showCallModal, setShowCallModal] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
@@ -68,6 +86,24 @@ export default function Contacts() {
   const [selectedAddress, setSelectedAddress] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
   const [filterSource, setFilterSource] = useState<string>('all');
+  const [showQuickActionsSlider, setShowQuickActionsSlider] = useState(false);
+
+  // Filter contacts based on search query
+  const getFilteredContacts = () => {
+    if (!searchQuery.trim()) {
+      return contacts;
+    }
+    
+    const query = searchQuery.toLowerCase();
+    return contacts.filter(contact =>
+      contact.name.toLowerCase().includes(query) ||
+      contact.email.toLowerCase().includes(query) ||
+      contact.phone.includes(query) ||
+      contact.company.toLowerCase().includes(query) ||
+      contact.title.toLowerCase().includes(query) ||
+      contact.address.toLowerCase().includes(query)
+    );
+  };
 
   const contacts = [
     { 
@@ -328,13 +364,15 @@ export default function Contacts() {
   };
 
   const handleText = (contact: any) => {
-    // Navigate to chat screen
+    // Navigate to chat screen with compose mode
     router.push({
       pathname: '/(tabs)/chat',
       params: { 
         contactId: contact.id,
-        phone: contact.phone,
-        name: contact.name
+        customerId: contact.id,
+        customerName: contact.name,
+        customerPhone: contact.phone,
+        composeMode: 'true' // Flag to indicate we want to compose a new message
       }
     });
   };
@@ -785,12 +823,20 @@ export default function Contacts() {
             </View>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Contacts</Text>
-          <TouchableOpacity 
-            style={styles.headerButton}
-            onPress={() => setShowFilterModal(true)}
-          >
-            <Filter size={24} color="#FFFFFF" />
-          </TouchableOpacity>
+          <View style={styles.headerButtons}>
+            <TouchableOpacity 
+              style={styles.createContactButton}
+              onPress={() => setShowCreateContact(true)}
+            >
+              <UserPlus size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.headerButton}
+              onPress={() => setShowFilterModal(true)}
+            >
+              <Filter size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.searchContainer}>
@@ -827,12 +873,13 @@ export default function Contacts() {
         onMomentumScrollEnd={() => setIsTransparent(false)}
       >
         <View style={styles.contactsList}>
-          {contacts.map((contact) => (
-            <View key={contact.id} style={styles.contactCard}>
-              <TouchableOpacity 
-                style={styles.contactRow}
-                onPress={() => handleContactPress(contact)}
-              >
+          {getFilteredContacts().length > 0 ? (
+            getFilteredContacts().map((contact) => (
+              <View key={contact.id} style={styles.contactCard}>
+                <TouchableOpacity 
+                  style={styles.contactRow}
+                  onPress={() => handleContactPress(contact)}
+                >
                 <View style={styles.avatar}>
                   <Text style={styles.avatarText}>
                     {contact.name.split(' ').map(n => n[0]).join('')}
@@ -899,7 +946,14 @@ export default function Contacts() {
                 </View>
               )}
             </View>
-          ))}
+            ))
+          ) : (
+            <View style={styles.noResultsContainer}>
+              <Search size={48} color="#9CA3AF" />
+              <Text style={styles.noResultsText}>No contacts found</Text>
+              <Text style={styles.noResultsSubtext}>Try adjusting your search terms</Text>
+            </View>
+          )}
         </View>
       </ScrollView>
 
@@ -936,6 +990,15 @@ export default function Contacts() {
       <CreateJobModal 
         visible={showCreateJob}
         onClose={() => setShowCreateJob(false)}
+      />
+
+      <CreateContactModal 
+        visible={showCreateContact}
+        onClose={() => setShowCreateContact(false)}
+        onContactCreated={(contact) => {
+          setSelectedContact(contact);
+          setShowContactCard(true);
+        }}
       />
 
       {/* Contact Card Modal */}
@@ -1045,6 +1108,113 @@ export default function Contacts() {
                 <Edit size={16} color="#FFFFFF" />
                 <Text style={styles.editContactButtonText}>Edit</Text>
               </TouchableOpacity>
+            </View>
+
+            {/* Quick Action Buttons */}
+            <View style={styles.quickActionsSection}>
+              <View style={styles.primaryActions}>
+                <TouchableOpacity 
+                  style={styles.primaryActionButton}
+                  onPress={() => {
+                    setShowContactCard(false);
+                    setTimeout(() => setShowNewProposal(true), 300);
+                  }}
+                >
+                  <FileText size={20} color="#FFFFFF" />
+                  <Text style={styles.primaryActionText}>Create Proposal</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.primaryActionButton}
+                  onPress={() => {
+                    setShowContactCard(false);
+                    setTimeout(() => setShowNewAppointment(true), 300);
+                  }}
+                >
+                  <Calendar size={20} color="#FFFFFF" />
+                  <Text style={styles.primaryActionText}>Create Appointment</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.primaryActionButton}
+                  onPress={() => {
+                    Alert.alert('Create Invoice', 'Invoice creation coming soon!');
+                  }}
+                >
+                  <DollarSign size={20} color="#FFFFFF" />
+                  <Text style={styles.primaryActionText}>Create Invoice</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* More Actions Slider */}
+              <TouchableOpacity 
+                style={styles.moreActionsButton}
+                onPress={() => setShowQuickActionsSlider(!showQuickActionsSlider)}
+              >
+                <Plus size={18} color="#6366F1" />
+                <Text style={styles.moreActionsButtonText}>
+                  {showQuickActionsSlider ? 'Hide More Actions' : 'More Actions'}
+                </Text>
+                <ChevronDown 
+                  size={18} 
+                  color="#6366F1" 
+                  style={{
+                    transform: [{ rotate: showQuickActionsSlider ? '180deg' : '0deg' }]
+                  }}
+                />
+              </TouchableOpacity>
+
+              {showQuickActionsSlider && (
+                <View style={styles.secondaryActionsSlider}>
+                  <TouchableOpacity 
+                    style={styles.secondaryActionButton}
+                    onPress={() => {
+                      Alert.alert('Add Task', 'Task creation coming soon!');
+                    }}
+                  >
+                    <View style={styles.secondaryActionIcon}>
+                      <CheckSquare size={20} color="#6366F1" />
+                    </View>
+                    <View style={styles.secondaryActionContent}>
+                      <Text style={styles.secondaryActionTitle}>Add Task</Text>
+                      <Text style={styles.secondaryActionSubtitle}>Create a new task for this contact</Text>
+                    </View>
+                    <ChevronRight size={18} color="#9CA3AF" />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity 
+                    style={styles.secondaryActionButton}
+                    onPress={() => {
+                      Alert.alert('Add Note', 'Note creation coming soon!');
+                    }}
+                  >
+                    <View style={styles.secondaryActionIcon}>
+                      <StickyNote size={20} color="#F59E0B" />
+                    </View>
+                    <View style={styles.secondaryActionContent}>
+                      <Text style={styles.secondaryActionTitle}>Add Note</Text>
+                      <Text style={styles.secondaryActionSubtitle}>Add a note to this contact record</Text>
+                    </View>
+                    <ChevronRight size={18} color="#9CA3AF" />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity 
+                    style={styles.secondaryActionButton}
+                    onPress={() => {
+                      Alert.alert('Add Attachment', 'Attachment upload coming soon!');
+                    }}
+                  >
+                    <View style={styles.secondaryActionIcon}>
+                      <Paperclip size={20} color="#10B981" />
+                    </View>
+                    <View style={styles.secondaryActionContent}>
+                      <Text style={styles.secondaryActionTitle}>Add Attachment</Text>
+                      <Text style={styles.secondaryActionSubtitle}>Upload files, photos, or documents</Text>
+                    </View>
+                    <ChevronRight size={18} color="#9CA3AF" />
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
 
             {/* Tabs */}
@@ -1461,15 +1631,15 @@ export default function Contacts() {
                       <View style={styles.dealQuickActionsSection}>
                         <Text style={styles.dealQuickActionsTitle}>Quick Actions</Text>
                         <View style={styles.dealQuickActions}>
-                          <TouchableOpacity style={[styles.dealQuickActionButton, styles.dealCallButton]}>
+                          <TouchableOpacity style={[styles.dealQuickActionButton, styles.dealCallButton]} onPress={() => handleCall(selectedContact)}>
                             <Phone size={18} color="#FFFFFF" />
                             <Text style={styles.dealQuickActionText}>Call</Text>
                           </TouchableOpacity>
-                          <TouchableOpacity style={[styles.dealQuickActionButton, styles.dealTextButton]}>
+                          <TouchableOpacity style={[styles.dealQuickActionButton, styles.dealTextButton]} onPress={() => handleText(selectedContact)}>
                             <MessageSquare size={18} color="#FFFFFF" />
                             <Text style={styles.dealQuickActionText}>Text</Text>
                           </TouchableOpacity>
-                          <TouchableOpacity style={[styles.dealQuickActionButton, styles.dealEmailButton]}>
+                          <TouchableOpacity style={[styles.dealQuickActionButton, styles.dealEmailButton]} onPress={() => handleEmail(selectedContact)}>
                             <Mail size={18} color="#FFFFFF" />
                             <Text style={styles.dealQuickActionText}>Email</Text>
                           </TouchableOpacity>
@@ -1537,11 +1707,6 @@ export default function Contacts() {
                   </View>
                     </View>
                   )}
-                  
-                  <TouchableOpacity style={styles.addDealButton}>
-                    <Plus size={20} color="#007AFF" />
-                    <Text style={styles.addDealText}>Add New Deal</Text>
-                  </TouchableOpacity>
                 </View>
               )}
 
@@ -2454,17 +2619,30 @@ export default function Contacts() {
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+          <ScrollView 
+            style={styles.modalContent} 
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
             <View style={styles.editForm}>
               <Text style={styles.formSectionTitle}>Contact Information</Text>
               
               <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>First Name *</Text>
                 <TextInput 
-                  style={[styles.formInput, formErrors.firstName && styles.formInputError]}
+                  style={[
+                    styles.formInput, 
+                    formErrors.firstName && styles.formInputError,
+                    focusedField === 'firstName' && styles.formInputFocused
+                  ]}
                   value={editFormData.firstName}
                   onChangeText={(text) => setEditFormData(prev => ({ ...prev, firstName: text }))}
+                  onFocus={() => setFocusedField('firstName')}
+                  onBlur={() => setFocusedField(null)}
                   placeholder="Enter first name"
+                  placeholderTextColor="#9CA3AF"
+                  editable={true}
+                  autoCorrect={false}
                 />
                 {formErrors.firstName && <Text style={styles.errorText}>{formErrors.firstName}</Text>}
               </View>
@@ -2472,10 +2650,19 @@ export default function Contacts() {
               <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>Last Name *</Text>
                 <TextInput 
-                  style={[styles.formInput, formErrors.lastName && styles.formInputError]}
+                  style={[
+                    styles.formInput, 
+                    formErrors.lastName && styles.formInputError,
+                    focusedField === 'lastName' && styles.formInputFocused
+                  ]}
                   value={editFormData.lastName}
                   onChangeText={(text) => setEditFormData(prev => ({ ...prev, lastName: text }))}
+                  onFocus={() => setFocusedField('lastName')}
+                  onBlur={() => setFocusedField(null)}
                   placeholder="Enter last name"
+                  placeholderTextColor="#9CA3AF"
+                  editable={true}
+                  autoCorrect={false}
                 />
                 {formErrors.lastName && <Text style={styles.errorText}>{formErrors.lastName}</Text>}
               </View>
@@ -2483,24 +2670,43 @@ export default function Contacts() {
               <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>Primary Email</Text>
                 <TextInput 
-                  style={[styles.formInput, formErrors.email && styles.formInputError]}
+                  style={[
+                    styles.formInput, 
+                    formErrors.email && styles.formInputError,
+                    focusedField === 'email' && styles.formInputFocused
+                  ]}
                   value={editFormData.email}
                   onChangeText={(text) => setEditFormData(prev => ({ ...prev, email: text }))}
+                  onFocus={() => setFocusedField('email')}
+                  onBlur={() => setFocusedField(null)}
                   placeholder="Enter email address"
+                  placeholderTextColor="#9CA3AF"
                   keyboardType="email-address"
+                  editable={true}
+                  autoCapitalize="none"
+                  autoCorrect={false}
                 />
                 {formErrors.email && <Text style={styles.errorText}>{formErrors.email}</Text>}
+                {!formErrors.email && <Text style={styles.helperText}>Used for email communications and invoices</Text>}
               </View>
               
               <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>Primary Phone</Text>
                 <TextInput 
-                  style={styles.formInput}
+                  style={[
+                    styles.formInput,
+                    focusedField === 'phone' && styles.formInputFocused
+                  ]}
                   value={editFormData.phone}
                   onChangeText={(text) => setEditFormData(prev => ({ ...prev, phone: text }))}
+                  onFocus={() => setFocusedField('phone')}
+                  onBlur={() => setFocusedField(null)}
                   placeholder="Enter phone number"
+                  placeholderTextColor="#9CA3AF"
                   keyboardType="phone-pad"
+                  editable={true}
                 />
+                <Text style={styles.helperText}>Main number for calls, texts, and notifications</Text>
               </View>
               
               <View style={styles.formGroup}>
@@ -2536,6 +2742,7 @@ export default function Contacts() {
                   multiline
                   numberOfLines={2}
                 />
+                <Text style={styles.helperText}>Used for service locations, proposals, and invoices</Text>
               </View>
 
               <Text style={styles.formSectionTitle}>Additional Information</Text>
@@ -2543,13 +2750,59 @@ export default function Contacts() {
               <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>Original Lead Source</Text>
                 <View style={styles.dropdownContainer}>
-                  <TouchableOpacity style={styles.dropdownButton}>
-                    <Text style={styles.dropdownText}>
+                  <TouchableOpacity 
+                    style={[
+                      styles.dropdownButton,
+                      showLeadSourceDropdown && styles.dropdownButtonActive
+                    ]}
+                    onPress={() => setShowLeadSourceDropdown(!showLeadSourceDropdown)}
+                  >
+                    <Text style={[
+                      styles.dropdownText,
+                      !editFormData.originalLeadSource && styles.dropdownPlaceholder
+                    ]}>
                       {editFormData.originalLeadSource || 'Select lead source'}
                     </Text>
                     <ChevronDown size={20} color="#6B7280" />
                   </TouchableOpacity>
+                  
+                  {showLeadSourceDropdown && (
+                    <View style={styles.dropdownMenu}>
+                      <ScrollView 
+                        style={styles.dropdownScroll}
+                        nestedScrollEnabled={true}
+                        showsVerticalScrollIndicator={false}
+                      >
+                        {leadSourceOptions.map((option) => (
+                          <TouchableOpacity
+                            key={option}
+                            style={[
+                              styles.dropdownOption,
+                              editFormData.originalLeadSource === option && styles.dropdownOptionSelected
+                            ]}
+                            onPress={() => {
+                              setEditFormData(prev => ({ ...prev, originalLeadSource: option }));
+                              setShowLeadSourceDropdown(false);
+                            }}
+                          >
+                            <Text style={[
+                              styles.dropdownOptionText,
+                              editFormData.originalLeadSource === option && styles.dropdownOptionTextSelected
+                            ]}>
+                              {option}
+                            </Text>
+                            {editFormData.originalLeadSource === option && (
+                              <CheckSquare size={18} color="#6366F1" />
+                            )}
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  )}
                 </View>
+                <Text style={styles.helperText}>
+                  Changing the lead source will update historical metrics and attribution data
+                </Text>
               </View>
               
               <View style={styles.formGroup}>
@@ -2573,6 +2826,7 @@ export default function Contacts() {
               </View>
 
               <Text style={styles.formSectionTitle}>Opt-Out Rules</Text>
+              <Text style={styles.helperText}>Control which automated communications this contact receives</Text>
               
               <View style={styles.optOutSection}>
                 <TouchableOpacity 
@@ -2617,6 +2871,7 @@ export default function Contacts() {
               </View>
 
               <Text style={styles.formSectionTitle}>Custom Fields</Text>
+              <Text style={styles.helperText}>Add custom data fields specific to your business needs</Text>
               
               {editFormData.customFields.map((field, index) => (
                 <View key={field.id} style={styles.customFieldRow}>
@@ -3142,6 +3397,20 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
   },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  createContactButton: {
+    padding: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 12,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   headerButton: {
     padding: 8,
   },
@@ -3174,6 +3443,25 @@ const styles = StyleSheet.create({
   },
   contactsList: {
     paddingBottom: 100,
+  },
+  noResultsContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  noResultsText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#374151',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  noResultsSubtext: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
   },
   contactCard: {
     backgroundColor: '#FFFFFF',
@@ -3669,14 +3957,18 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   formInput: {
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
     borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
     color: '#1D1D1F',
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
+  },
+  formInputFocused: {
+    borderColor: '#6366F1',
+    borderWidth: 2,
   },
   // Custom Fields Styles
   customFieldsSection: {
@@ -3881,6 +4173,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 4,
     marginLeft: 4,
+  },
+  helperText: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginTop: 6,
+    marginLeft: 4,
+    lineHeight: 18,
   },
   saveButtonDisabled: {
     backgroundColor: '#9CA3AF',
@@ -4954,22 +5253,70 @@ const styles = StyleSheet.create({
   // Dropdown Styles
   dropdownContainer: {
     position: 'relative',
+    zIndex: 1000,
   },
   dropdownButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#FFFFFF',
     borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+  },
+  dropdownButtonActive: {
+    borderColor: '#6366F1',
   },
   dropdownText: {
     fontSize: 16,
     color: '#1D1D1F',
     flex: 1,
+  },
+  dropdownPlaceholder: {
+    color: '#9CA3AF',
+  },
+  dropdownMenu: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    marginTop: 4,
+    maxHeight: 240,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+    zIndex: 1001,
+  },
+  dropdownScroll: {
+    maxHeight: 240,
+  },
+  dropdownOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  dropdownOptionSelected: {
+    backgroundColor: '#F0F9FF',
+  },
+  dropdownOptionText: {
+    fontSize: 16,
+    color: '#1F2937',
+  },
+  dropdownOptionTextSelected: {
+    color: '#6366F1',
+    fontWeight: '600',
   },
   // Opt-Out Rules Styles
   optOutSection: {
@@ -5258,6 +5605,99 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '500',
+  },
+  // Quick Actions Section
+  quickActionsSection: {
+    marginHorizontal: 20,
+    marginTop: 8,
+    marginBottom: 24,
+  },
+  primaryActions: {
+    flexDirection: 'column',
+    gap: 12,
+    marginBottom: 12,
+  },
+  primaryActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: '#6366F1',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 14,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  primaryActionText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  moreActionsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#EEF2FF',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#6366F1',
+    borderStyle: 'dashed',
+  },
+  moreActionsButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  secondaryActionsSlider: {
+    marginTop: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  secondaryActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    marginBottom: 4,
+  },
+  secondaryActionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  secondaryActionContent: {
+    flex: 1,
+  },
+  secondaryActionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  secondaryActionSubtitle: {
+    fontSize: 13,
+    color: '#6B7280',
+    lineHeight: 18,
   },
   // Filter Modal Styles
   filterModalOverlay: {

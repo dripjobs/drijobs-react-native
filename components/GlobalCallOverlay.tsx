@@ -2,45 +2,70 @@ import { useCall } from '@/contexts/CallContext';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import ActiveCallModal from './ActiveCallModal';
+import CondensedCallBar from './CondensedCallBar';
 
 export default function GlobalCallOverlay() {
-  const { isCallActive, isCallMinimized, activeCallContact, endCall, minimizeCall, expandCall } = useCall();
+  const { 
+    isCallActive, 
+    isCallMinimized, 
+    activeCallContact, 
+    callDuration,
+    isMuted,
+    isSpeakerOn,
+    isOnHold,
+    endCall, 
+    minimizeCall, 
+    expandCall,
+    toggleMute,
+    toggleSpeaker,
+  } = useCall();
 
   if (!isCallActive || !activeCallContact) {
     return null;
   }
 
   return (
-    <View style={styles.container}>
-      <ActiveCallModal
-        visible={!isCallMinimized}
-        onClose={endCall}
-        contactName={activeCallContact.name}
-        phoneNumber={activeCallContact.phoneNumber}
-        onMinimize={minimizeCall}
-        isMinimized={isCallMinimized}
-      />
-      {isCallMinimized && (
+    <>
+      {/* Full Screen Call Modal */}
+      {!isCallMinimized && (
         <ActiveCallModal
-          visible={false}
+          visible={true}
           onClose={endCall}
           contactName={activeCallContact.name}
           phoneNumber={activeCallContact.phoneNumber}
-          onMinimize={expandCall}
-          isMinimized={true}
+          onMinimize={minimizeCall}
+          isMinimized={false}
         />
       )}
-    </View>
+
+      {/* Condensed Call Bar */}
+      {isCallMinimized && (
+        <View style={styles.condensedBarContainer}>
+          <CondensedCallBar
+            contactName={activeCallContact.name}
+            callDuration={callDuration}
+            isMuted={isMuted}
+            isSpeakerOn={isSpeakerOn}
+            isOnHold={isOnHold}
+            onMuteToggle={toggleMute}
+            onSpeakerToggle={toggleSpeaker}
+            onKeypadPress={() => {}}
+            onExpand={expandCall}
+            onEndCall={endCall}
+          />
+        </View>
+      )}
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  condensedBarContainer: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    bottom: 0,
     zIndex: 1000,
+    elevation: 1000, // For Android
   },
 });

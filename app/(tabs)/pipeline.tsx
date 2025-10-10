@@ -3,6 +3,7 @@ import CreateJobModal from '@/components/CreateJobModal';
 import CreateLeadModal from '@/components/CreateLeadModal';
 import DrawerMenu from '@/components/DrawerMenu';
 import FloatingActionMenu from '@/components/FloatingActionMenu';
+import JobTasksModal from '@/components/JobTasksModal';
 import NewAppointmentModal from '@/components/NewAppointmentModal';
 import NewProposalModal from '@/components/NewProposalModal';
 import SendRequestModal from '@/components/SendRequestModal';
@@ -55,6 +56,7 @@ export default function Pipeline() {
   const [showCreateJob, setShowCreateJob] = useState(false);
   const [showCallInitiation, setShowCallInitiation] = useState(false);
   const [callContact, setCallContact] = useState({ name: '', phone: '' });
+  const [showJobTasksModal, setShowJobTasksModal] = useState(false);
 
   const pipelines = [
     {
@@ -256,7 +258,14 @@ export default function Pipeline() {
         lastActivity: 'Work started',
         nextAction: 'Progress check',
         priority: 'High',
-        tags: ['Office', 'Renovation', 'Commercial']
+        tags: ['Office', 'Renovation', 'Commercial'],
+        jobTasks: {
+          total: 3,
+          pending: 2,
+          inProgress: 1,
+          completed: 0,
+          overdue: 1
+        }
       },
       { 
         id: 9, 
@@ -270,7 +279,14 @@ export default function Pipeline() {
         lastActivity: 'Design approved',
         nextAction: 'Begin construction',
         priority: 'Medium',
-        tags: ['Retail', 'Design', 'Commercial']
+        tags: ['Retail', 'Design', 'Commercial'],
+        jobTasks: {
+          total: 2,
+          pending: 1,
+          inProgress: 0,
+          completed: 1,
+          overdue: 0
+        }
       }
     ]
   };
@@ -472,6 +488,7 @@ export default function Pipeline() {
     { id: 'Activity', label: 'Activity', icon: TrendingUp, count: null },
     { id: 'Notes', label: 'Notes', icon: FileText, count: 3 },
     { id: 'Tasks', label: 'Tasks', icon: CheckSquare, count: 2 },
+    { id: 'Job Tasks', label: 'Job Tasks', icon: Target, count: null },
   ];
 
   const renderTabContent = () => {
@@ -1347,6 +1364,88 @@ export default function Pipeline() {
           </View>
         );
       
+      case 'Job Tasks':
+        return (
+          <View style={styles.jobTasksSection}>
+            <Text style={styles.sectionTitle}>Job Tasks</Text>
+            <Text style={styles.sectionDescription}>
+              Manage tasks specific to this job. These are job-related tasks like "Schedule pressure washing" that get done on a job-by-job basis.
+            </Text>
+            
+            {/* Job Tasks Summary */}
+            <View style={styles.jobTasksSummary}>
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryNumber}>3</Text>
+                <Text style={styles.summaryLabel}>Total Tasks</Text>
+              </View>
+              <View style={styles.summaryCard}>
+                <Text style={[styles.summaryNumber, { color: '#F59E0B' }]}>1</Text>
+                <Text style={styles.summaryLabel}>In Progress</Text>
+              </View>
+              <View style={styles.summaryCard}>
+                <Text style={[styles.summaryNumber, { color: '#10B981' }]}>1</Text>
+                <Text style={styles.summaryLabel}>Completed</Text>
+              </View>
+              <View style={styles.summaryCard}>
+                <Text style={[styles.summaryNumber, { color: '#EF4444' }]}>1</Text>
+                <Text style={styles.summaryLabel}>Overdue</Text>
+              </View>
+            </View>
+
+            {/* Quick Actions */}
+            <View style={styles.jobTasksActions}>
+              <TouchableOpacity 
+                style={styles.primaryActionButton}
+                onPress={() => setShowJobTasksModal(true)}
+              >
+                <Target size={16} color="#FFFFFF" />
+                <Text style={styles.primaryActionText}>Manage Job Tasks</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.secondaryActionButton}>
+                <Plus size={16} color="#6366F1" />
+                <Text style={styles.secondaryActionText}>Quick Add Task</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Recent Tasks Preview */}
+            <View style={styles.recentTasksPreview}>
+              <Text style={styles.previewTitle}>Recent Tasks</Text>
+              <View style={styles.taskPreviewItem}>
+                <View style={styles.taskPreviewInfo}>
+                  <Text style={styles.taskPreviewTitle}>Schedule pressure washing</Text>
+                  <Text style={styles.taskPreviewMeta}>Due: Tomorrow • Chris Palmer</Text>
+                </View>
+                <View style={[styles.taskPreviewStatus, { backgroundColor: '#F59E0B20' }]}>
+                  <Text style={[styles.taskPreviewStatusText, { color: '#F59E0B' }]}>In Progress</Text>
+                </View>
+              </View>
+              
+              <View style={styles.taskPreviewItem}>
+                <View style={styles.taskPreviewInfo}>
+                  <Text style={styles.taskPreviewTitle}>Order materials</Text>
+                  <Text style={styles.taskPreviewMeta}>Due: Today • Chris Palmer</Text>
+                </View>
+                <View style={[styles.taskPreviewStatus, { backgroundColor: '#EF444420' }]}>
+                  <Text style={[styles.taskPreviewStatusText, { color: '#EF4444' }]}>Overdue</Text>
+                </View>
+              </View>
+              
+              <View style={styles.taskPreviewItem}>
+                <View style={styles.taskPreviewInfo}>
+                  <Text style={[styles.taskPreviewTitle, { textDecorationLine: 'line-through', color: '#9CA3AF' }]}>
+                    Schedule final walkthrough
+                  </Text>
+                  <Text style={styles.taskPreviewMeta}>Completed • Tanner Mullen</Text>
+                </View>
+                <View style={[styles.taskPreviewStatus, { backgroundColor: '#10B98120' }]}>
+                  <Text style={[styles.taskPreviewStatusText, { color: '#10B981' }]}>Completed</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        );
+      
             default:
         return (
           <View style={styles.emptyTabContent}>
@@ -1372,7 +1471,7 @@ export default function Pipeline() {
             <ChevronRight size={16} color="#6366F1" />
           </View>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Multi-Pipeline CRM</Text>
+        <Text style={styles.headerTitle}>Multi-Pipeline</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity style={styles.headerIconButton}>
             <Filter size={20} color="#6B7280" />
@@ -1543,6 +1642,14 @@ export default function Pipeline() {
                             </View>
                           </View>
                         )}
+                        {card.jobTasks && card.jobTasks.pending > 0 && (
+                          <View style={styles.condensedMetaItem}>
+                            <View style={styles.taskIndicator}>
+                              <Target size={12} color="#F59E0B" />
+                              <Text style={styles.taskIndicatorText}>{card.jobTasks.pending}</Text>
+                            </View>
+                          </View>
+                        )}
                       </View>
                     </View>
                     
@@ -1687,6 +1794,13 @@ export default function Pipeline() {
       <CreateJobModal 
         visible={showCreateJob}
         onClose={() => setShowCreateJob(false)}
+      />
+
+      <JobTasksModal 
+        visible={showJobTasksModal}
+        onClose={() => setShowJobTasksModal(false)}
+        jobId={selectedCard?.id?.toString() || '1'}
+        jobTitle={selectedCard?.title || 'Job Tasks'}
       />
 
       {/* Command Center Modal */}
@@ -3897,5 +4011,136 @@ const styles = StyleSheet.create({
   selectedTagText: {
     fontSize: 13,
     color: '#6B7280',
+  },
+  // Job Tasks Styles
+  jobTasksSection: {
+    padding: 20,
+  },
+  sectionDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 8,
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  jobTasksSummary: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 24,
+  },
+  summaryCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  summaryNumber: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  summaryLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  jobTasksActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 24,
+  },
+  primaryActionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#6366F1',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 8,
+  },
+  primaryActionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  secondaryActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 8,
+  },
+  secondaryActionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  recentTasksPreview: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    padding: 16,
+  },
+  previewTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 12,
+  },
+  taskPreviewItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  taskPreviewInfo: {
+    flex: 1,
+  },
+  taskPreviewTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  taskPreviewMeta: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  taskPreviewStatus: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  taskPreviewStatusText: {
+    fontSize: 10,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  // Task Indicator Styles
+  taskIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    gap: 4,
+  },
+  taskIndicatorText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#F59E0B',
   },
 });

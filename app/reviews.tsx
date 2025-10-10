@@ -2,6 +2,7 @@ import DrawerMenu from '@/components/DrawerMenu';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
     BarChart3,
+    ChevronRight,
     Filter,
     MessageCircle,
     Plus,
@@ -292,11 +293,14 @@ export default function ReviewsPage() {
         style={styles.header}
       >
         <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => setDrawerOpen(true)} style={styles.menuButton}>
-            <View style={styles.menuIndicator}>
-              <View style={styles.menuDot} />
-              <View style={styles.menuDot} />
-              <View style={styles.menuDot} />
+          <TouchableOpacity onPress={() => setDrawerOpen(true)} style={styles.pullOutMenu}>
+            <View style={styles.pullOutIndicator}>
+              <View style={styles.pullOutDot} />
+              <View style={styles.pullOutDot} />
+              <View style={styles.pullOutDot} />
+            </View>
+            <View style={styles.pullOutArrow}>
+              <ChevronRight size={16} color="#FFFFFF" />
             </View>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Review Management</Text>
@@ -362,20 +366,25 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  menuButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  menuIndicator: {
+  pullOutMenu: {
     flexDirection: 'row',
-    gap: 3,
+    alignItems: 'center',
+    gap: 8,
   },
-  menuDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
+  pullOutIndicator: {
+    width: 6,
+    height: 24,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  pullOutDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: '#FFFFFF',
+  },
+  pullOutArrow: {
+    marginLeft: 4,
   },
   headerTitle: {
     fontSize: 24,

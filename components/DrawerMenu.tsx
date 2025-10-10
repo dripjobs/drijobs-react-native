@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { Activity, BarChart3, Bell, Building2, Calendar, Calendar as CalendarIcon, CheckSquare, ChevronRight, CircleUser, Clock, Droplets, FileCheck, FileText, Globe, Grid3x3, Hash, Home, Mail, MessageSquare, RotateCcw, Settings2, Star, Users, Wrench, X } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import { Activity, BarChart3, Bell, Building2, Calendar, Calendar as CalendarIcon, CheckSquare, ChevronRight, CircleUser, Clock, Droplets, FileCheck, FileText, Globe, Grid3x3, Hash, Home, Mail, MessageSquare, Package, RotateCcw, Settings2, Star, Users, Wrench, X, Zap } from 'lucide-react-native';
+import { useEffect, useState } from 'react';
 import { Animated, Dimensions, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { PanGestureHandler } from 'react-native-gesture-handler';
 
@@ -46,10 +46,12 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
     {
       title: 'Business',
       items: [
+        { icon: Package, label: 'Products', action: () => router.push('/(tabs)/products') },
         { icon: FileText, label: 'Invoices', action: () => router.push('/invoices') },
         { icon: FileCheck, label: 'Proposals', action: () => router.push('/proposals') },
         { icon: Wrench, label: 'Work Orders', action: () => router.push('/(tabs)/work-orders') },
         { icon: Users, label: 'Crews', action: () => router.push('/crews') },
+        { icon: Clock, label: 'Timesheets', action: () => router.push('/timesheets') },
         { icon: Star, label: 'Reviews', action: () => router.push('/reviews') },
         { icon: Globe, label: 'Website', action: () => router.push('/website') },
       ]
@@ -60,6 +62,7 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
             { icon: CheckSquare, label: 'Tasks', action: () => router.push('/(tabs)/tasks') },
             { icon: Activity, label: 'Metrics', action: () => router.push('/metrics') },
             { icon: Droplets, label: 'Drips', action: () => router.push('/drips') },
+            { icon: Zap, label: 'Automations', action: () => router.push('/automations') },
           ]
         },
     {

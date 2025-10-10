@@ -473,6 +473,10 @@ export default function Metrics() {
             </View>
 
             {/* Sales By Source */}
+            {/* NOTE: This uses jobSource for attribution, not originalLeadSource.
+                Each job is attributed to its specific job source (e.g., "Repeat Customer")
+                rather than the customer's original lead source. This provides accurate
+                ROI tracking for repeat business and different job origins. */}
             <View style={styles.insightCard}>
               <View style={styles.insightHeader}>
                 <View style={styles.insightHeaderLeft}>
@@ -482,11 +486,12 @@ export default function Metrics() {
               </View>
               <View style={styles.insightContent}>
                 {[
-                  { source: 'Google', ratio: '27.04%', amount: '$34,953.33' },
-                  { source: 'Website', ratio: '17.80%', amount: '$23,003.64' },
-                  { source: 'Facebook', ratio: '16.13%', amount: '$20,851.08' },
-                  { source: 'Word of Mouth', ratio: '11.08%', amount: '$14,318.00' },
-                  { source: 'Angi Leads', ratio: '6.04%', amount: '$7,811.97' },
+                  { source: 'Repeat Customer', ratio: '28.50%', amount: '$36,823.50' },
+                  { source: 'Google', ratio: '22.04%', amount: '$28,453.33' },
+                  { source: 'Website', ratio: '15.80%', amount: '$20,403.64' },
+                  { source: 'Referral from Existing', ratio: '12.13%', amount: '$15,651.08' },
+                  { source: 'Facebook', ratio: '10.08%', amount: '$13,018.00' },
+                  { source: 'Upsell/Cross-sell', ratio: '6.45%', amount: '$8,331.45' },
                 ].map((item, index) => (
                   <TouchableOpacity 
                     key={index} 

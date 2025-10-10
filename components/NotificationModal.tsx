@@ -9,7 +9,7 @@ import {
     X
 } from 'lucide-react-native';
 import React from 'react';
-import { Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface Notification {
   id: string;
@@ -232,7 +232,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '80%',
+    maxHeight: '90%',
+    minHeight: '60%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -3 },
     shadowOpacity: 0.1,
@@ -241,6 +242,7 @@ const styles = StyleSheet.create({
   },
   modalSafeArea: {
     flex: 1,
+    paddingBottom: Platform.OS === 'ios' ? 0 : 0, // Let the button handle its own bottom padding
   },
   modalHeader: {
     flexDirection: 'row',
@@ -339,7 +341,8 @@ const styles = StyleSheet.create({
   },
   viewAllButton: {
     marginHorizontal: 20,
-    marginVertical: 16,
+    marginTop: 16,
+    marginBottom: Platform.OS === 'ios' ? 34 : 16, // Extra padding for iPhone home indicator
     paddingVertical: 14,
     backgroundColor: '#6366F1',
     borderRadius: 12,

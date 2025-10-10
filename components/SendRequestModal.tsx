@@ -15,6 +15,7 @@ export default function SendRequestModal({ visible, onClose }: SendRequestModalP
   const [emailSubject, setEmailSubject] = useState('Schedule Your Appointment with DripJobs Painting');
   const [emailBody, setEmailBody] = useState('Hi!\n\nThank you for requesting an appointment with DripJobs Painting. Please click the link below to submit your information and schedule your appointment:\n\nhttps://premium.dripjobs.com/book/default\n\nWe look forward to working with you!\n\nBest regards,\nDripJobs Painting Team');
   const [showCallHistory, setShowCallHistory] = useState(false);
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
 
   // Mock call history - in real app, this would come from phone integration
   const recentCalls = [
@@ -186,7 +187,10 @@ export default function SendRequestModal({ visible, onClose }: SendRequestModalP
             {/* Recipient Input */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Recipient</Text>
-              <View style={styles.inputWithButton}>
+              <View style={[
+                styles.inputWithButton,
+                focusedInput === 'recipient' && styles.inputContainerFocused
+              ]}>
                 <TextInput
                   style={styles.input}
                   placeholder="Enter phone number or email"
@@ -195,8 +199,10 @@ export default function SendRequestModal({ visible, onClose }: SendRequestModalP
                   onChangeText={setRecipient}
                   keyboardType="email-address"
                   autoCapitalize="none"
+                  onFocus={() => setFocusedInput('recipient')}
+                  onBlur={() => setFocusedInput(null)}
                 />
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.callHistoryButton}
                   onPress={() => setShowCallHistory(!showCallHistory)}
                 >
@@ -273,16 +279,23 @@ export default function SendRequestModal({ visible, onClose }: SendRequestModalP
             {selectedMethod === 'sms' && (
               <View style={styles.messageTemplate}>
                 <Text style={styles.inputLabel}>SMS Message</Text>
-                <TextInput
-                  style={styles.textArea}
-                  placeholder="Enter SMS message"
-                  placeholderTextColor="#9CA3AF"
-                  value={smsMessage}
-                  onChangeText={setSmsMessage}
-                  multiline
-                  numberOfLines={4}
-                  textAlignVertical="top"
-                />
+                <View style={[
+                  styles.textAreaContainer,
+                  focusedInput === 'smsMessage' && styles.inputContainerFocused
+                ]}>
+                  <TextInput
+                    style={styles.textArea}
+                    placeholder="Enter SMS message"
+                    placeholderTextColor="#9CA3AF"
+                    value={smsMessage}
+                    onChangeText={setSmsMessage}
+                    multiline
+                    numberOfLines={4}
+                    textAlignVertical="top"
+                    onFocus={() => setFocusedInput('smsMessage')}
+                    onBlur={() => setFocusedInput(null)}
+                  />
+                </View>
               </View>
             )}
 
@@ -290,25 +303,39 @@ export default function SendRequestModal({ visible, onClose }: SendRequestModalP
             {selectedMethod === 'email' && (
               <View style={styles.messageTemplate}>
                 <Text style={styles.inputLabel}>Email Subject</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter email subject"
-                  placeholderTextColor="#9CA3AF"
-                  value={emailSubject}
-                  onChangeText={setEmailSubject}
-                />
+                <View style={[
+                  styles.inputContainer,
+                  focusedInput === 'emailSubject' && styles.inputContainerFocused
+                ]}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter email subject"
+                    placeholderTextColor="#9CA3AF"
+                    value={emailSubject}
+                    onChangeText={setEmailSubject}
+                    onFocus={() => setFocusedInput('emailSubject')}
+                    onBlur={() => setFocusedInput(null)}
+                  />
+                </View>
 
                 <Text style={[styles.inputLabel, { marginTop: 16 }]}>Email Body</Text>
-                <TextInput
-                  style={styles.textArea}
-                  placeholder="Enter email body"
-                  placeholderTextColor="#9CA3AF"
-                  value={emailBody}
-                  onChangeText={setEmailBody}
-                  multiline
-                  numberOfLines={8}
-                  textAlignVertical="top"
-                />
+                <View style={[
+                  styles.textAreaContainer,
+                  focusedInput === 'emailBody' && styles.inputContainerFocused
+                ]}>
+                  <TextInput
+                    style={styles.textArea}
+                    placeholder="Enter email body"
+                    placeholderTextColor="#9CA3AF"
+                    value={emailBody}
+                    onChangeText={setEmailBody}
+                    multiline
+                    numberOfLines={8}
+                    textAlignVertical="top"
+                    onFocus={() => setFocusedInput('emailBody')}
+                    onBlur={() => setFocusedInput(null)}
+                  />
+                </View>
               </View>
             )}
           </View>
@@ -529,21 +556,44 @@ const styles = StyleSheet.create({
     color: '#374151',
     marginBottom: 8,
   },
+  inputContainer: {
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    backgroundColor: '#F9FAFB',
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0,
+    shadowRadius: 4,
+    elevation: 0,
+  },
+  inputContainerFocused: {
+    borderColor: '#6366F1',
+    backgroundColor: '#F5F7FF',
+    shadowOpacity: 0.15,
+    elevation: 2,
+  },
   inputWithButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    backgroundColor: '#F9FAFB',
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0,
+    shadowRadius: 4,
+    elevation: 0,
   },
   input: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
     fontSize: 16,
     color: '#1F2937',
+    backgroundColor: 'transparent',
   },
   callHistoryButton: {
     width: 44,
@@ -630,16 +680,24 @@ const styles = StyleSheet.create({
   messageTemplate: {
     marginTop: 16,
   },
-  textArea: {
-    backgroundColor: '#F9FAFB',
+  textAreaContainer: {
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
     borderRadius: 8,
+    backgroundColor: '#F9FAFB',
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0,
+    shadowRadius: 4,
+    elevation: 0,
+  },
+  textArea: {
     paddingHorizontal: 12,
     paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
     fontSize: 15,
     color: '#1F2937',
     minHeight: 100,
+    backgroundColor: 'transparent',
   },
   bottomSpacing: {
     height: 40,

@@ -1,5 +1,5 @@
-import { AlertCircle, Building, Check, DollarSign, FileText, Info, Search, User as UserIcon, X } from 'lucide-react-native';
-import React, { useState } from 'react';
+import { AlertCircle, Building, Check, DollarSign, FileText, Info, Lock, Search, User as UserIcon, X } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
 import { Dimensions, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 
@@ -44,33 +44,68 @@ export default function CreateJobModal({ visible, onClose, onNavigateToProposal,
     jobName: '',
     jobType: '',
     jobAmount: '',
+    // Source attribution
+    leadSource: '',
+    jobSource: '',
     // Invoice options
     createInvoice: false,
   });
 
   // Sample data (same as proposal)
   const existingCustomers = [
-    { id: 1, name: 'Jane Doe', email: 'jane@email.com', phone: '(555) 123-4567', addresses: [
+    { id: 1, name: 'Jane Doe', email: 'jane@email.com', phone: '(555) 123-4567', originalLeadSource: 'Website', addresses: [
       { id: '1', street: '321 Home St', city: 'Residential', state: 'CA', zipCode: '90214' }
     ]},
-    { id: 2, name: 'Bob Johnson', email: 'bob@email.com', phone: '(555) 987-6543', addresses: [] },
-    { id: 3, name: 'Sarah Wilson', email: 'sarah.wilson@email.com', phone: '(555) 456-7890', addresses: [
+    { id: 2, name: 'Bob Johnson', email: 'bob@email.com', phone: '(555) 987-6543', originalLeadSource: 'Referral', addresses: [] },
+    { id: 3, name: 'Sarah Wilson', email: 'sarah.wilson@email.com', phone: '(555) 456-7890', originalLeadSource: 'Social Media', addresses: [
       { id: '2', street: '654 Oak Ave', city: 'Suburbia', state: 'CA', zipCode: '90215' }
     ]},
   ];
 
   const existingBusinesses = [
-    { id: 1, name: 'ABC Construction', addresses: [
+    { id: 1, name: 'ABC Construction', originalLeadSource: 'BNI Networking Group', addresses: [
       { id: '1', street: '123 Main St', city: 'Anytown', state: 'CA', zipCode: '90210' },
       { id: '2', street: '456 Job Site Ave', city: 'Somewhere', state: 'CA', zipCode: '90211' }
     ]},
-    { id: 2, name: 'XYZ Builders', addresses: [
+    { id: 2, name: 'XYZ Builders', originalLeadSource: 'Trade Show', addresses: [
       { id: '3', street: '789 Business Blvd', city: 'Elsewhere', state: 'CA', zipCode: '90212' }
     ]},
-    { id: 3, name: 'TechCorp Solutions', addresses: [
+    { id: 3, name: 'TechCorp Solutions', originalLeadSource: 'Cold Call', addresses: [
       { id: '4', street: '321 Innovation Dr', city: 'Tech City', state: 'CA', zipCode: '90213' }
     ]},
   ];
+
+  const leadSources = [
+    { id: '1', name: 'Website', category: 'Digital' },
+    { id: '2', name: 'Referral', category: 'Word of Mouth' },
+    { id: '3', name: 'Social Media', category: 'Digital' },
+    { id: '4', name: 'Cold Call', category: 'Outbound' },
+    { id: '5', name: 'Google', category: 'Digital' }
+  ];
+
+  const jobSources = [
+    { id: '1', name: 'Repeat Customer', category: 'Retention' },
+    { id: '2', name: 'Referral from Existing', category: 'Retention' },
+    { id: '3', name: 'Upsell/Cross-sell', category: 'Expansion' },
+    { id: '4', name: 'Seasonal Service', category: 'Recurring' },
+    { id: '5', name: 'Emergency/Urgent', category: 'Reactive' },
+    { id: '6', name: 'Networking Event', category: 'Outreach' },
+    { id: '7', name: 'Previous Quote Follow-up', category: 'Follow-up' }
+  ];
+
+  const [selectedSource, setSelectedSource] = useState<any>(null);
+
+  // Auto-populate job source when existing customer is selected
+  useEffect(() => {
+    if (jobData.customerStatus === 'existing' && selectedCustomer && selectedCustomer.originalLeadSource) {
+      // Set the default job source to "Repeat Customer"
+      const repeatCustomerSource = jobSources.find(source => source.name === 'Repeat Customer');
+      if (repeatCustomerSource && !selectedSource) {
+        setSelectedSource(repeatCustomerSource);
+        setJobData(prev => ({ ...prev, jobSource: repeatCustomerSource.name }));
+      }
+    }
+  }, [selectedCustomer, jobData.customerStatus]);
 
   const jobTypes = [
     { id: '1', name: 'Pressure Washing', category: 'Exterior' },
@@ -113,10 +148,12 @@ export default function CreateJobModal({ visible, onClose, onNavigateToProposal,
       case 3:
         return jobData.jobFrequency !== '';
       case 4:
+        return selectedSource !== null;
+      case 5:
         return jobData.jobName.trim() !== '' && 
                jobData.jobType.trim() !== '' && 
                jobData.jobAmount.trim() !== '';
-      case 5:
+      case 6:
         return true; // Invoice is optional
       default:
         return false;
@@ -124,7 +161,7 @@ export default function CreateJobModal({ visible, onClose, onNavigateToProposal,
   };
 
   const handleNext = () => {
-    if (canProceedToNext() && jobStep < 5) {
+    if (canProceedToNext() && jobStep < 6) {
       setJobStep(jobStep + 1);
     }
   };
@@ -141,6 +178,7 @@ export default function CreateJobModal({ visible, onClose, onNavigateToProposal,
     setSearchQuery('');
     setSelectedCustomer(null);
     setSelectedAddress(null);
+    setSelectedSource(null);
     setJobData({
       customerType: '',
       customerStatus: '',
@@ -162,6 +200,8 @@ export default function CreateJobModal({ visible, onClose, onNavigateToProposal,
       jobName: '',
       jobType: '',
       jobAmount: '',
+      leadSource: '',
+      jobSource: '',
       createInvoice: false,
     });
   };
@@ -211,8 +251,9 @@ export default function CreateJobModal({ visible, onClose, onNavigateToProposal,
       case 1: return 'Select Customer Type';
       case 2: return 'Customer Information & Job Address';
       case 3: return 'Job Frequency';
-      case 4: return 'Job Details';
-      case 5: return 'Invoice Options';
+      case 4: return 'Source Attribution';
+      case 5: return 'Job Details';
+      case 6: return 'Invoice Options';
       default: return '';
     }
   };
@@ -222,8 +263,9 @@ export default function CreateJobModal({ visible, onClose, onNavigateToProposal,
       case 1: return 'Choose whether this job is for a business or individual customer';
       case 2: return 'Enter customer details and job location';
       case 3: return 'Specify if this is a one-time or recurring job';
-      case 4: return 'Enter job name, type, and amount';
-      case 5: return 'Optionally create an invoice for this job';
+      case 4: return 'Track where this job came from';
+      case 5: return 'Enter job name, type, and amount';
+      case 6: return 'Optionally create an invoice for this job';
       default: return '';
     }
   };
@@ -799,6 +841,67 @@ export default function CreateJobModal({ visible, onClose, onNavigateToProposal,
         return (
           <ScrollView style={styles.stepContent}>
             <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Source Attribution</Text>
+              <Text style={styles.sectionDescription}>Track where this job came from</Text>
+              
+              {/* Show Original Lead Source Badge for Existing Customers */}
+              {jobData.customerStatus === 'existing' && selectedCustomer?.originalLeadSource && (
+                <View style={styles.originalLeadSourceBadge}>
+                  <Lock size={16} color="#6B7280" style={{ marginRight: 8 }} />
+                  <Text style={styles.originalLeadSourceText}>
+                    Original Lead Source: <Text style={styles.originalLeadSourceValue}>{selectedCustomer.originalLeadSource}</Text>
+                  </Text>
+                </View>
+              )}
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>
+                  {jobData.customerStatus === 'new' ? 'Lead Source *' : 'Job Source *'}
+                </Text>
+                
+                {/* Helper Text for Job Source */}
+                {jobData.customerStatus === 'existing' && (
+                  <Text style={styles.helperText}>
+                    Track where this specific job came from. The original lead source shows how this customer first found you.
+                  </Text>
+                )}
+                
+                <View style={styles.sourceContainer}>
+                  {(jobData.customerStatus === 'new' ? leadSources : jobSources).map((source) => (
+                    <TouchableOpacity
+                      key={source.id}
+                      style={[
+                        styles.sourceCard,
+                        selectedSource?.id === source.id && styles.sourceCardSelected
+                      ]}
+                      onPress={() => {
+                        setSelectedSource(source);
+                        if (jobData.customerStatus === 'new') {
+                          setJobData({...jobData, leadSource: source.name});
+                        } else {
+                          setJobData({...jobData, jobSource: source.name});
+                        }
+                      }}
+                    >
+                      <View style={styles.sourceCardContent}>
+                        <Text style={styles.sourceCardTitle}>{source.name}</Text>
+                        <Text style={styles.sourceCardSubtitle}>{source.category}</Text>
+                      </View>
+                      {selectedSource?.id === source.id && (
+                        <Check size={20} color="#6366F1" />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            </View>
+          </ScrollView>
+        );
+
+      case 5:
+        return (
+          <ScrollView style={styles.stepContent}>
+            <View style={styles.section}>
               <Text style={styles.sectionTitle}>Job Details</Text>
               
               <View style={styles.inputGroup}>
@@ -878,7 +981,7 @@ export default function CreateJobModal({ visible, onClose, onNavigateToProposal,
           </ScrollView>
         );
 
-      case 5:
+      case 6:
         return (
           <ScrollView style={styles.stepContent}>
             <View style={styles.section}>
@@ -1479,5 +1582,62 @@ const styles = StyleSheet.create({
   },
   footerButtonTextDisabled: {
     color: '#9CA3AF',
+  },
+  originalLeadSourceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  originalLeadSourceText: {
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  originalLeadSourceValue: {
+    color: '#111827',
+    fontWeight: '600',
+  },
+  helperText: {
+    fontSize: 13,
+    color: '#6B7280',
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  sourceContainer: {
+    gap: 12,
+    marginTop: 8,
+  },
+  sourceCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+  },
+  sourceCardSelected: {
+    borderColor: '#6366F1',
+    backgroundColor: '#EEF2FF',
+  },
+  sourceCardContent: {
+    flex: 1,
+  },
+  sourceCardTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  sourceCardSubtitle: {
+    fontSize: 13,
+    color: '#6B7280',
   },
 });

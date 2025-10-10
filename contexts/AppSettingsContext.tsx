@@ -41,18 +41,22 @@ interface AppSettingsProviderProps {
   children: ReactNode;
 }
 
-// Define all available tabs (only screens that exist in the (tabs) directory)
+// Define all available tabs (only screens that exist in the (tabs) directory or as standalone app screens)
 const ALL_TABS: TabOption[] = [
   { id: 'index', name: 'index', title: 'Dashboard', icon: 'House' },
   { id: 'contacts', name: 'contacts', title: 'Contacts', icon: 'Users' },
   { id: 'businesses', name: 'businesses', title: 'Businesses', icon: 'Building2' },
   { id: 'pipeline', name: 'pipeline', title: 'Pipeline', icon: 'BarChart3' },
+  { id: 'metrics', name: 'metrics', title: 'Metrics', icon: 'TrendingUp' },
   { id: 'phone', name: 'phone', title: 'Voice', icon: 'Grid3x3' },
   { id: 'chat', name: 'chat', title: 'Chat', icon: 'MessageSquare' },
   { id: 'email', name: 'email', title: 'Email', icon: 'Mail' },
   { id: 'team-chat', name: 'team-chat', title: 'Team Chat', icon: 'Hash' },
   { id: 'work-orders', name: 'work-orders', title: 'Work Orders', icon: 'Wrench' },
   { id: 'tasks', name: 'tasks', title: 'Tasks', icon: 'SquareCheck' },
+  { id: 'products', name: 'products', title: 'Products', icon: 'Package' },
+  { id: 'appointments', name: 'appointments', title: 'Appointments', icon: 'Calendar' },
+  { id: 'job-schedule', name: 'job-schedule', title: 'Job Schedule', icon: 'CalendarDays' },
 ];
 
 // Define default selected tabs (Dashboard must always be first)
@@ -63,6 +67,7 @@ const DEFAULT_TABS: TabOption[] = [
   ALL_TABS.find(t => t.id === 'phone')!,      // Voice
   ALL_TABS.find(t => t.id === 'chat')!,       // Chat
   ALL_TABS.find(t => t.id === 'team-chat')!,  // Team Chat
+  ALL_TABS.find(t => t.id === 'products')!,   // Products
 ];
 
 // Define all available quick actions
@@ -122,6 +127,13 @@ const ALL_QUICK_ACTIONS: QuickAction[] = [
     label: 'Phone Call',
     icon: 'Phone',
     colors: ['#06B6D4', '#0891B2']
+  },
+  { 
+    id: 'text', 
+    name: 'Send Text',
+    label: 'Text',
+    icon: 'MessageSquare',
+    colors: ['#3B82F6', '#2563EB']
   },
 ];
 

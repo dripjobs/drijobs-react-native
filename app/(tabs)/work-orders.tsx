@@ -1,3 +1,5 @@
+import CallInitiationModal from '@/components/CallInitiationModal';
+import ContactPickerModal from '@/components/ContactPickerModal';
 import CreateJobModal from '@/components/CreateJobModal';
 import CreateLeadModal from '@/components/CreateLeadModal';
 import DrawerMenu from '@/components/DrawerMenu';
@@ -82,6 +84,9 @@ export default function WorkOrders() {
   const [showSendRequest, setShowSendRequest] = useState(false);
   const [showCreateLead, setShowCreateLead] = useState(false);
   const [showCreateJob, setShowCreateJob] = useState(false);
+  const [showContactPicker, setShowContactPicker] = useState(false);
+  const [showCallInitiation, setShowCallInitiation] = useState(false);
+  const [callContact, setCallContact] = useState({ name: '', phone: '' });
 
   // Mock work orders data
   const mockWorkOrders: WorkOrder[] = [
@@ -320,6 +325,16 @@ export default function WorkOrders() {
 
   const handleCreateJob = () => {
     setShowCreateJob(true);
+  };
+
+  const handlePhoneCall = () => {
+    setShowContactPicker(true);
+  };
+
+  const handleContactSelected = (contact: any) => {
+    setCallContact({ name: contact.name, phone: contact.phone });
+    setShowContactPicker(false);
+    setShowCallInitiation(true);
   };
 
   const toggleFilter = (filterType: 'priority' | 'assignedTo', value: string) => {
@@ -801,6 +816,7 @@ export default function WorkOrders() {
         onSendRequest={handleSendRequest}
         onNewLead={handleCreateLead}
         onNewJob={handleCreateJob}
+        onPhoneCall={handlePhoneCall}
       />
 
       {/* Quick Actions Modals */}
@@ -827,6 +843,21 @@ export default function WorkOrders() {
       <CreateJobModal 
         visible={showCreateJob}
         onClose={() => setShowCreateJob(false)}
+      />
+
+      {/* Contact Picker Modal */}
+      <ContactPickerModal
+        visible={showContactPicker}
+        onClose={() => setShowContactPicker(false)}
+        onSelectContact={handleContactSelected}
+      />
+
+      {/* Call Initiation Modal */}
+      <CallInitiationModal
+        visible={showCallInitiation}
+        onClose={() => setShowCallInitiation(false)}
+        contactName={callContact.name}
+        phoneNumber={callContact.phone}
       />
     </SafeAreaView>
   );

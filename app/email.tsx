@@ -30,6 +30,7 @@
  * - Consistent spacing and typography
  */
 
+import CallInitiationModal from '@/components/CallInitiationModal';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
@@ -106,6 +107,8 @@ export default function Email() {
   const [sendProgress, setSendProgress] = useState(0);
   const [showSendSuccess, setShowSendSuccess] = useState(false);
   const [sendTimeout, setSendTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [showCallInitiation, setShowCallInitiation] = useState(false);
+  const [callContact, setCallContact] = useState({ name: '', phone: '' });
   const [currentThread, setCurrentThread] = useState<any[]>([]);
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareLink, setShareLink] = useState('');
@@ -1397,7 +1400,18 @@ John Smith`;
   };
 
   const handleCall = () => {
-    console.log('Call contact');
+    console.log('Call button clicked in email slideout');
+    if (selectedEmailData?.contact) {
+      console.log('Setting call contact:', selectedEmailData.contact.name, selectedEmailData.contact.phone);
+      setCallContact({ 
+        name: selectedEmailData.contact.name, 
+        phone: selectedEmailData.contact.phone 
+      });
+      setShowCallInitiation(true);
+      console.log('CallInitiationModal should now be visible');
+    } else {
+      console.log('No contact data available');
+    }
   };
 
   const handleChat = () => {
@@ -2963,6 +2977,14 @@ John Smith`;
           </View>
         </Animated.View>
       )}
+
+      {/* Call Initiation Modal */}
+      <CallInitiationModal
+        visible={showCallInitiation}
+        onClose={() => setShowCallInitiation(false)}
+        contactName={callContact.name}
+        phoneNumber={callContact.phone}
+      />
     </SafeAreaView>
   );
 }

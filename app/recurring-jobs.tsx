@@ -1,3 +1,4 @@
+import CallInitiationModal from '@/components/CallInitiationModal';
 import DrawerMenu from '@/components/DrawerMenu';
 import { InvoiceDetail } from '@/components/InvoiceDetail';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -258,6 +259,8 @@ const RecurringJobsScreen: React.FC = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [dateFilterType, setDateFilterType] = useState<'nextService' | 'lastService'>('nextService');
   const [detailTab, setDetailTab] = useState<'details' | 'communication' | 'payment'>('details');
+  const [showCallInitiation, setShowCallInitiation] = useState(false);
+  const [callContact, setCallContact] = useState({ name: '', phone: '' });
   
   // Communication Settings
   const [communicationSettings, setCommunicationSettings] = useState({
@@ -358,6 +361,16 @@ const RecurringJobsScreen: React.FC = () => {
     }
   };
 
+  const handleCall = () => {
+    if (selectedJob?.customer) {
+      setCallContact({ 
+        name: selectedJob.customer.name, 
+        phone: selectedJob.customer.phone 
+      });
+      setShowCallInitiation(true);
+    }
+  };
+
   const handleOpenInvoice = (invoiceNumber: string) => {
     // Create mock invoice data based on the selected job and invoice
     const mockInvoice = {
@@ -454,11 +467,14 @@ const RecurringJobsScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <LinearGradient colors={['#6366F1', '#8B5CF6']} style={styles.headerGradient}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => setMenuVisible(true)} style={styles.menuButton}>
-            <View style={styles.menuIcon}>
-              <View style={styles.menuLine} />
-              <View style={styles.menuLine} />
-              <View style={styles.menuLine} />
+          <TouchableOpacity onPress={() => setMenuVisible(true)} style={styles.pullOutMenu}>
+            <View style={styles.pullOutIndicator}>
+              <View style={styles.pullOutDot} />
+              <View style={styles.pullOutDot} />
+              <View style={styles.pullOutDot} />
+            </View>
+            <View style={styles.pullOutArrow}>
+              <ChevronRight size={16} color="#FFFFFF" />
             </View>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Recurring Jobs</Text>
@@ -870,7 +886,7 @@ const RecurringJobsScreen: React.FC = () => {
                   {/* Quick Actions - Contact Customer */}
                   {selectedJob.customer && (
                     <View style={styles.quickActionsRow}>
-                      <TouchableOpacity style={styles.quickActionCall}>
+                      <TouchableOpacity style={styles.quickActionCall} onPress={handleCall}>
                         <Phone size={20} color="#FFFFFF" />
                         <Text style={styles.quickActionText}>Call</Text>
                       </TouchableOpacity>
@@ -1970,6 +1986,14 @@ const RecurringJobsScreen: React.FC = () => {
         </View>
       </Modal>
 
+      {/* Call Initiation Modal */}
+      <CallInitiationModal
+        visible={showCallInitiation}
+        onClose={() => setShowCallInitiation(false)}
+        contactName={callContact.name}
+        phoneNumber={callContact.phone}
+      />
+
       <DrawerMenu isOpen={menuVisible} onClose={() => setMenuVisible(false)} />
     </SafeAreaView>
   );
@@ -1991,17 +2015,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 20,
   },
-  menuButton: {
-    padding: 8,
+  pullOutMenu: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
-  menuIcon: {
-    gap: 4,
+  pullOutIndicator: {
+    width: 6,
+    height: 24,
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  menuLine: {
-    width: 24,
-    height: 3,
+  pullOutDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: '#FFFFFF',
-    borderRadius: 2,
+  },
+  pullOutArrow: {
+    marginLeft: 4,
   },
   headerTitle: {
     fontSize: 20,

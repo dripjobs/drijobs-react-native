@@ -6,10 +6,12 @@ export interface UserRoleContextType {
   currentRole: UserRole;
   permissions: UserPermissions;
   isLoading: boolean;
-  setUserRole: (role: UserRole) => Promise<void>;
+  impersonatingCrewMemberId: string | null;
+  setUserRole: (role: UserRole, crewMemberId?: string) => Promise<void>;
   checkPermission: (permission: keyof UserPermissions) => boolean;
   logAccountantAction: (action: string, entityType?: string, entityId?: string, details?: string) => Promise<void>;
   getAccountantLogs: () => Promise<AccountantAccessLog[]>;
+  clearImpersonation: () => Promise<void>;
 }
 
 const UserRoleContext = createContext<UserRoleContextType | undefined>(undefined);
@@ -29,12 +31,14 @@ interface UserRoleProviderProps {
 const STORAGE_KEYS = {
   USER_ROLE: '@user_role',
   ACCOUNTANT_LOGS: '@accountant_access_logs',
+  IMPERSONATING_CREW_MEMBER: '@impersonating_crew_member',
 };
 
 export const UserRoleProvider: React.FC<UserRoleProviderProps> = ({ children }) => {
   const [currentRole, setCurrentRole] = useState<UserRole>('admin');
   const [permissions, setPermissions] = useState<UserPermissions>(ROLE_DEFINITIONS.admin.permissions);
   const [isLoading, setIsLoading] = useState(true);
+  const [impersonatingCrewMemberId, setImpersonatingCrewMemberId] = useState<string | null>(null);
 
   // Load saved role on mount
   useEffect(() => {
@@ -44,10 +48,16 @@ export const UserRoleProvider: React.FC<UserRoleProviderProps> = ({ children }) 
   const loadUserRole = async () => {
     try {
       const savedRole = await AsyncStorage.getItem(STORAGE_KEYS.USER_ROLE);
-      if (savedRole && (savedRole === 'admin' || savedRole === 'accountant')) {
+      const savedCrewMemberId = await AsyncStorage.getItem(STORAGE_KEYS.IMPERSONATING_CREW_MEMBER);
+      
+      if (savedRole && (savedRole === 'admin' || savedRole === 'accountant' || savedRole === 'crew')) {
         const role = savedRole as UserRole;
         setCurrentRole(role);
         setPermissions(ROLE_DEFINITIONS[role].permissions);
+        
+        if (savedCrewMemberId) {
+          setImpersonatingCrewMemberId(savedCrewMemberId);
+        }
       }
     } catch (error) {
       console.error('Error loading user role:', error);
@@ -56,13 +66,34 @@ export const UserRoleProvider: React.FC<UserRoleProviderProps> = ({ children }) 
     }
   };
 
-  const setUserRole = async (role: UserRole) => {
+  const setUserRole = async (role: UserRole, crewMemberId?: string) => {
     try {
       setCurrentRole(role);
       setPermissions(ROLE_DEFINITIONS[role].permissions);
       await AsyncStorage.setItem(STORAGE_KEYS.USER_ROLE, role);
+      
+      if (role === 'crew' && crewMemberId) {
+        setImpersonatingCrewMemberId(crewMemberId);
+        await AsyncStorage.setItem(STORAGE_KEYS.IMPERSONATING_CREW_MEMBER, crewMemberId);
+      } else {
+        setImpersonatingCrewMemberId(null);
+        await AsyncStorage.removeItem(STORAGE_KEYS.IMPERSONATING_CREW_MEMBER);
+      }
     } catch (error) {
       console.error('Error saving user role:', error);
+      throw error;
+    }
+  };
+
+  const clearImpersonation = async () => {
+    try {
+      setCurrentRole('admin');
+      setPermissions(ROLE_DEFINITIONS.admin.permissions);
+      setImpersonatingCrewMemberId(null);
+      await AsyncStorage.setItem(STORAGE_KEYS.USER_ROLE, 'admin');
+      await AsyncStorage.removeItem(STORAGE_KEYS.IMPERSONATING_CREW_MEMBER);
+    } catch (error) {
+      console.error('Error clearing impersonation:', error);
       throw error;
     }
   };
@@ -123,10 +154,12 @@ export const UserRoleProvider: React.FC<UserRoleProviderProps> = ({ children }) 
         currentRole,
         permissions,
         isLoading,
+        impersonatingCrewMemberId,
         setUserRole,
         checkPermission,
         logAccountantAction,
         getAccountantLogs,
+        clearImpersonation,
       }}
     >
       {children}
@@ -150,4 +183,10 @@ export const useIsAccountant = (): boolean => {
 export const useIsAdmin = (): boolean => {
   const { currentRole } = useUserRole();
   return currentRole === 'admin';
+};
+
+// Convenience hook for crew role check
+export const useIsCrew = (): boolean => {
+  const { currentRole } = useUserRole();
+  return currentRole === 'crew';
 };

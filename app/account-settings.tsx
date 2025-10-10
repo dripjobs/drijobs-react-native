@@ -1,3 +1,4 @@
+import FacebookIntegrationsManager from '@/components/FacebookIntegrationsManager';
 import { useAppSettings } from '@/contexts/AppSettingsContext';
 import { useUserRole } from '@/contexts/UserRoleContext';
 import QuickBooksService from '@/services/QuickBooksService';
@@ -12,6 +13,7 @@ import {
     Briefcase,
     Building2,
     Calendar,
+    CalendarDays,
     Camera,
     CheckCircle,
     ChevronDown,
@@ -24,12 +26,16 @@ import {
     DollarSign,
     Edit,
     ExternalLink,
+    Facebook,
     FileText,
+    Grid3x3,
     GripVertical,
     Hash,
     House,
     Link,
     Mail,
+    MessageSquare,
+    Package,
     Palette,
     Phone,
     Plus,
@@ -42,6 +48,7 @@ import {
     Smartphone,
     SquareCheck,
     Trash2,
+    TrendingUp,
     Upload,
     UserPlus,
     Users,
@@ -161,6 +168,7 @@ export default function AccountSettings() {
         contactTags: 'Homeowner, Builder, Company, Other',
         customerPayments: 'Credit Card, Check, Cash, ACH',
         leadSources: 'Facebook, Google, Website, Referral, Other',
+        jobSources: 'Repeat Customer, Referral from Existing, Upsell/Cross-sell, Seasonal Service, Emergency/Urgent, Networking Event, Previous Quote Follow-up',
         defaultJobStartTime: '09:00',
         customProposalSendTime: '10:00',
         onSiteCommunication: true,
@@ -1250,6 +1258,49 @@ export default function AccountSettings() {
                         </View>
 
                         <View style={styles.section}>
+                            <View style={styles.sectionHeader}>
+                                <View>
+                                    <Text style={styles.sectionTitle}>Job Sources</Text>
+                                    <Text style={styles.sectionDescription}>
+                                        Track attribution for repeat customers and additional jobs from existing clients. Job sources help measure ROI for each new project separately from the original lead source.
+                                    </Text>
+                                </View>
+                            </View>
+
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Available Job Sources</Text>
+                                <TextInput
+                                    style={[styles.textArea, !isEditing && styles.inputDisabled]}
+                                    value={generalSettings.jobSources}
+                                    onChangeText={(text) => {
+                                        setGeneralSettings({ ...generalSettings, jobSources: text });
+                                        setHasChanges(true);
+                                    }}
+                                    editable={isEditing}
+                                    multiline
+                                    numberOfLines={3}
+                                    placeholder="Enter job sources separated by commas"
+                                    placeholderTextColor="#9CA3AF"
+                                />
+                                <Text style={styles.inputHint}>
+                                    Separate multiple sources with commas. These sources are used when creating jobs, proposals, or appointments for existing customers.
+                                </Text>
+                            </View>
+
+                            <View style={styles.infoCard}>
+                                <View style={styles.infoCardIcon}>
+                                    <TrendingUp size={20} color="#6366F1" />
+                                </View>
+                                <View style={styles.infoCardContent}>
+                                    <Text style={styles.infoCardTitle}>How Job Sources Work</Text>
+                                    <Text style={styles.infoCardDescription}>
+                                        When an existing customer requests a new job, you'll see their original lead source (locked) and can select a job source like "Repeat Customer". This ensures proper attribution in your metrics - the first job counts toward the original lead source, and subsequent jobs count toward their respective job sources.
+                                    </Text>
+                                </View>
+                            </View>
+                        </View>
+
+                        <View style={styles.section}>
                             <Text style={styles.sectionTitle}>Quick Settings</Text>
                             
                             <View style={styles.inputGroup}>
@@ -1577,12 +1628,16 @@ export default function AccountSettings() {
                                                  tab.id === 'contacts' ? Users :
                                                  tab.id === 'businesses' ? Building2 :
                                                  tab.id === 'pipeline' ? BarChart3 :
+                                                 tab.id === 'metrics' ? TrendingUp :
                                                  tab.id === 'phone' ? Grid3x3 :
                                                  tab.id === 'chat' ? MessageSquare :
                                                  tab.id === 'email' ? Mail :
                                                  tab.id === 'team-chat' ? Hash :
                                                  tab.id === 'work-orders' ? Wrench :
-                                                 tab.id === 'tasks' ? SquareCheck : House;
+                                                 tab.id === 'tasks' ? SquareCheck :
+                                                 tab.id === 'products' ? Package :
+                                                 tab.id === 'appointments' ? Calendar :
+                                                 tab.id === 'job-schedule' ? CalendarDays : House;
                                     
                                     const isHome = tab.id === 'index';
                                     const canMoveUp = index > 1;
@@ -1656,12 +1711,16 @@ export default function AccountSettings() {
                                                 const Icon = tab.id === 'contacts' ? Users :
                                                              tab.id === 'businesses' ? Building2 :
                                                              tab.id === 'pipeline' ? BarChart3 :
-                                                             tab.id === 'phone' ? Phone :
-                                                             tab.id === 'chat' ? Hash :
+                                                             tab.id === 'metrics' ? TrendingUp :
+                                                             tab.id === 'phone' ? Grid3x3 :
+                                                             tab.id === 'chat' ? MessageSquare :
                                                              tab.id === 'email' ? Mail :
                                                              tab.id === 'team-chat' ? Hash :
                                                              tab.id === 'work-orders' ? Wrench :
-                                                             tab.id === 'tasks' ? SquareCheck : House;
+                                                             tab.id === 'tasks' ? SquareCheck :
+                                                             tab.id === 'products' ? Package :
+                                                             tab.id === 'appointments' ? Calendar :
+                                                             tab.id === 'job-schedule' ? CalendarDays : House;
                                                 
                                                 return (
                                                     <TouchableOpacity
@@ -2117,6 +2176,30 @@ export default function AccountSettings() {
                             </View>
                         </View>
 
+                        {/* Facebook Lead Ads Integration */}
+                        <View style={styles.section}>
+                            <View style={styles.sectionHeader}>
+                                <View style={styles.sectionTitleRow}>
+                                    <Facebook size={20} color="#1877F2" />
+                                    <View style={styles.sectionTitleContainer}>
+                                        <Text style={styles.sectionTitle}>Facebook Lead Ads</Text>
+                                        <Text style={styles.sectionSubtitle}>
+                                            Automatically import leads from your Facebook Lead Ads forms
+                                        </Text>
+                                    </View>
+                                </View>
+                            </View>
+
+                            <View style={[styles.card, { padding: 20 }]}>
+                                <Text style={[styles.sectionDescription, { marginBottom: 20 }]}>
+                                    Connect your Facebook pages to automatically import leads from your Facebook Lead Ads forms. 
+                                    Set up field mapping, assign default users and stages, and configure follow-up sequences for each form.
+                                </Text>
+
+                                <FacebookIntegrationsManager userId="current_user_id" />
+                            </View>
+                        </View>
+
                     </View>
                 );
 
@@ -2124,6 +2207,34 @@ export default function AccountSettings() {
                 return null;
         }
     };
+
+    // Show loading state while app settings are being loaded
+    if (appSettings.isLoading) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <LinearGradient
+                    colors={['#6366F1', '#8B5CF6']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.header}
+                >
+                    <View style={styles.headerTop}>
+                        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                            <ChevronLeft size={24} color="#FFFFFF" />
+                        </TouchableOpacity>
+                        <View style={styles.headerCenter}>
+                            <Text style={styles.headerTitle}>Account Settings</Text>
+                            <Text style={styles.headerSubtitle}>Loading...</Text>
+                        </View>
+                        <View style={styles.backButton} />
+                    </View>
+                </LinearGradient>
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <Text style={{ fontSize: 16, color: '#6B7280' }}>Loading settings...</Text>
+                </View>
+            </SafeAreaView>
+        );
+    }
 
     return (
         <SafeAreaView style={styles.container}>
@@ -2969,7 +3080,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
-        maxHeight: '70%',
+        height: '85%',
     },
     tabSelectorHeader: {
         flexDirection: 'row',
@@ -3012,7 +3123,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
-        maxHeight: '90%',
+        height: '95%',
         flex: 1,
     },
     modalHeader: {
@@ -3036,6 +3147,7 @@ const styles = StyleSheet.create({
     modalContent: {
         flex: 1,
         padding: 20,
+        paddingBottom: 40,
     },
     // Email Configuration Styles
     infoBoxLarge: {

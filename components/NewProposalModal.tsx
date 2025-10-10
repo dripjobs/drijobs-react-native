@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
-import { Building, Check, FileText, Info, Search, User as UserIcon, X } from 'lucide-react-native';
-import React, { useState } from 'react';
+import { Building, Check, FileText, Info, Lock, Search, User as UserIcon, X } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
 import { Dimensions, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const { width } = Dimensions.get('window');
@@ -16,6 +16,7 @@ export default function NewProposalModal({ visible, onClose }: NewProposalModalP
   const [searchQuery, setSearchQuery] = useState('');
   const [templateSearchQuery, setTemplateSearchQuery] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [proposalData, setProposalData] = useState({
     customerType: '', // 'individual' or 'business'
     customerStatus: '', // 'new' or 'existing'
@@ -55,24 +56,24 @@ export default function NewProposalModal({ visible, onClose }: NewProposalModalP
 
   // Sample data
   const existingCustomers = [
-    { id: 1, name: 'Jane Doe', email: 'jane@email.com', phone: '(555) 123-4567', addresses: [
+    { id: 1, name: 'Jane Doe', email: 'jane@email.com', phone: '(555) 123-4567', originalLeadSource: 'Website', addresses: [
       { id: '1', street: '321 Home St', city: 'Residential', state: 'CA', zipCode: '90214' }
     ]},
-    { id: 2, name: 'Bob Johnson', email: 'bob@email.com', phone: '(555) 987-6543', addresses: [] },
-    { id: 3, name: 'Sarah Wilson', email: 'sarah.wilson@email.com', phone: '(555) 456-7890', addresses: [
+    { id: 2, name: 'Bob Johnson', email: 'bob@email.com', phone: '(555) 987-6543', originalLeadSource: 'Referral', addresses: [] },
+    { id: 3, name: 'Sarah Wilson', email: 'sarah.wilson@email.com', phone: '(555) 456-7890', originalLeadSource: 'Social Media', addresses: [
       { id: '2', street: '654 Oak Ave', city: 'Suburbia', state: 'CA', zipCode: '90215' }
     ]},
   ];
 
   const existingBusinesses = [
-    { id: 1, name: 'ABC Construction', addresses: [
+    { id: 1, name: 'ABC Construction', originalLeadSource: 'BNI Networking Group', addresses: [
       { id: '1', street: '123 Main St', city: 'Anytown', state: 'CA', zipCode: '90210' },
       { id: '2', street: '456 Job Site Ave', city: 'Somewhere', state: 'CA', zipCode: '90211' }
     ]},
-    { id: 2, name: 'XYZ Builders', addresses: [
+    { id: 2, name: 'XYZ Builders', originalLeadSource: 'Trade Show', addresses: [
       { id: '3', street: '789 Business Blvd', city: 'Elsewhere', state: 'CA', zipCode: '90212' }
     ]},
-    { id: 3, name: 'TechCorp Solutions', addresses: [
+    { id: 3, name: 'TechCorp Solutions', originalLeadSource: 'Cold Call', addresses: [
       { id: '4', street: '321 Innovation Dr', city: 'Tech City', state: 'CA', zipCode: '90213' }
     ]},
   ];
@@ -91,9 +92,13 @@ export default function NewProposalModal({ visible, onClose }: NewProposalModalP
   ];
 
   const jobSources = [
-    { id: '1', name: 'Existing Customer', category: 'Retention' },
-    { id: '2', name: 'Repeat Project', category: 'Retention' },
-    { id: '3', name: 'Upgrade/Add-on', category: 'Expansion' }
+    { id: '1', name: 'Repeat Customer', category: 'Retention' },
+    { id: '2', name: 'Referral from Existing', category: 'Retention' },
+    { id: '3', name: 'Upsell/Cross-sell', category: 'Expansion' },
+    { id: '4', name: 'Seasonal Service', category: 'Recurring' },
+    { id: '5', name: 'Emergency/Urgent', category: 'Reactive' },
+    { id: '6', name: 'Networking Event', category: 'Outreach' },
+    { id: '7', name: 'Previous Quote Follow-up', category: 'Follow-up' }
   ];
 
   const proposalTemplates = [
@@ -108,6 +113,18 @@ export default function NewProposalModal({ visible, onClose }: NewProposalModalP
   const [selectedSalesperson, setSelectedSalesperson] = useState<any>(null);
   const [selectedSource, setSelectedSource] = useState<any>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
+
+  // Auto-populate job source when existing customer is selected
+  useEffect(() => {
+    if (proposalData.customerStatus === 'existing' && selectedCustomer && selectedCustomer.originalLeadSource) {
+      // Set the default job source to "Repeat Customer"
+      const repeatCustomerSource = jobSources.find(source => source.name === 'Repeat Customer');
+      if (repeatCustomerSource && !selectedSource) {
+        setSelectedSource(repeatCustomerSource);
+        setProposalData(prev => ({ ...prev, jobSource: repeatCustomerSource.name }));
+      }
+    }
+  }, [selectedCustomer, proposalData.customerStatus]);
 
   const canProceedToNext = () => {
     switch (proposalStep) {
@@ -387,13 +404,20 @@ export default function NewProposalModal({ visible, onClose }: NewProposalModalP
                     {/* Business Name */}
                     <View style={styles.inputGroup}>
                       <Text style={styles.inputLabel}>Business Name *</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={proposalData.businessName}
-                        onChangeText={(text) => setProposalData({...proposalData, businessName: text})}
-                        placeholder="Enter business name"
-                        placeholderTextColor="#9CA3AF"
-                      />
+                      <View style={[
+                        styles.inputContainer,
+                        focusedInput === 'businessName' && styles.inputContainerFocused
+                      ]}>
+                        <TextInput
+                          style={styles.input}
+                          value={proposalData.businessName}
+                          onChangeText={(text) => setProposalData({...proposalData, businessName: text})}
+                          placeholder="Enter business name"
+                          placeholderTextColor="#9CA3AF"
+                          onFocus={() => setFocusedInput('businessName')}
+                          onBlur={() => setFocusedInput(null)}
+                        />
+                      </View>
                     </View>
 
                     {/* Primary Contact Section */}
@@ -405,61 +429,96 @@ export default function NewProposalModal({ visible, onClose }: NewProposalModalP
                     <View style={styles.inputRow}>
                       <View style={[styles.inputGroup, styles.inputHalf]}>
                         <Text style={styles.inputLabel}>First Name *</Text>
-                        <TextInput
-                          style={styles.input}
-                          value={proposalData.contactFirstName}
-                          onChangeText={(text) => setProposalData({...proposalData, contactFirstName: text})}
-                          placeholder="First name"
-                          placeholderTextColor="#9CA3AF"
-                        />
+                        <View style={[
+                          styles.inputContainer,
+                          focusedInput === 'contactFirstName' && styles.inputContainerFocused
+                        ]}>
+                          <TextInput
+                            style={styles.input}
+                            value={proposalData.contactFirstName}
+                            onChangeText={(text) => setProposalData({...proposalData, contactFirstName: text})}
+                            placeholder="First name"
+                            placeholderTextColor="#9CA3AF"
+                            onFocus={() => setFocusedInput('contactFirstName')}
+                            onBlur={() => setFocusedInput(null)}
+                          />
+                        </View>
                       </View>
                       <View style={[styles.inputGroup, styles.inputHalf]}>
                         <Text style={styles.inputLabel}>Last Name *</Text>
-                        <TextInput
-                          style={styles.input}
-                          value={proposalData.contactLastName}
-                          onChangeText={(text) => setProposalData({...proposalData, contactLastName: text})}
-                          placeholder="Last name"
-                          placeholderTextColor="#9CA3AF"
-                        />
+                        <View style={[
+                          styles.inputContainer,
+                          focusedInput === 'contactLastName' && styles.inputContainerFocused
+                        ]}>
+                          <TextInput
+                            style={styles.input}
+                            value={proposalData.contactLastName}
+                            onChangeText={(text) => setProposalData({...proposalData, contactLastName: text})}
+                            placeholder="Last name"
+                            placeholderTextColor="#9CA3AF"
+                            onFocus={() => setFocusedInput('contactLastName')}
+                            onBlur={() => setFocusedInput(null)}
+                          />
+                        </View>
                       </View>
                     </View>
 
                     <View style={styles.inputRow}>
                       <View style={[styles.inputGroup, styles.inputHalf]}>
                         <Text style={styles.inputLabel}>Email *</Text>
-                        <TextInput
-                          style={styles.input}
-                          value={proposalData.contactEmail}
-                          onChangeText={(text) => setProposalData({...proposalData, contactEmail: text})}
-                          placeholder="contact@email.com"
-                          placeholderTextColor="#9CA3AF"
-                          keyboardType="email-address"
-                          autoCapitalize="none"
-                        />
+                        <View style={[
+                          styles.inputContainer,
+                          focusedInput === 'contactEmail' && styles.inputContainerFocused
+                        ]}>
+                          <TextInput
+                            style={styles.input}
+                            value={proposalData.contactEmail}
+                            onChangeText={(text) => setProposalData({...proposalData, contactEmail: text})}
+                            placeholder="contact@email.com"
+                            placeholderTextColor="#9CA3AF"
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            onFocus={() => setFocusedInput('contactEmail')}
+                            onBlur={() => setFocusedInput(null)}
+                          />
+                        </View>
                       </View>
                       <View style={[styles.inputGroup, styles.inputHalf]}>
                         <Text style={styles.inputLabel}>Phone *</Text>
-                        <TextInput
-                          style={styles.input}
-                          value={proposalData.contactPhone}
-                          onChangeText={(text) => setProposalData({...proposalData, contactPhone: text})}
-                          placeholder="(555) 123-4567"
-                          placeholderTextColor="#9CA3AF"
-                          keyboardType="phone-pad"
-                        />
+                        <View style={[
+                          styles.inputContainer,
+                          focusedInput === 'contactPhone' && styles.inputContainerFocused
+                        ]}>
+                          <TextInput
+                            style={styles.input}
+                            value={proposalData.contactPhone}
+                            onChangeText={(text) => setProposalData({...proposalData, contactPhone: text})}
+                            placeholder="(555) 123-4567"
+                            placeholderTextColor="#9CA3AF"
+                            keyboardType="phone-pad"
+                            onFocus={() => setFocusedInput('contactPhone')}
+                            onBlur={() => setFocusedInput(null)}
+                          />
+                        </View>
                       </View>
                     </View>
 
                     <View style={styles.inputGroup}>
                       <Text style={styles.inputLabel}>Title (Optional)</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={proposalData.contactTitle}
-                        onChangeText={(text) => setProposalData({...proposalData, contactTitle: text})}
-                        placeholder="e.g., CEO, Manager, Owner"
-                        placeholderTextColor="#9CA3AF"
-                      />
+                      <View style={[
+                        styles.inputContainer,
+                        focusedInput === 'contactTitle' && styles.inputContainerFocused
+                      ]}>
+                        <TextInput
+                          style={styles.input}
+                          value={proposalData.contactTitle}
+                          onChangeText={(text) => setProposalData({...proposalData, contactTitle: text})}
+                          placeholder="e.g., CEO, Manager, Owner"
+                          placeholderTextColor="#9CA3AF"
+                          onFocus={() => setFocusedInput('contactTitle')}
+                          onBlur={() => setFocusedInput(null)}
+                        />
+                      </View>
                     </View>
                   </>
                 ) : (
@@ -467,49 +526,77 @@ export default function NewProposalModal({ visible, onClose }: NewProposalModalP
                     <View style={styles.inputRow}>
                       <View style={[styles.inputGroup, styles.inputHalf]}>
                         <Text style={styles.inputLabel}>First Name *</Text>
-                        <TextInput
-                          style={styles.input}
-                          value={proposalData.firstName}
-                          onChangeText={(text) => setProposalData({...proposalData, firstName: text})}
-                          placeholder="First name"
-                          placeholderTextColor="#9CA3AF"
-                        />
+                        <View style={[
+                          styles.inputContainer,
+                          focusedInput === 'firstName' && styles.inputContainerFocused
+                        ]}>
+                          <TextInput
+                            style={styles.input}
+                            value={proposalData.firstName}
+                            onChangeText={(text) => setProposalData({...proposalData, firstName: text})}
+                            placeholder="First name"
+                            placeholderTextColor="#9CA3AF"
+                            onFocus={() => setFocusedInput('firstName')}
+                            onBlur={() => setFocusedInput(null)}
+                          />
+                        </View>
                       </View>
                       <View style={[styles.inputGroup, styles.inputHalf]}>
                         <Text style={styles.inputLabel}>Last Name *</Text>
-                        <TextInput
-                          style={styles.input}
-                          value={proposalData.lastName}
-                          onChangeText={(text) => setProposalData({...proposalData, lastName: text})}
-                          placeholder="Last name"
-                          placeholderTextColor="#9CA3AF"
-                        />
+                        <View style={[
+                          styles.inputContainer,
+                          focusedInput === 'lastName' && styles.inputContainerFocused
+                        ]}>
+                          <TextInput
+                            style={styles.input}
+                            value={proposalData.lastName}
+                            onChangeText={(text) => setProposalData({...proposalData, lastName: text})}
+                            placeholder="Last name"
+                            placeholderTextColor="#9CA3AF"
+                            onFocus={() => setFocusedInput('lastName')}
+                            onBlur={() => setFocusedInput(null)}
+                          />
+                        </View>
                       </View>
                     </View>
 
                     <View style={styles.inputRow}>
                       <View style={[styles.inputGroup, styles.inputHalf]}>
                         <Text style={styles.inputLabel}>Email</Text>
-                        <TextInput
-                          style={styles.input}
-                          value={proposalData.email}
-                          onChangeText={(text) => setProposalData({...proposalData, email: text})}
-                          placeholder="customer@email.com"
-                          placeholderTextColor="#9CA3AF"
-                          keyboardType="email-address"
-                          autoCapitalize="none"
-                        />
+                        <View style={[
+                          styles.inputContainer,
+                          focusedInput === 'email' && styles.inputContainerFocused
+                        ]}>
+                          <TextInput
+                            style={styles.input}
+                            value={proposalData.email}
+                            onChangeText={(text) => setProposalData({...proposalData, email: text})}
+                            placeholder="customer@email.com"
+                            placeholderTextColor="#9CA3AF"
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            onFocus={() => setFocusedInput('email')}
+                            onBlur={() => setFocusedInput(null)}
+                          />
+                        </View>
                       </View>
                       <View style={[styles.inputGroup, styles.inputHalf]}>
                         <Text style={styles.inputLabel}>Phone</Text>
-                        <TextInput
-                          style={styles.input}
-                          value={proposalData.phone}
-                          onChangeText={(text) => setProposalData({...proposalData, phone: text})}
-                          placeholder="(555) 123-4567"
-                          placeholderTextColor="#9CA3AF"
-                          keyboardType="phone-pad"
-                        />
+                        <View style={[
+                          styles.inputContainer,
+                          focusedInput === 'phone' && styles.inputContainerFocused
+                        ]}>
+                          <TextInput
+                            style={styles.input}
+                            value={proposalData.phone}
+                            onChangeText={(text) => setProposalData({...proposalData, phone: text})}
+                            placeholder="(555) 123-4567"
+                            placeholderTextColor="#9CA3AF"
+                            keyboardType="phone-pad"
+                            onFocus={() => setFocusedInput('phone')}
+                            onBlur={() => setFocusedInput(null)}
+                          />
+                        </View>
                       </View>
                     </View>
                   </>
@@ -517,7 +604,10 @@ export default function NewProposalModal({ visible, onClose }: NewProposalModalP
               ) : (
                 <>
                   {/* Search Bar */}
-                  <View style={styles.searchContainer}>
+                  <View style={[
+                    styles.searchContainer,
+                    focusedInput === 'search' && styles.inputContainerFocused
+                  ]}>
                     <Search size={20} color="#9CA3AF" style={styles.searchIcon} />
                     <TextInput
                       style={styles.searchInput}
@@ -525,6 +615,8 @@ export default function NewProposalModal({ visible, onClose }: NewProposalModalP
                       onChangeText={setSearchQuery}
                       placeholder={`Search ${proposalData.customerType === 'business' ? 'businesses' : 'contacts'}...`}
                       placeholderTextColor="#9CA3AF"
+                      onFocus={() => setFocusedInput('search')}
+                      onBlur={() => setFocusedInput(null)}
                     />
                   </View>
 
@@ -589,46 +681,74 @@ export default function NewProposalModal({ visible, onClose }: NewProposalModalP
 
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Street Address *</Text>
-                <TextInput
-                  style={styles.input}
-                  value={proposalData.jobStreet}
-                  onChangeText={(text) => setProposalData({...proposalData, jobStreet: text})}
-                  placeholder="123 Main Street"
-                  placeholderTextColor="#9CA3AF"
-                />
+                <View style={[
+                  styles.inputContainer,
+                  focusedInput === 'jobStreet' && styles.inputContainerFocused
+                ]}>
+                  <TextInput
+                    style={styles.input}
+                    value={proposalData.jobStreet}
+                    onChangeText={(text) => setProposalData({...proposalData, jobStreet: text})}
+                    placeholder="123 Main Street"
+                    placeholderTextColor="#9CA3AF"
+                    onFocus={() => setFocusedInput('jobStreet')}
+                    onBlur={() => setFocusedInput(null)}
+                  />
+                </View>
               </View>
 
               <View style={styles.inputRow}>
                 <View style={[styles.inputGroup, { flex: 2 }]}>
                   <Text style={styles.inputLabel}>City *</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={proposalData.jobCity}
-                    onChangeText={(text) => setProposalData({...proposalData, jobCity: text})}
-                    placeholder="Anytown"
-                    placeholderTextColor="#9CA3AF"
-                  />
+                  <View style={[
+                    styles.inputContainer,
+                    focusedInput === 'jobCity' && styles.inputContainerFocused
+                  ]}>
+                    <TextInput
+                      style={styles.input}
+                      value={proposalData.jobCity}
+                      onChangeText={(text) => setProposalData({...proposalData, jobCity: text})}
+                      placeholder="Anytown"
+                      placeholderTextColor="#9CA3AF"
+                      onFocus={() => setFocusedInput('jobCity')}
+                      onBlur={() => setFocusedInput(null)}
+                    />
+                  </View>
                 </View>
                 <View style={[styles.inputGroup, { flex: 1 }]}>
                   <Text style={styles.inputLabel}>State *</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={proposalData.jobState}
-                    onChangeText={(text) => setProposalData({...proposalData, jobState: text})}
-                    placeholder="CA"
-                    placeholderTextColor="#9CA3AF"
-                  />
+                  <View style={[
+                    styles.inputContainer,
+                    focusedInput === 'jobState' && styles.inputContainerFocused
+                  ]}>
+                    <TextInput
+                      style={styles.input}
+                      value={proposalData.jobState}
+                      onChangeText={(text) => setProposalData({...proposalData, jobState: text})}
+                      placeholder="CA"
+                      placeholderTextColor="#9CA3AF"
+                      onFocus={() => setFocusedInput('jobState')}
+                      onBlur={() => setFocusedInput(null)}
+                    />
+                  </View>
                 </View>
                 <View style={[styles.inputGroup, { flex: 1 }]}>
                   <Text style={styles.inputLabel}>ZIP *</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={proposalData.jobZip}
-                    onChangeText={(text) => setProposalData({...proposalData, jobZip: text})}
-                    placeholder="90210"
-                    placeholderTextColor="#9CA3AF"
-                    keyboardType="numeric"
-                  />
+                  <View style={[
+                    styles.inputContainer,
+                    focusedInput === 'jobZip' && styles.inputContainerFocused
+                  ]}>
+                    <TextInput
+                      style={styles.input}
+                      value={proposalData.jobZip}
+                      onChangeText={(text) => setProposalData({...proposalData, jobZip: text})}
+                      placeholder="90210"
+                      placeholderTextColor="#9CA3AF"
+                      keyboardType="numeric"
+                      onFocus={() => setFocusedInput('jobZip')}
+                      onBlur={() => setFocusedInput(null)}
+                    />
+                  </View>
                 </View>
               </View>
 
@@ -647,46 +767,74 @@ export default function NewProposalModal({ visible, onClose }: NewProposalModalP
                 <>
                   <View style={styles.inputGroup}>
                     <Text style={styles.inputLabel}>Billing Street Address *</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={proposalData.billingStreet}
-                      onChangeText={(text) => setProposalData({...proposalData, billingStreet: text})}
-                      placeholder="456 Billing Street"
-                      placeholderTextColor="#9CA3AF"
-                    />
+                    <View style={[
+                      styles.inputContainer,
+                      focusedInput === 'billingStreet' && styles.inputContainerFocused
+                    ]}>
+                      <TextInput
+                        style={styles.input}
+                        value={proposalData.billingStreet}
+                        onChangeText={(text) => setProposalData({...proposalData, billingStreet: text})}
+                        placeholder="456 Billing Street"
+                        placeholderTextColor="#9CA3AF"
+                        onFocus={() => setFocusedInput('billingStreet')}
+                        onBlur={() => setFocusedInput(null)}
+                      />
+                    </View>
                   </View>
 
                   <View style={styles.inputRow}>
                     <View style={[styles.inputGroup, { flex: 2 }]}>
                       <Text style={styles.inputLabel}>City *</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={proposalData.billingCity}
-                        onChangeText={(text) => setProposalData({...proposalData, billingCity: text})}
-                        placeholder="Billing City"
-                        placeholderTextColor="#9CA3AF"
-                      />
+                      <View style={[
+                        styles.inputContainer,
+                        focusedInput === 'billingCity' && styles.inputContainerFocused
+                      ]}>
+                        <TextInput
+                          style={styles.input}
+                          value={proposalData.billingCity}
+                          onChangeText={(text) => setProposalData({...proposalData, billingCity: text})}
+                          placeholder="Billing City"
+                          placeholderTextColor="#9CA3AF"
+                          onFocus={() => setFocusedInput('billingCity')}
+                          onBlur={() => setFocusedInput(null)}
+                        />
+                      </View>
                     </View>
                     <View style={[styles.inputGroup, { flex: 1 }]}>
                       <Text style={styles.inputLabel}>State *</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={proposalData.billingState}
-                        onChangeText={(text) => setProposalData({...proposalData, billingState: text})}
-                        placeholder="CA"
-                        placeholderTextColor="#9CA3AF"
-                      />
+                      <View style={[
+                        styles.inputContainer,
+                        focusedInput === 'billingState' && styles.inputContainerFocused
+                      ]}>
+                        <TextInput
+                          style={styles.input}
+                          value={proposalData.billingState}
+                          onChangeText={(text) => setProposalData({...proposalData, billingState: text})}
+                          placeholder="CA"
+                          placeholderTextColor="#9CA3AF"
+                          onFocus={() => setFocusedInput('billingState')}
+                          onBlur={() => setFocusedInput(null)}
+                        />
+                      </View>
                     </View>
                     <View style={[styles.inputGroup, { flex: 1 }]}>
                       <Text style={styles.inputLabel}>ZIP *</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={proposalData.billingZip}
-                        onChangeText={(text) => setProposalData({...proposalData, billingZip: text})}
-                        placeholder="90210"
-                        placeholderTextColor="#9CA3AF"
-                        keyboardType="numeric"
-                      />
+                      <View style={[
+                        styles.inputContainer,
+                        focusedInput === 'billingZip' && styles.inputContainerFocused
+                      ]}>
+                        <TextInput
+                          style={styles.input}
+                          value={proposalData.billingZip}
+                          onChangeText={(text) => setProposalData({...proposalData, billingZip: text})}
+                          placeholder="90210"
+                          placeholderTextColor="#9CA3AF"
+                          keyboardType="numeric"
+                          onFocus={() => setFocusedInput('billingZip')}
+                          onBlur={() => setFocusedInput(null)}
+                        />
+                      </View>
                     </View>
                   </View>
                 </>
@@ -737,9 +885,27 @@ export default function NewProposalModal({ visible, onClose }: NewProposalModalP
 
             {/* Source Selection */}
             <View style={styles.selectionContainer}>
+              {/* Show Original Lead Source Badge for Existing Customers */}
+              {proposalData.customerStatus === 'existing' && selectedCustomer?.originalLeadSource && (
+                <View style={styles.originalLeadSourceBadge}>
+                  <Lock size={16} color="#6B7280" style={{ marginRight: 8 }} />
+                  <Text style={styles.originalLeadSourceText}>
+                    Original Lead Source: <Text style={styles.originalLeadSourceValue}>{selectedCustomer.originalLeadSource}</Text>
+                  </Text>
+                </View>
+              )}
+              
               <Text style={styles.sectionLabel}>
                 {proposalData.customerStatus === 'new' ? 'Lead Source *' : 'Job Source *'}
               </Text>
+              
+              {/* Helper Text for Job Source */}
+              {proposalData.customerStatus === 'existing' && (
+                <Text style={styles.helperText}>
+                  Track where this specific job came from. The original lead source shows how this customer first found you.
+                </Text>
+              )}
+              
               {(proposalData.customerStatus === 'new' ? leadSources : jobSources).map((source) => (
                 <TouchableOpacity
                   key={source.id}
@@ -820,6 +986,8 @@ export default function NewProposalModal({ visible, onClose }: NewProposalModalP
                     onChangeText={setTemplateSearchQuery}
                     placeholder="Search templates..."
                     placeholderTextColor="#9CA3AF"
+                    onFocus={() => setFocusedInput('templateSearch')}
+                    onBlur={() => setFocusedInput(null)}
                   />
                 </View>
 
@@ -1243,15 +1411,29 @@ const styles = StyleSheet.create({
     color: '#374151',
     marginBottom: 8,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
+  inputContainer: {
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
     borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0,
+    shadowRadius: 4,
+    elevation: 0,
+  },
+  inputContainerFocused: {
+    borderColor: '#6366F1',
+    backgroundColor: '#F5F7FF',
+    shadowOpacity: 0.15,
+    elevation: 2,
+  },
+  input: {
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
     color: '#111827',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
   },
   inputRow: {
     flexDirection: 'row',
@@ -1263,6 +1445,15 @@ const styles = StyleSheet.create({
   searchContainer: {
     position: 'relative',
     marginBottom: 16,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0,
+    shadowRadius: 4,
+    elevation: 0,
   },
   searchIcon: {
     position: 'absolute',
@@ -1271,15 +1462,12 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   searchInput: {
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
     paddingLeft: 40,
     paddingRight: 12,
     paddingVertical: 10,
     fontSize: 14,
     color: '#111827',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
   },
   customerList: {
     gap: 8,
@@ -1439,6 +1627,33 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9CA3AF',
     marginTop: 4,
+  },
+  originalLeadSourceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  originalLeadSourceText: {
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  originalLeadSourceValue: {
+    color: '#111827',
+    fontWeight: '600',
+  },
+  helperText: {
+    fontSize: 13,
+    color: '#6B7280',
+    lineHeight: 18,
+    marginTop: 4,
+    marginBottom: 12,
   },
   footer: {
     flexDirection: 'row',
