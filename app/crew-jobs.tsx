@@ -197,7 +197,12 @@ export default function CrewJobsScreen() {
       </View>
 
       {/* Filter Tabs */}
-      <View style={styles.filterContainer}>
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        style={styles.filterScrollContainer}
+        contentContainerStyle={styles.filterContainer}
+      >
         <TouchableOpacity
           style={[styles.filterTab, filter === 'scheduled' && styles.filterTabActive]}
           onPress={() => setFilter('scheduled')}
@@ -230,7 +235,7 @@ export default function CrewJobsScreen() {
             All
           </Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
 
       <ScrollView
         style={styles.scrollView}
@@ -382,22 +387,24 @@ const styles = StyleSheet.create({
   headerRight: {
     width: 40,
   },
-  filterContainer: {
-    flexDirection: 'row',
+  filterScrollContainer: {
     backgroundColor: 'white',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6',
   },
-  filterTab: {
-    flex: 1,
-    paddingVertical: 8,
+  filterContainer: {
+    flexDirection: 'row',
     paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  filterTab: {
+    paddingVertical: 8,
+    paddingHorizontal: 20,
     borderRadius: 8,
     backgroundColor: '#f3f4f6',
     alignItems: 'center',
+    minWidth: 100,
   },
   filterTabActive: {
     backgroundColor: '#6366f1',

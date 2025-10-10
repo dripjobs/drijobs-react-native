@@ -7,6 +7,7 @@ import NewAppointmentModal from '@/components/NewAppointmentModal';
 import NewProposalModal from '@/components/NewProposalModal';
 import SendRequestModal from '@/components/SendRequestModal';
 import { useTabBar } from '@/contexts/TabBarContext';
+import { useIsCrew } from '@/contexts/UserRoleContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
     ArrowLeft,
@@ -115,8 +116,21 @@ interface TeamMessage {
 
 export default function TeamChat() {
   const { setIsTransparent, setIsVisible } = useTabBar();
+  const isCrew = useIsCrew();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Hide tab bar for crew members
+  useEffect(() => {
+    if (isCrew) {
+      setIsVisible(false);
+    }
+    return () => {
+      if (isCrew) {
+        setIsVisible(true);
+      }
+    };
+  }, [isCrew]);
   const [selectedChannel, setSelectedChannel] = useState<TeamChannel | null>(null);
   const [selectedDM, setSelectedDM] = useState<TeamDirectMessage | null>(null);
   const [newMessage, setNewMessage] = useState('');

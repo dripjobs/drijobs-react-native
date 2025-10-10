@@ -7,6 +7,7 @@ import FloatingActionMenu from '@/components/FloatingActionMenu';
 import NewAppointmentModal from '@/components/NewAppointmentModal';
 import NewProposalModal from '@/components/NewProposalModal';
 import SendRequestModal from '@/components/SendRequestModal';
+import { useTabBar } from '@/contexts/TabBarContext';
 import { useCrewPermissionLevel, useIsCrew } from '@/contexts/UserRoleContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -67,11 +68,24 @@ interface WorkOrder {
 type JobStage = 'all' | 'scheduled' | 'in-progress' | 'on-hold' | 'completed' | 'cancelled';
 
 export default function WorkOrders() {
+  const { setIsVisible } = useTabBar();
   const isCrew = useIsCrew();
   const permissionLevel = useCrewPermissionLevel();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeStage, setActiveStage] = useState<JobStage>('all');
+
+  // Hide tab bar for crew members
+  React.useEffect(() => {
+    if (isCrew) {
+      setIsVisible(false);
+    }
+    return () => {
+      if (isCrew) {
+        setIsVisible(true);
+      }
+    };
+  }, [isCrew]);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrder | null>(null);
   const [filters, setFilters] = useState({
