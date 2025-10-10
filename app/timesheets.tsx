@@ -1,5 +1,7 @@
 import { ActiveTimerDisplay } from '@/components/ActiveTimerDisplay';
+import { ClockInModal } from '@/components/ClockInModal';
 import { ClockInOutButton } from '@/components/ClockInOutButton';
+import { ClockOutModal } from '@/components/ClockOutModal';
 import { JobPickerForTimeTracking } from '@/components/JobPickerForTimeTracking';
 import { TimeEntryCard } from '@/components/TimeEntryCard';
 import { useTabBar } from '@/contexts/TabBarContext';
@@ -37,6 +39,8 @@ export default function TimesheetsScreen() {
   const [assignedJobs, setAssignedJobs] = useState<Job[]>([]);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [showJobPicker, setShowJobPicker] = useState(false);
+  const [showClockInModal, setShowClockInModal] = useState(false);
+  const [showClockOutModal, setShowClockOutModal] = useState(false);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('today');
   const [refreshing, setRefreshing] = useState(false);
   const [offlinePending, setOfflinePending] = useState(0);
@@ -124,7 +128,7 @@ export default function TimesheetsScreen() {
     setRefreshing(false);
   }, []);
 
-  const handleClockIn = async () => {
+  const handleClockInPress = () => {
     if (!selectedJob) {
       setShowJobPicker(true);
       return;
@@ -135,6 +139,15 @@ export default function TimesheetsScreen() {
       return;
     }
 
+    setShowClockInModal(true);
+  };
+
+  const handleClockIn = async (notes?: string) => {
+    if (!selectedJob || !crewMember) {
+      return;
+    }
+
+    setShowClockInModal(false);
     setIsActionLoading(true);
 
     try {
@@ -143,7 +156,8 @@ export default function TimesheetsScreen() {
         crewMember,
         selectedJob.id,
         selectedJob.projectName,
-        selectedJob.address
+        selectedJob.address,
+        notes
       );
 
       if (result.success) {
@@ -165,37 +179,30 @@ export default function TimesheetsScreen() {
     }
   };
 
-  const handleClockOut = async () => {
-    Alert.alert(
-      'Clock Out',
-      'Are you sure you want to clock out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clock Out',
-          style: 'destructive',
-          onPress: async () => {
-            setIsActionLoading(true);
-            try {
-              const result = await timeTrackingService.clockOut(currentCrewMemberId!);
+  const handleClockOutPress = () => {
+    setShowClockOutModal(true);
+  };
 
-              if (result.success) {
-                setActiveSession(null);
-                Alert.alert('Clocked Out', 'Successfully clocked out', [{ text: 'OK' }]);
-                loadTimeEntries();
-              } else {
-                Alert.alert('Clock Out Failed', result.error || 'Unknown error');
-              }
-            } catch (error) {
-              console.error('Clock out error:', error);
-              Alert.alert('Error', 'Failed to clock out. Please try again.');
-            } finally {
-              setIsActionLoading(false);
-            }
-          },
-        },
-      ]
-    );
+  const handleClockOut = async (notes?: string) => {
+    setShowClockOutModal(false);
+    setIsActionLoading(true);
+    
+    try {
+      const result = await timeTrackingService.clockOut(currentCrewMemberId!, notes);
+
+      if (result.success) {
+        setActiveSession(null);
+        Alert.alert('Clocked Out', 'Successfully clocked out', [{ text: 'OK' }]);
+        loadTimeEntries();
+      } else {
+        Alert.alert('Clock Out Failed', result.error || 'Unknown error');
+      }
+    } catch (error) {
+      console.error('Clock out error:', error);
+      Alert.alert('Error', 'Failed to clock out. Please try again.');
+    } finally {
+      setIsActionLoading(false);
+    }
   };
 
   const handleBreakToggle = async () => {
@@ -351,7 +358,7 @@ export default function TimesheetsScreen() {
               <ClockInOutButton
                 isClockedIn={true}
                 isLoading={isActionLoading}
-                onPress={handleClockOut}
+                onPress={handleClockOutPress}
               />
             </View>
           ) : (
@@ -391,7 +398,7 @@ export default function TimesheetsScreen() {
               <ClockInOutButton
                 isClockedIn={false}
                 isLoading={isActionLoading}
-                onPress={handleClockIn}
+                onPress={handleClockInPress}
                 disabled={!selectedJob}
               />
             </View>
@@ -470,8 +477,29 @@ export default function TimesheetsScreen() {
           onClose={() => setShowJobPicker(false)}
           selectedJobId={selectedJob?.id}
         />
+
+        <ClockInModal
+          visible={showClockInModal}
+          jobName={selectedJob?.projectName || ''}
+          onConfirm={handleClockIn}
+          onCancel={() => setShowClockInModal(false)}
+        />
+
+        <ClockOutModal
+          visible={showClockOutModal}
+          jobName={activeSession?.jobName || ''}
+          elapsedTime={formatElapsedTime(activeSession?.elapsedMinutes || 0)}
+          onConfirm={handleClockOut}
+          onCancel={() => setShowClockOutModal(false)}
+        />
       </SafeAreaView>
     );
+  }
+
+  function formatElapsedTime(minutes: number): string {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours}h ${mins}m`;
   }
 
   // Admin View - Show all timesheets (will be enhanced in next phase)

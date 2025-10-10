@@ -116,6 +116,7 @@ export interface ClockEvent {
   eventType: ClockEventType;
   timestamp: string;
   location?: GPSLocation;
+  notes?: string; // Optional notes from crew member
   deviceInfo?: string;
   isSynced: boolean; // For offline support
   createdAt: string;
@@ -143,7 +144,8 @@ export interface TimeEntry {
   overtimeCost: number;
   totalCost: number;
   status: TimeEntryStatus;
-  notes?: string;
+  clockInNotes?: string; // Notes added by crew member at clock in
+  clockOutNotes?: string; // Notes added by crew member at clock out
   adminNotes?: string;
   isEdited: boolean;
   editedBy?: string;

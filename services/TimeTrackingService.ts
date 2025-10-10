@@ -195,6 +195,7 @@ class TimeTrackingService {
         eventType: 'clock_in',
         timestamp: now,
         location: location || undefined,
+        notes,
         isSynced: true,
         createdAt: now,
       };
@@ -219,7 +220,7 @@ class TimeTrackingService {
         overtimeCost: 0,
         totalCost: 0,
         status: 'active',
-        notes,
+        clockInNotes: notes,
         isEdited: false,
         createdAt: now,
         updatedAt: now,
@@ -296,6 +297,7 @@ class TimeTrackingService {
         eventType: 'clock_out',
         timestamp: now,
         location: location || undefined,
+        notes,
         isSynced: true,
         createdAt: now,
       };
@@ -306,7 +308,7 @@ class TimeTrackingService {
         const entry = this.timeEntries[entryIndex];
         entry.clockOutTime = now;
         entry.clockOutLocation = location || undefined;
-        if (notes) entry.notes = notes;
+        if (notes) entry.clockOutNotes = notes;
 
         // Calculate hours and costs
         const calculations = this.calculateTimeAndCost(entry);

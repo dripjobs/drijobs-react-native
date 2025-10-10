@@ -156,10 +156,23 @@ export const TimeEntryCard: React.FC<TimeEntryCardProps> = ({
       )}
 
       {/* Notes */}
-      {entry.notes && (
+      {(entry.clockInNotes || entry.clockOutNotes) && (
         <View style={styles.notesContainer}>
           <Ionicons name="document-text-outline" size={14} color="#6b7280" />
-          <Text style={styles.notesText}>{entry.notes}</Text>
+          <View style={styles.notesContent}>
+            {entry.clockInNotes && (
+              <View style={styles.noteItem}>
+                <Text style={styles.noteLabel}>Clock In:</Text>
+                <Text style={styles.notesText}>{entry.clockInNotes}</Text>
+              </View>
+            )}
+            {entry.clockOutNotes && (
+              <View style={styles.noteItem}>
+                <Text style={styles.noteLabel}>Clock Out:</Text>
+                <Text style={styles.notesText}>{entry.clockOutNotes}</Text>
+              </View>
+            )}
+          </View>
         </View>
       )}
 
@@ -317,8 +330,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#fef3c7',
     borderRadius: 8,
   },
-  notesText: {
+  notesContent: {
     flex: 1,
+    gap: 8,
+  },
+  noteItem: {
+    gap: 4,
+  },
+  noteLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#92400e',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  notesText: {
     fontSize: 13,
     color: '#78350f',
   },
