@@ -7,6 +7,7 @@ import FloatingActionMenu from '@/components/FloatingActionMenu';
 import NewAppointmentModal from '@/components/NewAppointmentModal';
 import NewProposalModal from '@/components/NewProposalModal';
 import SendRequestModal from '@/components/SendRequestModal';
+import { useCrewPermissionLevel, useIsCrew } from '@/contexts/UserRoleContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
     AlertCircle,
@@ -66,6 +67,8 @@ interface WorkOrder {
 type JobStage = 'all' | 'scheduled' | 'in-progress' | 'on-hold' | 'completed' | 'cancelled';
 
 export default function WorkOrders() {
+  const isCrew = useIsCrew();
+  const permissionLevel = useCrewPermissionLevel();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeStage, setActiveStage] = useState<JobStage>('all');
@@ -796,10 +799,12 @@ export default function WorkOrders() {
                   <FileText size={20} color="#6366F1" />
                   <Text style={styles.actionButtonText}>View Work Order</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.actionButton}>
-                  <User size={20} color="#6366F1" />
-                  <Text style={styles.actionButtonText}>Contact Customer</Text>
-                </TouchableOpacity>
+                {(!isCrew || permissionLevel >= 2) && (
+                  <TouchableOpacity style={styles.actionButton}>
+                    <User size={20} color="#6366F1" />
+                    <Text style={styles.actionButtonText}>Contact Customer</Text>
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity style={styles.actionButton}>
                   <Building size={20} color="#6366F1" />
                   <Text style={styles.actionButtonText}>View Deal</Text>

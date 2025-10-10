@@ -1,6 +1,7 @@
 import CallInitiationModal from '@/components/CallInitiationModal';
 import DrawerMenu from '@/components/DrawerMenu';
 import { useTabBar } from '@/contexts/TabBarContext';
+import { useIsCrew } from '@/contexts/UserRoleContext';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -237,9 +238,22 @@ const monthNames = [
 ];
 
 export default function JobSchedule() {
-  const { setIsTransparent } = useTabBar();
+  const { setIsTransparent, setIsVisible } = useTabBar();
+  const isCrew = useIsCrew();
   const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Hide tab bar for crew members
+  React.useEffect(() => {
+    if (isCrew) {
+      setIsVisible(false);
+    }
+    return () => {
+      if (isCrew) {
+        setIsVisible(true);
+      }
+    };
+  }, [isCrew]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'calendar' | 'list' | 'grid'>('calendar');
