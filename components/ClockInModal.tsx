@@ -3,6 +3,7 @@ import * as Location from 'expo-location';
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
+    Dimensions,
     KeyboardAvoidingView,
     Modal,
     Platform,
@@ -15,6 +16,9 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface LocationData {
   latitude: number;
@@ -175,34 +179,54 @@ export const ClockInModal: React.FC<ClockInModalProps> = ({
 
                 {location && !loadingLocation && (
                   <View style={styles.locationInfo}>
-                    <View style={styles.locationCard}>
+                    {/* Address Display */}
+                    <View style={styles.addressCard}>
                       <View style={styles.locationRow}>
                         <Ionicons name="pin" size={16} color="#6b7280" />
-                        <Text style={styles.locationLabel}>Address:</Text>
+                        <Text style={styles.locationLabel}>Your Location:</Text>
                       </View>
                       <Text style={styles.locationAddress}>{location.address}</Text>
-                      
-                      <View style={styles.coordinatesContainer}>
-                        <View style={styles.coordinateItem}>
-                          <Text style={styles.coordinateLabel}>Latitude:</Text>
-                          <Text style={styles.coordinateValue}>
-                            {location.latitude.toFixed(6)}°
-                          </Text>
-                        </View>
-                        <View style={styles.coordinateDivider} />
-                        <View style={styles.coordinateItem}>
-                          <Text style={styles.coordinateLabel}>Longitude:</Text>
-                          <Text style={styles.coordinateValue}>
-                            {location.longitude.toFixed(6)}°
-                          </Text>
-                        </View>
-                      </View>
-
                       <View style={styles.timestampRow}>
                         <Ionicons name="time-outline" size={14} color="#9ca3af" />
                         <Text style={styles.timestamp}>
                           Captured at {new Date(location.timestamp).toLocaleTimeString()}
                         </Text>
+                      </View>
+                    </View>
+
+                    {/* Map Display */}
+                    <View style={styles.mapContainer}>
+                      <MapView
+                        style={styles.map}
+                        provider={PROVIDER_GOOGLE}
+                        initialRegion={{
+                          latitude: location.latitude,
+                          longitude: location.longitude,
+                          latitudeDelta: 0.005,
+                          longitudeDelta: 0.005,
+                        }}
+                        scrollEnabled={true}
+                        zoomEnabled={true}
+                        pitchEnabled={false}
+                        rotateEnabled={false}
+                      >
+                        <Marker
+                          coordinate={{
+                            latitude: location.latitude,
+                            longitude: location.longitude,
+                          }}
+                          title="Your Location"
+                          description={location.address}
+                          pinColor="#3b82f6"
+                        />
+                      </MapView>
+                      <View style={styles.mapOverlay}>
+                        <View style={styles.mapBadge}>
+                          <Ionicons name="location" size={16} color="#3b82f6" />
+                          <Text style={styles.mapBadgeText}>
+                            {location.latitude.toFixed(4)}°, {location.longitude.toFixed(4)}°
+                          </Text>
+                        </View>
                       </View>
                     </View>
 
@@ -496,7 +520,7 @@ const styles = StyleSheet.create({
   locationInfo: {
     gap: 12,
   },
-  locationCard: {
+  addressCard: {
     backgroundColor: '#f0f9ff',
     borderRadius: 12,
     padding: 16,
@@ -520,36 +544,8 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
     color: '#111827',
-    marginBottom: 12,
+    marginBottom: 8,
     lineHeight: 20,
-  },
-  coordinatesContainer: {
-    flexDirection: 'row',
-    backgroundColor: 'white',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-  },
-  coordinateItem: {
-    flex: 1,
-  },
-  coordinateDivider: {
-    width: 1,
-    backgroundColor: '#e5e7eb',
-    marginHorizontal: 12,
-  },
-  coordinateLabel: {
-    fontSize: 11,
-    color: '#6b7280',
-    marginBottom: 4,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  coordinateValue: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#1e40af',
-    fontVariant: ['tabular-nums'],
   },
   timestampRow: {
     flexDirection: 'row',
@@ -559,6 +555,46 @@ const styles = StyleSheet.create({
   timestamp: {
     fontSize: 11,
     color: '#9ca3af',
+  },
+  mapContainer: {
+    height: 200,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+    backgroundColor: '#f3f4f6',
+    position: 'relative',
+  },
+  map: {
+    width: '100%',
+    height: '100%',
+  },
+  mapOverlay: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    right: 12,
+    alignItems: 'flex-start',
+  },
+  mapBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  mapBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#3b82f6',
+    fontVariant: ['tabular-nums'],
   },
   verificationContainer: {
     flexDirection: 'row',
