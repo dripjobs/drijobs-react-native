@@ -1,8 +1,8 @@
 import { timeTrackingService } from '@/services/TimeTrackingService';
 import { ActiveClockSession } from '@/types/crew';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import {
     StyleSheet,
     Text,
@@ -18,16 +18,7 @@ export const ClockedInBanner: React.FC<ClockedInBannerProps> = ({ crewMemberId }
   const [session, setSession] = useState<ActiveClockSession | null>(null);
   const [elapsedTime, setElapsedTime] = useState('');
 
-  useEffect(() => {
-    loadSession();
-    const interval = setInterval(() => {
-      loadSession();
-    }, 60000); // Update every minute
-
-    return () => clearInterval(interval);
-  }, [crewMemberId]);
-
-  const loadSession = () => {
+  const loadSession = useCallback(() => {
     const activeSession = timeTrackingService.getActiveSessionByCrewMember(crewMemberId);
     if (activeSession) {
       setSession(activeSession);
@@ -36,7 +27,23 @@ export const ClockedInBanner: React.FC<ClockedInBannerProps> = ({ crewMemberId }
     } else {
       setSession(null);
     }
-  };
+  }, [crewMemberId]);
+
+  // Reload session when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      loadSession();
+    }, [loadSession])
+  );
+
+  useEffect(() => {
+    loadSession();
+    const interval = setInterval(() => {
+      loadSession();
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, [crewMemberId, loadSession]);
 
   const formatElapsedTime = (minutes: number): string => {
     const hours = Math.floor(minutes / 60);

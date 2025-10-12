@@ -11,7 +11,7 @@ import { timeTrackingService } from '@/services/TimeTrackingService';
 import { ActiveClockSession, CrewMember, TimeEntry } from '@/types/crew';
 import { Job } from '@/types/jobs';
 import { Ionicons } from '@expo/vector-icons';
-import { Stack } from 'expo-router';
+import { Stack, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -121,6 +121,17 @@ export default function TimesheetsScreen() {
   useEffect(() => {
     loadTimeEntries();
   }, [timeFilter]);
+
+  // Reload data when screen comes into focus (e.g., after clocking in/out from another screen)
+  useFocusEffect(
+    useCallback(() => {
+      if (currentCrewMemberId) {
+        const session = timeTrackingService.getActiveSessionByCrewMember(currentCrewMemberId);
+        setActiveSession(session);
+        loadTimeEntries();
+      }
+    }, [currentCrewMemberId])
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
