@@ -3,6 +3,8 @@ import { ClockInModal } from '@/components/ClockInModal';
 import { ClockInOutButton } from '@/components/ClockInOutButton';
 import { ClockOutModal } from '@/components/ClockOutModal';
 import { JobPickerForTimeTracking } from '@/components/JobPickerForTimeTracking';
+import { LiveTrackingDashboard } from '@/components/LiveTrackingDashboard';
+import { TimeEntriesManagementSection } from '@/components/TimeEntriesManagementSection';
 import { TimeEntryCard } from '@/components/TimeEntryCard';
 import { useTabBar } from '@/contexts/TabBarContext';
 import { useUserRole } from '@/contexts/UserRoleContext';
@@ -521,7 +523,9 @@ export default function TimesheetsScreen() {
     return `${hours}h ${mins}m`;
   }
 
-  // Admin View - Show all timesheets (will be enhanced in next phase)
+  // Admin View - Show all timesheets with live tracking and management
+  const [adminTab, setAdminTab] = useState<'live' | 'entries'>('live');
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <Stack.Screen
@@ -532,22 +536,42 @@ export default function TimesheetsScreen() {
         }}
       />
 
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.contentContainer}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        <View style={styles.adminPlaceholder}>
-          <Ionicons name="construct" size={64} color="#d1d5db" />
-          <Text style={styles.adminPlaceholderText}>Admin Dashboard</Text>
-          <Text style={styles.adminPlaceholderSubtext}>
-            Live tracking and reporting features coming next
+      {/* Tab Selector */}
+      <View style={styles.tabSelector}>
+        <TouchableOpacity
+          style={[styles.tab, adminTab === 'live' && styles.tabActive]}
+          onPress={() => setAdminTab('live')}
+        >
+          <Ionicons
+            name="pulse"
+            size={20}
+            color={adminTab === 'live' ? '#6366f1' : '#9ca3af'}
+          />
+          <Text style={[styles.tabText, adminTab === 'live' && styles.tabTextActive]}>
+            Live Tracking
           </Text>
-        </View>
-      </ScrollView>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, adminTab === 'entries' && styles.tabActive]}
+          onPress={() => setAdminTab('entries')}
+        >
+          <Ionicons
+            name="document-text"
+            size={20}
+            color={adminTab === 'entries' ? '#6366f1' : '#9ca3af'}
+          />
+          <Text style={[styles.tabText, adminTab === 'entries' && styles.tabTextActive]}>
+            Time Entries
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Tab Content */}
+      {adminTab === 'live' ? (
+        <LiveTrackingDashboard onRefresh={onRefresh} />
+      ) : (
+        <TimeEntriesManagementSection onRefresh={onRefresh} />
+      )}
     </SafeAreaView>
   );
 }
@@ -563,6 +587,33 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: 16,
     paddingBottom: 32,
+  },
+  tabSelector: {
+    flexDirection: 'row',
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    borderBottomWidth: 3,
+    borderBottomColor: 'transparent',
+  },
+  tabActive: {
+    borderBottomColor: '#6366f1',
+  },
+  tabText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#9ca3af',
+  },
+  tabTextActive: {
+    color: '#6366f1',
   },
   loadingContainer: {
     flex: 1,
@@ -723,26 +774,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   emptySubtext: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  adminPlaceholder: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 48,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    marginTop: 64,
-  },
-  adminPlaceholderText: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#374151',
-    marginTop: 16,
-  },
-  adminPlaceholderSubtext: {
     fontSize: 14,
     color: '#6b7280',
     marginTop: 8,
