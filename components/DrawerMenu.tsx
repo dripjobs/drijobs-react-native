@@ -1,8 +1,9 @@
-import { useCrewPermissionLevel, useIsCrew, useUserRole } from '@/contexts/UserRoleContext';
+import { useCrewPermissionLevel, useIsCrew, useIsSalesperson, useSalespersonPermissionLevel, useUserRole } from '@/contexts/UserRoleContext';
 import { crewService } from '@/services/CrewService';
+import { salespersonService } from '@/services/SalespersonService';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { Activity, BarChart3, Bell, Building2, Calendar, Calendar as CalendarIcon, CheckSquare, ChevronRight, CircleUser, Clock, Droplets, FileCheck, FileText, Globe, Grid3x3, Hash, Home, Mail, MessageSquare, Package, RotateCcw, Settings2, Star, Users, Wrench, X, Zap } from 'lucide-react-native';
+import { Activity, BarChart3, Bell, Building2, Calendar, Calendar as CalendarIcon, CheckSquare, ChevronRight, CircleUser, Clock, Droplets, FileCheck, FileText, Globe, Grid3x3, Hash, Home, Mail, MessageSquare, Package, RotateCcw, Settings2, Star, TrendingUp, Users, Wrench, X, Zap } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Animated, Dimensions, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { PanGestureHandler } from 'react-native-gesture-handler';
@@ -20,12 +21,19 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
   const screenWidth = Dimensions.get('window').width;
   
   const isCrew = useIsCrew();
+  const isSalesperson = useIsSalesperson();
   const permissionLevel = useCrewPermissionLevel();
-  const { impersonatingCrewMemberId } = useUserRole();
+  const salespersonPermissionLevel = useSalespersonPermissionLevel();
+  const { impersonatingCrewMemberId, impersonatingSalespersonId } = useUserRole();
   
   // Load crew member info if impersonating
   const crewMember = isCrew && impersonatingCrewMemberId 
     ? crewService.getCrewMembers().find(m => m.id === impersonatingCrewMemberId)
+    : null;
+  
+  // Load salesperson info if impersonating
+  const salesperson = isSalesperson && impersonatingSalespersonId 
+    ? salespersonService.getSalespersonById(impersonatingSalespersonId)
     : null;
 
   // Crew Member Menu (Simplified)
@@ -66,6 +74,52 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
       items: [
         { icon: Bell, label: 'Notifications', action: () => router.push('/notifications') },
         { icon: CircleUser, label: 'My Profile', action: () => router.push('/my-profile') },
+        { icon: CircleUser, label: 'Switch Role', action: () => { onClose(); setShowRoleModal(true); } },
+      ]
+    }
+  ];
+
+  // Salesperson Menu (Sales-Focused)
+  const salespersonMenuSections = [
+    {
+      title: 'Sales',
+      items: [
+        { icon: TrendingUp, label: 'Scoreboard', action: () => router.push('/scoreboard'), primary: true },
+        { icon: BarChart3, label: 'Pipeline', action: () => router.push('/(tabs)/pipeline'), primary: true },
+        { icon: Calendar, label: 'Appointments', action: () => router.push('/appointments'), primary: true },
+      ]
+    },
+    {
+      title: 'Schedule',
+      items: [
+        { icon: Clock, label: 'Job Schedule', action: () => router.push('/job-schedule') },
+        { icon: Clock, label: 'Timesheets', action: () => router.push('/timesheets') },
+        { icon: Home, label: 'My Day', action: () => router.push('/(tabs)/') },
+      ]
+    },
+    {
+      title: 'Communication',
+      items: [
+        { icon: Hash, label: 'Team Chat', action: () => router.push('/(tabs)/team-chat') },
+        ...(salespersonPermissionLevel >= 2 ? [
+          { icon: MessageSquare, label: 'Chat', action: () => router.push('/(tabs)/chat') },
+          { icon: Grid3x3, label: 'Phone', action: () => router.push('/(tabs)/phone') },
+          { icon: Mail, label: 'Email', action: () => router.push('/email') },
+        ] : []),
+      ]
+    },
+    {
+      title: 'Tasks',
+      items: [
+        { icon: CheckSquare, label: 'Tasks', action: () => router.push('/(tabs)/tasks') },
+      ]
+    },
+    {
+      title: 'Account',
+      items: [
+        { icon: Bell, label: 'Notifications', action: () => router.push('/notifications') },
+        { icon: CircleUser, label: 'My Profile', action: () => router.push('/my-profile') },
+        { icon: CircleUser, label: 'Switch Role', action: () => { onClose(); setShowRoleModal(true); } },
       ]
     }
   ];
@@ -250,11 +304,15 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
                       <Text style={styles.name}>
                         {isCrew && crewMember 
                           ? `${crewMember.firstName} ${crewMember.lastName}`
+                          : isSalesperson && salesperson
+                          ? `${salesperson.firstName} ${salesperson.lastName}`
                           : 'John Doe'}
                       </Text>
                       <Text style={styles.role}>
                         {isCrew && crewMember 
                           ? crewMember.role 
+                          : isSalesperson && salesperson
+                          ? salesperson.territory || 'Salesperson'
                           : 'Sales Manager'}
                       </Text>
                       <Text style={styles.company}>Drip Jobs Inc.</Text>
@@ -270,19 +328,19 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
                 <TouchableOpacity 
                   style={styles.myProfileButton}
                   onPress={() => {
-                    router.push(isCrew ? '/my-profile' : '/account-settings');
+                    router.push((isCrew || isSalesperson) ? '/my-profile' : '/account-settings');
                     onClose();
                   }}
                 >
                   <View style={styles.myProfileContent}>
                     <CircleUser size={18} color="#FFFFFF" />
                     <View style={styles.myProfileTextContainer}>
-                      <Text style={styles.myProfileText}>
-                        {isCrew ? 'My Profile' : 'My Profile'}
-                      </Text>
+                      <Text style={styles.myProfileText}>My Profile</Text>
                       <Text style={styles.myProfileSubtext}>
                         {isCrew 
                           ? `Level ${permissionLevel} Crew Member` 
+                          : isSalesperson
+                          ? `Level ${salespersonPermissionLevel} Salesperson`
                           : 'Edit personal settings'}
                       </Text>
                     </View>
@@ -292,7 +350,7 @@ export default function DrawerMenu({ isOpen, onClose }: DrawerMenuProps) {
               </LinearGradient>
 
               <ScrollView style={styles.menu} showsVerticalScrollIndicator={false}>
-                {(isCrew ? crewMenuSections : adminMenuSections).map((section, sectionIndex) => (
+                {(isCrew ? crewMenuSections : isSalesperson ? salespersonMenuSections : adminMenuSections).map((section, sectionIndex) => (
                   <View key={sectionIndex} style={styles.section}>
                     <Text style={styles.sectionTitle}>{section.title}</Text>
                     <View style={styles.sectionItems}>

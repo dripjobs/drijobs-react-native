@@ -889,6 +889,402 @@ class TimeTrackingService {
     ]);
   }
 
+  // ==================== ADMIN METHODS ====================
+
+  /**
+   * Get all active sessions for live tracking
+   */
+  getAllActiveSessions(): ActiveClockSession[] {
+    return this.activeSessions;
+  }
+
+  /**
+   * Get live tracking data with cost calculations
+   */
+  getLiveTrackingData(): {
+    activeSessions: ActiveClockSession[];
+    totalClockedIn: number;
+    totalCostPerHour: number;
+    totalCostAccrued: number;
+  } {
+    const activeSessions = this.activeSessions;
+    const totalClockedIn = activeSessions.length;
+    const totalCostPerHour = activeSessions.reduce((sum, session) => sum + session.hourlyRate, 0);
+    const totalCostAccrued = activeSessions.reduce((sum, session) => {
+      const hours = session.elapsedMinutes / 60;
+      return sum + (hours * session.hourlyRate);
+    }, 0);
+
+    return {
+      activeSessions,
+      totalClockedIn,
+      totalCostPerHour,
+      totalCostAccrued,
+    };
+  }
+
+  /**
+   * Remote clock out a crew member (admin action)
+   */
+  async remoteClockOut(
+    crewMemberId: string,
+    adminId: string,
+    reason: string
+  ): Promise<{ success: boolean; timeEntry?: TimeEntry; error?: string }> {
+    try {
+      // Find active session
+      const sessionIndex = this.activeSessions.findIndex(
+        s => s.crewMemberId === crewMemberId
+      );
+      if (sessionIndex === -1) {
+        return {
+          success: false,
+          error: 'No active clock-in session found for this crew member',
+        };
+      }
+
+      const session = this.activeSessions[sessionIndex];
+      const now = new Date().toISOString();
+
+      // Create clock out event (no location for remote clock-out)
+      const clockEvent: ClockEvent = {
+        id: `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        timeEntryId: session.timeEntryId,
+        crewMemberId,
+        eventType: 'clock_out',
+        timestamp: now,
+        notes: `Remote clock-out by admin. Reason: ${reason}`,
+        isSynced: true,
+        createdAt: now,
+      };
+
+      // Update time entry
+      const entryIndex = this.timeEntries.findIndex(e => e.id === session.timeEntryId);
+      if (entryIndex !== -1) {
+        const entry = this.timeEntries[entryIndex];
+        entry.clockOutTime = now;
+        entry.wasRemoteClockOut = true;
+        entry.remoteClockOutBy = adminId;
+        entry.remoteClockOutReason = reason;
+
+        // Calculate hours and costs
+        const clockInDate = new Date(entry.clockInTime);
+        const clockOutDate = new Date(now);
+        const diffMs = clockOutDate.getTime() - clockInDate.getTime();
+        const totalMinutes = Math.floor(diffMs / 60000) - entry.totalBreakMinutes;
+        
+        entry.totalMinutes = totalMinutes;
+        entry.totalHours = totalMinutes / 60;
+
+        // Calculate regular and overtime hours
+        const overtimeThreshold = this.settings.overtimeAfterHours || 8;
+        if (entry.totalHours <= overtimeThreshold) {
+          entry.regularHours = entry.totalHours;
+          entry.overtimeHours = 0;
+        } else {
+          entry.regularHours = overtimeThreshold;
+          entry.overtimeHours = entry.totalHours - overtimeThreshold;
+        }
+
+        // Calculate costs
+        entry.regularCost = entry.regularHours * entry.hourlyRate;
+        entry.overtimeCost = entry.overtimeHours * entry.hourlyRate * this.settings.overtimeMultiplier;
+        entry.totalCost = entry.regularCost + entry.overtimeCost;
+        entry.status = 'pending';
+        entry.updatedAt = now;
+
+        this.clockEvents.push(clockEvent);
+        this.activeSessions.splice(sessionIndex, 1);
+
+        await this.saveAll();
+
+        return {
+          success: true,
+          timeEntry: entry,
+        };
+      }
+
+      return {
+        success: false,
+        error: 'Time entry not found',
+      };
+    } catch (error) {
+      console.error('Remote clock out error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Approve a time entry
+   */
+  async approveTimeEntry(
+    entryId: string,
+    adminId: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const entryIndex = this.timeEntries.findIndex(e => e.id === entryId);
+      if (entryIndex === -1) {
+        return { success: false, error: 'Time entry not found' };
+      }
+
+      const entry = this.timeEntries[entryIndex];
+      entry.status = 'approved';
+      entry.approvedBy = adminId;
+      entry.approvedAt = new Date().toISOString();
+      entry.updatedAt = new Date().toISOString();
+
+      await this.saveTimeEntries();
+
+      return { success: true };
+    } catch (error) {
+      console.error('Approve time entry error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Reject a time entry
+   */
+  async rejectTimeEntry(
+    entryId: string,
+    adminId: string,
+    reason: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const entryIndex = this.timeEntries.findIndex(e => e.id === entryId);
+      if (entryIndex === -1) {
+        return { success: false, error: 'Time entry not found' };
+      }
+
+      const entry = this.timeEntries[entryIndex];
+      entry.status = 'rejected';
+      entry.rejectedBy = adminId;
+      entry.rejectedAt = new Date().toISOString();
+      entry.rejectionReason = reason;
+      entry.updatedAt = new Date().toISOString();
+
+      await this.saveTimeEntries();
+
+      return { success: true };
+    } catch (error) {
+      console.error('Reject time entry error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Bulk approve time entries
+   */
+  async bulkApproveTimeEntries(
+    entryIds: string[],
+    adminId: string
+  ): Promise<{ success: boolean; approved: number; failed: number }> {
+    let approved = 0;
+    let failed = 0;
+
+    for (const entryId of entryIds) {
+      const result = await this.approveTimeEntry(entryId, adminId);
+      if (result.success) {
+        approved++;
+      } else {
+        failed++;
+      }
+    }
+
+    return {
+      success: failed === 0,
+      approved,
+      failed,
+    };
+  }
+
+  /**
+   * Bulk reject time entries
+   */
+  async bulkRejectTimeEntries(
+    entryIds: string[],
+    adminId: string,
+    reason: string
+  ): Promise<{ success: boolean; rejected: number; failed: number }> {
+    let rejected = 0;
+    let failed = 0;
+
+    for (const entryId of entryIds) {
+      const result = await this.rejectTimeEntry(entryId, adminId, reason);
+      if (result.success) {
+        rejected++;
+      } else {
+        failed++;
+      }
+    }
+
+    return {
+      success: failed === 0,
+      rejected,
+      failed,
+    };
+  }
+
+  /**
+   * Edit a time entry (admin adjustment)
+   */
+  async editTimeEntry(
+    entryId: string,
+    adminId: string,
+    updates: {
+      clockInTime?: string;
+      clockOutTime?: string;
+      breakDuration?: number;
+      adminNotes?: string;
+    }
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const entryIndex = this.timeEntries.findIndex(e => e.id === entryId);
+      if (entryIndex === -1) {
+        return { success: false, error: 'Time entry not found' };
+      }
+
+      const entry = this.timeEntries[entryIndex];
+      const changes: any[] = [];
+
+      // Track changes
+      if (updates.clockInTime && updates.clockInTime !== entry.clockInTime) {
+        changes.push({
+          field: 'clockInTime',
+          oldValue: entry.clockInTime,
+          newValue: updates.clockInTime,
+        });
+        entry.clockInTime = updates.clockInTime;
+      }
+
+      if (updates.clockOutTime && updates.clockOutTime !== entry.clockOutTime) {
+        changes.push({
+          field: 'clockOutTime',
+          oldValue: entry.clockOutTime,
+          newValue: updates.clockOutTime,
+        });
+        entry.clockOutTime = updates.clockOutTime;
+      }
+
+      if (updates.breakDuration !== undefined && updates.breakDuration !== entry.totalBreakMinutes) {
+        changes.push({
+          field: 'totalBreakMinutes',
+          oldValue: entry.totalBreakMinutes,
+          newValue: updates.breakDuration,
+        });
+        entry.totalBreakMinutes = updates.breakDuration;
+      }
+
+      if (updates.adminNotes) {
+        entry.adminNotes = updates.adminNotes;
+      }
+
+      // Recalculate if times changed
+      if (updates.clockInTime || updates.clockOutTime || updates.breakDuration !== undefined) {
+        const clockInDate = new Date(entry.clockInTime);
+        const clockOutDate = new Date(entry.clockOutTime || new Date());
+        const diffMs = clockOutDate.getTime() - clockInDate.getTime();
+        const totalMinutes = Math.floor(diffMs / 60000) - entry.totalBreakMinutes;
+        
+        entry.totalMinutes = totalMinutes;
+        entry.totalHours = totalMinutes / 60;
+
+        // Calculate regular and overtime hours
+        const overtimeThreshold = this.settings.overtimeAfterHours || 8;
+        if (entry.totalHours <= overtimeThreshold) {
+          entry.regularHours = entry.totalHours;
+          entry.overtimeHours = 0;
+        } else {
+          entry.regularHours = overtimeThreshold;
+          entry.overtimeHours = entry.totalHours - overtimeThreshold;
+        }
+
+        // Calculate costs
+        entry.regularCost = entry.regularHours * entry.hourlyRate;
+        entry.overtimeCost = entry.overtimeHours * entry.hourlyRate * this.settings.overtimeMultiplier;
+        entry.totalCost = entry.regularCost + entry.overtimeCost;
+      }
+
+      // Add to edit history
+      if (!entry.editHistory) {
+        entry.editHistory = [];
+      }
+      entry.editHistory.push({
+        editedBy: adminId,
+        editedAt: new Date().toISOString(),
+        changes,
+      });
+
+      entry.isEdited = true;
+      entry.editedBy = adminId;
+      entry.editedAt = new Date().toISOString();
+      entry.updatedAt = new Date().toISOString();
+
+      await this.saveTimeEntries();
+
+      return { success: true };
+    } catch (error) {
+      console.error('Edit time entry error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Get time entries with filters for admin
+   */
+  getTimeEntriesForAdmin(filters: any): TimeEntry[] {
+    let entries = [...this.timeEntries];
+
+    // Filter by date range
+    if (filters.startDate) {
+      entries = entries.filter(e => e.createdAt >= filters.startDate!);
+    }
+    if (filters.endDate) {
+      entries = entries.filter(e => e.createdAt <= filters.endDate!);
+    }
+
+    // Filter by crew members
+    if (filters.crewMemberIds && filters.crewMemberIds.length > 0) {
+      entries = entries.filter(e => filters.crewMemberIds!.includes(e.crewMemberId));
+    }
+
+    // Filter by jobs
+    if (filters.jobIds && filters.jobIds.length > 0) {
+      entries = entries.filter(e => filters.jobIds!.includes(e.jobId));
+    }
+
+    // Filter by status
+    if (filters.status && filters.status !== 'all') {
+      entries = entries.filter(e => e.status === filters.status);
+    }
+
+    // Search query
+    if (filters.searchQuery) {
+      const query = filters.searchQuery.toLowerCase();
+      entries = entries.filter(e => 
+        e.crewMemberName.toLowerCase().includes(query) ||
+        e.jobName.toLowerCase().includes(query)
+      );
+    }
+
+    // Sort by date (newest first)
+    entries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    return entries;
+  }
+
   // ==================== MOCK DATA INITIALIZATION ====================
 
   async initializeMockData() {

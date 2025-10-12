@@ -1,6 +1,7 @@
 import { useAppSettings } from '@/contexts/AppSettingsContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useTabBar } from '@/contexts/TabBarContext';
+import { useCrewPermissionLevel, useIsCrew, useIsSalesperson, useSalespersonPermissionLevel } from '@/contexts/UserRoleContext';
 import { Tabs } from 'expo-router';
 import { BarChart3, Building2, Calendar, CalendarDays, Grid3x3, Hash, House, Mail, MessageCircle, MessageSquare, Package, SquareCheck, TrendingUp, Users, Wrench } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
@@ -54,6 +55,10 @@ export default function TabLayout() {
   const { isTransparent, isVisible } = useTabBar();
   const { missedCalls } = useNotifications();
   const { selectedTabs, isLoading } = useAppSettings();
+  const isCrew = useIsCrew();
+  const isSalesperson = useIsSalesperson();
+  const salespersonPermissionLevel = useSalespersonPermissionLevel();
+  const crewPermissionLevel = useCrewPermissionLevel();
 
   // If settings are loading, show default tabs
   if (isLoading) {
@@ -62,6 +67,32 @@ export default function TabLayout() {
 
   // Create a set of selected tab IDs for quick lookup
   const selectedTabIds = new Set(selectedTabs.map(tab => tab.id));
+
+  // Helper function to check if a tab should be visible based on role
+  const isTabVisibleForRole = (tabId: string): boolean => {
+    // Admin can see all tabs
+    if (!isCrew && !isSalesperson) return true;
+
+    // Crew visibility
+    if (isCrew) {
+      const crewAllowedTabs = ['work-orders', 'team-chat', 'tasks'];
+      if (crewPermissionLevel >= 2) {
+        crewAllowedTabs.push('chat', 'phone');
+      }
+      return crewAllowedTabs.includes(tabId);
+    }
+
+    // Salesperson visibility
+    if (isSalesperson) {
+      const salespersonAllowedTabs = ['pipeline', 'appointments', 'job-schedule', 'team-chat', 'tasks'];
+      if (salespersonPermissionLevel >= 2) {
+        salespersonAllowedTabs.push('chat', 'phone', 'email');
+      }
+      return salespersonAllowedTabs.includes(tabId);
+    }
+
+    return true;
+  };
 
   return (
     <Tabs
@@ -74,12 +105,12 @@ export default function TabLayout() {
         tabBarIconStyle: styles.tabBarIcon,
         tabBarBackground: () => <View style={isTransparent ? styles.transparentTabBarBackground : styles.tabBarBackground} />,
       }}>
-      {/* Dynamically render all tabs based on user preferences */}
+      {/* Dynamically render all tabs based on user preferences and role */}
       <Tabs.Screen
         name="index"
         options={{
           title: 'Dashboard',
-          href: selectedTabIds.has('index') ? undefined : null,
+          href: (selectedTabIds.has('index') && isTabVisibleForRole('index')) ? undefined : null,
           tabBarIcon: ({ size, color }) => (
             <House size={24} color={color} strokeWidth={2} />
           ),
@@ -89,7 +120,7 @@ export default function TabLayout() {
         name="contacts"
         options={{
           title: 'Contacts',
-          href: selectedTabIds.has('contacts') ? undefined : null,
+          href: (selectedTabIds.has('contacts') && isTabVisibleForRole('contacts')) ? undefined : null,
           tabBarIcon: ({ size, color }) => (
             <Users size={24} color={color} strokeWidth={2} />
           ),
@@ -99,7 +130,7 @@ export default function TabLayout() {
         name="pipeline"
         options={{
           title: 'Pipeline',
-          href: selectedTabIds.has('pipeline') ? undefined : null,
+          href: (selectedTabIds.has('pipeline') && isTabVisibleForRole('pipeline')) ? undefined : null,
           tabBarIcon: ({ size, color }) => (
             <BarChart3 size={24} color={color} strokeWidth={2} />
           ),
@@ -109,7 +140,7 @@ export default function TabLayout() {
         name="metrics"
         options={{
           title: 'Metrics',
-          href: selectedTabIds.has('metrics') ? undefined : null,
+          href: (selectedTabIds.has('metrics') && isTabVisibleForRole('metrics')) ? undefined : null,
           tabBarIcon: ({ size, color }) => (
             <TrendingUp size={24} color={color} strokeWidth={2} />
           ),
@@ -119,7 +150,7 @@ export default function TabLayout() {
         name="phone"
         options={{
           title: 'Voice',
-          href: selectedTabIds.has('phone') ? undefined : null,
+          href: (selectedTabIds.has('phone') && isTabVisibleForRole('phone')) ? undefined : null,
           tabBarIcon: ({ size, color }) => (
             <View style={styles.tabIconContainer}>
               <Grid3x3 size={24} color={color} strokeWidth={2} />
@@ -132,7 +163,7 @@ export default function TabLayout() {
         name="chat"
         options={{
           title: 'Chat',
-          href: selectedTabIds.has('chat') ? undefined : null,
+          href: (selectedTabIds.has('chat') && isTabVisibleForRole('chat')) ? undefined : null,
           tabBarIcon: ({ size, color }) => (
             <MessageSquare size={24} color={color} strokeWidth={2} />
           ),
@@ -142,7 +173,7 @@ export default function TabLayout() {
         name="team-chat"
         options={{
           title: 'Team Chat',
-          href: selectedTabIds.has('team-chat') ? undefined : null,
+          href: (selectedTabIds.has('team-chat') && isTabVisibleForRole('team-chat')) ? undefined : null,
           tabBarIcon: ({ size, color }) => (
             <Hash size={24} color={color} strokeWidth={2} />
           ),
@@ -152,7 +183,7 @@ export default function TabLayout() {
         name="businesses"
         options={{
           title: 'Businesses',
-          href: selectedTabIds.has('businesses') ? undefined : null,
+          href: (selectedTabIds.has('businesses') && isTabVisibleForRole('businesses')) ? undefined : null,
           tabBarIcon: ({ size, color }) => (
             <Building2 size={24} color={color} strokeWidth={2} />
           ),
@@ -162,7 +193,7 @@ export default function TabLayout() {
         name="email"
         options={{
           title: 'Email',
-          href: selectedTabIds.has('email') ? undefined : null,
+          href: (selectedTabIds.has('email') && isTabVisibleForRole('email')) ? undefined : null,
           tabBarIcon: ({ size, color }) => (
             <Mail size={24} color={color} strokeWidth={2} />
           ),
@@ -172,7 +203,7 @@ export default function TabLayout() {
         name="work-orders"
         options={{
           title: 'Work Orders',
-          href: selectedTabIds.has('work-orders') ? undefined : null,
+          href: (selectedTabIds.has('work-orders') && isTabVisibleForRole('work-orders')) ? undefined : null,
           tabBarIcon: ({ size, color }) => (
             <Wrench size={24} color={color} strokeWidth={2} />
           ),
@@ -182,7 +213,7 @@ export default function TabLayout() {
         name="tasks"
         options={{
           title: 'Tasks',
-          href: selectedTabIds.has('tasks') ? undefined : null,
+          href: (selectedTabIds.has('tasks') && isTabVisibleForRole('tasks')) ? undefined : null,
           tabBarIcon: ({ size, color }) => (
             <SquareCheck size={24} color={color} strokeWidth={2} />
           ),
@@ -192,7 +223,7 @@ export default function TabLayout() {
         name="products"
         options={{
           title: 'Products',
-          href: selectedTabIds.has('products') ? undefined : null,
+          href: (selectedTabIds.has('products') && isTabVisibleForRole('products')) ? undefined : null,
           tabBarIcon: ({ size, color }) => (
             <Package size={24} color={color} strokeWidth={2} />
           ),
@@ -202,7 +233,7 @@ export default function TabLayout() {
         name="appointments"
         options={{
           title: 'Appointments',
-          href: selectedTabIds.has('appointments') ? undefined : null,
+          href: (selectedTabIds.has('appointments') && isTabVisibleForRole('appointments')) ? undefined : null,
           tabBarIcon: ({ size, color }) => (
             <Calendar size={24} color={color} strokeWidth={2} />
           ),
@@ -212,7 +243,7 @@ export default function TabLayout() {
         name="job-schedule"
         options={{
           title: 'Job Schedule',
-          href: selectedTabIds.has('job-schedule') ? undefined : null,
+          href: (selectedTabIds.has('job-schedule') && isTabVisibleForRole('job-schedule')) ? undefined : null,
           tabBarIcon: ({ size, color }) => (
             <CalendarDays size={24} color={color} strokeWidth={2} />
           ),

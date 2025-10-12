@@ -1,298 +1,347 @@
+import { timeTrackingService } from '@/services/TimeTrackingService';
+import { ActiveClockSession } from '@/types/crew';
+import { calculateAccruingCost, formatCurrency, formatDuration } from '@/utils/costCalculations';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import {
-    Alert,
-    RefreshControl,
+    ActivityIndicator,
+    Dimensions,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from 'react-native';
-import { timeTrackingService } from '../services/TimeTrackingService';
-import { ActiveClockSession } from '../types/crew';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import { RemoteClockOutModal } from './RemoteClockOutModal';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface LiveTrackingDashboardProps {
-  onAdminClockOut?: (session: ActiveClockSession) => void;
+  onRefresh?: () => void;
 }
 
-export const LiveTrackingDashboard: React.FC<LiveTrackingDashboardProps> = ({
-  onAdminClockOut,
-}) => {
-  const [activeSessions, setActiveSessions] = useState<ActiveClockSession[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
+type ViewMode = 'list' | 'map';
+
+export const LiveTrackingDashboard: React.FC<LiveTrackingDashboardProps> = ({ onRefresh }) => {
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [trackingData, setTrackingData] = useState<{
+    activeSessions: ActiveClockSession[];
+    totalClockedIn: number;
+    totalCostPerHour: number;
+    totalCostAccrued: number;
+  } | null>(null);
+  const [selectedSessionForClockOut, setSelectedSessionForClockOut] = useState<ActiveClockSession | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadSessions();
-    // Refresh every 30 seconds
-    const interval = setInterval(loadSessions, 30000);
+    loadLiveData();
+    
+    // Poll every 5 seconds for live updates
+    const interval = setInterval(() => {
+      loadLiveData();
+    }, 5000);
+
     return () => clearInterval(interval);
   }, []);
 
-  const loadSessions = () => {
-    const sessions = timeTrackingService.getActiveSessions();
-    setActiveSessions(sessions);
+  const loadLiveData = () => {
+    try {
+      const data = timeTrackingService.getLiveTrackingData();
+      setTrackingData(data);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error loading live tracking data:', error);
+      setLoading(false);
+    }
   };
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    loadSessions();
-    setRefreshing(false);
+  const handleRemoteClockOut = () => {
+    setSelectedSessionForClockOut(null);
+    loadLiveData();
+    onRefresh?.();
   };
 
-  const handleAdminClockOut = (session: ActiveClockSession) => {
-    Alert.alert(
-      'Admin Clock Out',
-      `Clock out ${session.crewMemberName}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clock Out',
-          style: 'destructive',
-          onPress: () => {
-            if (onAdminClockOut) {
-              onAdminClockOut(session);
-            }
-          },
-        },
-      ]
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#6366f1" />
+        <Text style={styles.loadingText}>Loading live tracking...</Text>
+      </View>
     );
-  };
+  }
 
-  const formatDuration = (minutes: number) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours}h ${mins}m`;
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-    }).format(amount);
-  };
-
-  const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-    });
-  };
-
-  const totalEstimatedCost = activeSessions.reduce(
-    (sum, session) => sum + session.estimatedCost,
-    0
-  );
+  if (!trackingData) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Ionicons name="time-outline" size={64} color="#d1d5db" />
+        <Text style={styles.emptyText}>Unable to load tracking data</Text>
+      </View>
+    );
+  }
 
   return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      showsVerticalScrollIndicator={false}
-    >
+    <View style={styles.container}>
       {/* Summary Card */}
       <View style={styles.summaryCard}>
-        <View style={styles.summaryHeader}>
-          <View style={styles.liveIndicator}>
-            <View style={styles.pulseDot} />
-            <Text style={styles.liveText}>LIVE</Text>
+        <View style={styles.summaryRow}>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Clocked In</Text>
+            <Text style={styles.summaryValue}>{trackingData.totalClockedIn}</Text>
           </View>
-          <Text style={styles.lastUpdate}>
-            Updated {new Date().toLocaleTimeString('en-US', {
-              hour: 'numeric',
-              minute: '2-digit',
-            })}
-          </Text>
-        </View>
-
-        <View style={styles.summaryStats}>
-          <View style={styles.statItem}>
-            <Ionicons name="people" size={24} color="#3b82f6" />
-            <Text style={styles.statValue}>{activeSessions.length}</Text>
-            <Text style={styles.statLabel}>Clocked In</Text>
+          <View style={styles.summaryDivider} />
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Cost/Hour</Text>
+            <Text style={styles.summaryValue}>
+              {formatCurrency(trackingData.totalCostPerHour)}
+            </Text>
           </View>
-
-          <View style={styles.statDivider} />
-
-          <View style={styles.statItem}>
-            <Ionicons name="cash" size={24} color="#10b981" />
-            <Text style={styles.statValue}>{formatCurrency(totalEstimatedCost)}</Text>
-            <Text style={styles.statLabel}>Est. Cost</Text>
+          <View style={styles.summaryDivider} />
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Accrued</Text>
+            <Text style={styles.summaryValue}>
+              {formatCurrency(trackingData.totalCostAccrued)}
+            </Text>
           </View>
         </View>
       </View>
 
-      {/* Active Sessions */}
-      {activeSessions.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Ionicons name="time-outline" size={64} color="#d1d5db" />
-          <Text style={styles.emptyText}>No Active Sessions</Text>
+      {/* View Mode Toggle */}
+      <View style={styles.viewToggle}>
+        <TouchableOpacity
+          style={[styles.toggleButton, viewMode === 'list' && styles.toggleButtonActive]}
+          onPress={() => setViewMode('list')}
+        >
+          <Ionicons
+            name="list"
+            size={20}
+            color={viewMode === 'list' ? '#fff' : '#6366f1'}
+          />
+          <Text style={[styles.toggleText, viewMode === 'list' && styles.toggleTextActive]}>
+            List
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.toggleButton, viewMode === 'map' && styles.toggleButtonActive]}
+          onPress={() => setViewMode('map')}
+        >
+          <Ionicons
+            name="map"
+            size={20}
+            color={viewMode === 'map' ? '#fff' : '#6366f1'}
+          />
+          <Text style={[styles.toggleText, viewMode === 'map' && styles.toggleTextActive]}>
+            Map
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Content */}
+      {trackingData.activeSessions.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="people-outline" size={64} color="#d1d5db" />
+          <Text style={styles.emptyText}>No crew members currently clocked in</Text>
           <Text style={styles.emptySubtext}>
-            No crew members are currently clocked in
+            Crew members will appear here when they clock in
           </Text>
         </View>
-      ) : (
-        activeSessions.map(session => (
-          <View key={session.id} style={styles.sessionCard}>
-            {/* Header */}
-            <View style={styles.sessionHeader}>
-              <View style={styles.crewInfo}>
-                <Ionicons name="person-circle" size={40} color="#3b82f6" />
-                <View style={styles.crewDetails}>
+      ) : viewMode === 'list' ? (
+        <ScrollView style={styles.listView} showsVerticalScrollIndicator={false}>
+          {trackingData.activeSessions.map((session) => (
+            <View key={session.id} style={styles.crewCard}>
+              <View style={styles.crewHeader}>
+                <View style={styles.crewAvatar}>
+                  <Ionicons name="person" size={24} color="#6366f1" />
+                </View>
+                <View style={styles.crewInfo}>
                   <Text style={styles.crewName}>{session.crewMemberName}</Text>
                   <Text style={styles.crewRole}>{session.crewMemberRole}</Text>
                 </View>
+                <View style={styles.statusBadge}>
+                  <View style={styles.pulseDot} />
+                  <Text style={styles.statusText}>ACTIVE</Text>
+                </View>
               </View>
+
+              <View style={styles.jobInfo}>
+                <View style={styles.jobRow}>
+                  <Ionicons name="briefcase-outline" size={16} color="#6b7280" />
+                  <Text style={styles.jobName}>{session.jobName}</Text>
+                </View>
+                {session.jobAddress && (
+                  <View style={styles.jobRow}>
+                    <Ionicons name="location-outline" size={16} color="#6b7280" />
+                    <Text style={styles.jobAddress}>{session.jobAddress}</Text>
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.metricsRow}>
+                <View style={styles.metricItem}>
+                  <Ionicons name="time-outline" size={18} color="#6b7280" />
+                  <View>
+                    <Text style={styles.metricLabel}>Elapsed</Text>
+                    <Text style={styles.metricValue}>
+                      {formatDuration(session.elapsedMinutes)}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.metricItem}>
+                  <Ionicons name="cash-outline" size={18} color="#6b7280" />
+                  <View>
+                    <Text style={styles.metricLabel}>Est. Cost</Text>
+                    <Text style={styles.metricValue}>
+                      {formatCurrency(calculateAccruingCost(session, session.hourlyRate))}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
               <TouchableOpacity
                 style={styles.clockOutButton}
-                onPress={() => handleAdminClockOut(session)}
+                onPress={() => setSelectedSessionForClockOut(session)}
               >
-                <Ionicons name="stop-circle" size={20} color="white" />
-                <Text style={styles.clockOutText}>Clock Out</Text>
+                <Ionicons name="stop-circle-outline" size={20} color="#ef4444" />
+                <Text style={styles.clockOutButtonText}>Remote Clock Out</Text>
               </TouchableOpacity>
             </View>
+          ))}
+        </ScrollView>
+      ) : (
+        <View style={styles.mapView}>
+          <MapView
+            style={styles.map}
+            provider={PROVIDER_GOOGLE}
+            initialRegion={{
+              latitude: trackingData.activeSessions[0]?.clockInLocation?.latitude || 28.5384,
+              longitude: trackingData.activeSessions[0]?.clockInLocation?.longitude || -81.3792,
+              latitudeDelta: 0.5,
+              longitudeDelta: 0.5,
+            }}
+          >
+            {trackingData.activeSessions.map((session, index) => {
+              if (!session.clockInLocation) return null;
+              
+              return (
+                <Marker
+                  key={session.id}
+                  coordinate={{
+                    latitude: session.clockInLocation.latitude,
+                    longitude: session.clockInLocation.longitude,
+                  }}
+                  title={session.crewMemberName}
+                  description={`${session.jobName} - ${formatDuration(session.elapsedMinutes)}`}
+                  pinColor="#6366f1"
+                />
+              );
+            })}
+          </MapView>
 
-            {/* Job Info */}
-            <View style={styles.jobSection}>
-              <View style={styles.jobHeader}>
-                <Ionicons name="briefcase" size={18} color="#6b7280" />
-                <Text style={styles.jobName}>{session.jobName}</Text>
-              </View>
-              {session.jobAddress && (
-                <View style={styles.jobAddress}>
-                  <Ionicons name="location-outline" size={14} color="#9ca3af" />
-                  <Text style={styles.jobAddressText}>{session.jobAddress}</Text>
-                </View>
-              )}
+          {/* Map Legend */}
+          <View style={styles.mapLegend}>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: '#6366f1' }]} />
+              <Text style={styles.legendText}>Active Crew</Text>
             </View>
-
-            {/* Time Info */}
-            <View style={styles.timeSection}>
-              <View style={styles.timeRow}>
-                <View style={styles.timeItem}>
-                  <Ionicons name="log-in-outline" size={16} color="#10b981" />
-                  <Text style={styles.timeLabel}>Clock In:</Text>
-                  <Text style={styles.timeValue}>{formatTime(session.clockInTime)}</Text>
-                </View>
-
-                <View style={styles.timeItem}>
-                  <Ionicons name="hourglass-outline" size={16} color="#3b82f6" />
-                  <Text style={styles.timeLabel}>Duration:</Text>
-                  <Text style={styles.timeValue}>{formatDuration(session.elapsedMinutes)}</Text>
-                </View>
-              </View>
-
-              {session.currentBreak && (
-                <View style={styles.breakBanner}>
-                  <Ionicons name="pause-circle" size={16} color="#f59e0b" />
-                  <Text style={styles.breakText}>
-                    On Break ({Math.floor(session.currentBreak.elapsedMinutes)} min)
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            {/* Cost Info */}
-            <View style={styles.costSection}>
-              <View style={styles.costRow}>
-                <View style={styles.costLabel}>
-                  <Ionicons name="cash-outline" size={16} color="#1e40af" />
-                  <Text style={styles.costLabelText}>Estimated Cost:</Text>
-                </View>
-                <Text style={styles.costValue}>{formatCurrency(session.estimatedCost)}</Text>
-              </View>
-              <Text style={styles.costBreakdown}>
-                ${session.hourlyRate}/hr × {(session.elapsedMinutes / 60).toFixed(2)}h
-              </Text>
-            </View>
-
-            {/* GPS Indicator */}
-            {session.clockInLocation && (
-              <View style={styles.gpsIndicator}>
-                <Ionicons name="location" size={12} color="#10b981" />
-                <Text style={styles.gpsText}>
-                  GPS verified ({session.clockInLocation.accuracy.toFixed(0)}m accuracy)
-                </Text>
-              </View>
-            )}
           </View>
-        ))
+        </View>
       )}
-    </ScrollView>
+
+      {/* Remote Clock Out Modal */}
+      {selectedSessionForClockOut && (
+        <RemoteClockOutModal
+          visible={true}
+          session={selectedSessionForClockOut}
+          onConfirm={handleRemoteClockOut}
+          onCancel={() => setSelectedSessionForClockOut(null)}
+        />
+      )}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f9fafb',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f9fafb',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#6b7280',
   },
   summaryCard: {
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
   },
-  summaryHeader: {
+  summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
   },
-  liveIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#dcfce7',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  pulseDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#10b981',
-  },
-  liveText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#10b981',
-    letterSpacing: 1,
-  },
-  lastUpdate: {
-    fontSize: 12,
-    color: '#6b7280',
-  },
-  summaryStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statItem: {
+  summaryItem: {
     flex: 1,
     alignItems: 'center',
-    gap: 8,
   },
-  statValue: {
+  summaryLabel: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  summaryValue: {
     fontSize: 24,
     fontWeight: '700',
     color: '#111827',
   },
-  statLabel: {
-    fontSize: 12,
-    color: '#6b7280',
-  },
-  statDivider: {
+  summaryDivider: {
     width: 1,
-    height: 60,
+    height: 40,
     backgroundColor: '#e5e7eb',
   },
-  sessionCard: {
+  viewToggle: {
+    flexDirection: 'row',
+    padding: 16,
+    gap: 12,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  toggleButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#f3f4f6',
+  },
+  toggleButtonActive: {
+    backgroundColor: '#6366f1',
+  },
+  toggleText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366f1',
+  },
+  toggleTextActive: {
+    color: 'white',
+  },
+  listView: {
+    flex: 1,
+    padding: 16,
+  },
+  crewCard: {
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 16,
@@ -300,19 +349,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e5e7eb',
   },
-  sessionHeader: {
+  crewHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
   },
-  crewInfo: {
-    flexDirection: 'row',
+  crewAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#ede9fe',
     alignItems: 'center',
-    gap: 12,
-    flex: 1,
+    justifyContent: 'center',
+    marginRight: 12,
   },
-  crewDetails: {
+  crewInfo: {
     flex: 1,
   },
   crewName: {
@@ -324,149 +375,141 @@ const styles = StyleSheet.create({
   crewRole: {
     fontSize: 13,
     color: '#6b7280',
-    textTransform: 'capitalize',
   },
-  clockOutButton: {
+  statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#ef4444',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: '#dcfce7',
+    borderRadius: 12,
   },
-  clockOutText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: 'white',
+  pulseDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10b981',
   },
-  jobSection: {
-    backgroundColor: '#f9fafb',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
+  statusText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#10b981',
+    letterSpacing: 0.5,
   },
-  jobHeader: {
+  jobInfo: {
+    marginBottom: 16,
+    gap: 8,
+  },
+  jobRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 4,
   },
   jobName: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '500',
     color: '#111827',
     flex: 1,
   },
   jobAddress: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 4,
-  },
-  jobAddressText: {
     fontSize: 13,
     color: '#6b7280',
     flex: 1,
   },
-  timeSection: {
-    marginBottom: 12,
-  },
-  timeRow: {
+  metricsRow: {
     flexDirection: 'row',
-    gap: 16,
+    gap: 20,
+    marginBottom: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#f3f4f6',
   },
-  timeItem: {
-    flex: 1,
+  metricItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 10,
   },
-  timeLabel: {
-    fontSize: 13,
-    color: '#6b7280',
+  metricLabel: {
+    fontSize: 11,
+    color: '#9ca3af',
+    marginBottom: 2,
   },
-  timeValue: {
-    fontSize: 13,
+  metricValue: {
+    fontSize: 15,
     fontWeight: '600',
     color: '#111827',
   },
-  breakBanner: {
+  clockOutButton: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#fef3c7',
-    padding: 8,
-    borderRadius: 6,
-    marginTop: 8,
-  },
-  breakText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#92400e',
-  },
-  costSection: {
-    backgroundColor: '#f0f9ff',
-    borderRadius: 8,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#bfdbfe',
-  },
-  costRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  costLabel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  costLabelText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#1e40af',
-  },
-  costValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1e40af',
-  },
-  costBreakdown: {
-    fontSize: 11,
-    color: '#3b82f6',
-    textAlign: 'right',
-  },
-  gpsIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 8,
-  },
-  gpsText: {
-    fontSize: 11,
-    color: '#10b981',
-    fontWeight: '500',
-  },
-  emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 48,
-    backgroundColor: 'white',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#fef2f2',
+    borderWidth: 1,
+    borderColor: '#fecaca',
+  },
+  clockOutButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#ef4444',
+  },
+  mapView: {
+    flex: 1,
+    position: 'relative',
+  },
+  map: {
+    width: '100%',
+    height: '100%',
+  },
+  mapLegend: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  legendDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  legendText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#111827',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
   },
   emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#374151',
     marginTop: 16,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6b7280',
+    textAlign: 'center',
   },
   emptySubtext: {
-    fontSize: 14,
-    color: '#6b7280',
     marginTop: 8,
+    fontSize: 14,
+    color: '#9ca3af',
     textAlign: 'center',
   },
 });
-

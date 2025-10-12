@@ -152,7 +152,13 @@ export interface TimeEntry {
   editedAt?: string;
   approvedBy?: string;
   approvedAt?: string;
+  rejectedBy?: string;
+  rejectedAt?: string;
   rejectionReason?: string;
+  wasRemoteClockOut?: boolean;
+  remoteClockOutBy?: string;
+  remoteClockOutReason?: string;
+  editHistory?: TimeEntryEdit[];
   createdAt: string;
   updatedAt: string;
 }
@@ -289,4 +295,52 @@ export interface LaborCostReport {
     hours: number;
     cost: number;
   }>;
+}
+
+// ==================== ADMIN TYPES ====================
+
+// Time entry edit history
+export interface TimeEntryEdit {
+  editedBy: string;
+  editedAt: string;
+  changes: {
+    field: string;
+    oldValue: any;
+    newValue: any;
+  }[];
+  reason?: string;
+}
+
+// Admin filters for time entries
+export interface AdminTimeEntryFilters {
+  startDate?: string;
+  endDate?: string;
+  crewMemberIds?: string[];
+  jobIds?: string[];
+  status?: TimeEntryStatus | 'all';
+  searchQuery?: string;
+}
+
+// Bulk operation result
+export interface BulkOperationResult {
+  success: boolean;
+  processed: number;
+  failed: number;
+  errors?: string[];
+}
+
+// Live tracking data
+export interface LiveTrackingData {
+  activeSessions: ActiveClockSession[];
+  totalClockedIn: number;
+  totalCostPerHour: number;
+  totalCostAccrued: number;
+}
+
+// Remote clock out request
+export interface RemoteClockOutRequest {
+  crewMemberId: string;
+  adminId: string;
+  reason: string;
+  timestamp: string;
 }

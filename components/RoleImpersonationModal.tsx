@@ -12,7 +12,9 @@ import {
 } from 'react-native';
 import { useUserRole } from '../contexts/UserRoleContext';
 import { crewService } from '../services/CrewService';
+import { salespersonService } from '../services/SalespersonService';
 import { CrewMember } from '../types/crew';
+import { Salesperson } from '../types/salesperson';
 import { ROLE_DEFINITIONS, UserRole } from '../types/userRoles';
 
 interface RoleImpersonationModalProps {
@@ -24,12 +26,14 @@ export const RoleImpersonationModal: React.FC<RoleImpersonationModalProps> = ({
   visible,
   onClose,
 }) => {
-  const { currentRole, impersonatingCrewMemberId, setUserRole, clearImpersonation } = useUserRole();
+  const { currentRole, impersonatingCrewMemberId, impersonatingSalespersonId, setUserRole, clearImpersonation } = useUserRole();
   const [crewMembers, setCrewMembers] = useState<CrewMember[]>([]);
+  const [salespeople, setSalespeople] = useState<Salesperson[]>([]);
 
   useEffect(() => {
     if (visible) {
       loadCrewMembers();
+      loadSalespeople();
     }
   }, [visible]);
 
@@ -38,26 +42,47 @@ export const RoleImpersonationModal: React.FC<RoleImpersonationModalProps> = ({
     setCrewMembers(members);
   };
 
-  const handleRoleSwitch = async (role: UserRole, crewMemberId?: string) => {
+  const loadSalespeople = () => {
+    const people = salespersonService.getActiveSalespeople();
+    setSalespeople(people);
+  };
+
+  const handleRoleSwitch = async (role: UserRole, userId?: string) => {
     try {
-      if (role === 'crew' && !crewMemberId) {
+      if (role === 'crew' && !userId) {
         Alert.alert('Error', 'Please select a crew member to impersonate');
         return;
       }
 
-      // Get permission level from crew member
-      const member = crewMembers.find(m => m.id === crewMemberId);
-      const permissionLevel = member?.permissionLevel || 1;
+      if (role === 'salesperson' && !userId) {
+        Alert.alert('Error', 'Please select a salesperson to impersonate');
+        return;
+      }
 
-      await setUserRole(role, crewMemberId, permissionLevel);
-      
-      const levelLabel = permissionLevel === 1 ? 'Level 1 - Basic' : permissionLevel === 2 ? 'Level 2 - Customer Comms' : 'Level 3';
+      let permissionLevel = 1;
+      let userName = '';
+      let levelLabel = '';
+
+      // Get permission level from crew member or salesperson
+      if (role === 'crew') {
+        const member = crewMembers.find(m => m.id === userId);
+        permissionLevel = member?.permissionLevel || 1;
+        userName = `${member?.firstName} ${member?.lastName}`;
+        levelLabel = permissionLevel === 1 ? 'Level 1 - Basic' : permissionLevel === 2 ? 'Level 2 - Customer Comms' : 'Level 3';
+      } else if (role === 'salesperson') {
+        const person = salespeople.find(p => p.id === userId);
+        permissionLevel = person?.permissionLevel || 1;
+        userName = `${person?.firstName} ${person?.lastName}`;
+        levelLabel = permissionLevel === 1 ? 'Level 1 - Basic' : permissionLevel === 2 ? 'Level 2 - Customer Comms' : 'Level 3';
+      }
+
+      await setUserRole(role, userId, permissionLevel);
       
       Alert.alert(
         'Role Changed',
         `You are now viewing the app as ${ROLE_DEFINITIONS[role].label}${
-          crewMemberId 
-            ? ` (${member?.firstName} ${member?.lastName} - ${levelLabel})` 
+          userId 
+            ? ` (${userName} - ${levelLabel})` 
             : ''
         }`,
         [{ text: 'OK', onPress: onClose }]
@@ -106,6 +131,16 @@ export const RoleImpersonationModal: React.FC<RoleImpersonationModalProps> = ({
                       Impersonating:{' '}
                       {crewMembers.find(m => m.id === impersonatingCrewMemberId)?.firstName}{' '}
                       {crewMembers.find(m => m.id === impersonatingCrewMemberId)?.lastName}
+                    </Text>
+                  </View>
+                )}
+                {impersonatingSalespersonId && (
+                  <View style={styles.impersonatingBanner}>
+                    <Ionicons name="person-circle-outline" size={16} color="#f59e0b" />
+                    <Text style={styles.impersonatingText}>
+                      Impersonating:{' '}
+                      {salespeople.find(p => p.id === impersonatingSalespersonId)?.firstName}{' '}
+                      {salespeople.find(p => p.id === impersonatingSalespersonId)?.lastName}
                     </Text>
                   </View>
                 )}
@@ -222,6 +257,63 @@ export const RoleImpersonationModal: React.FC<RoleImpersonationModalProps> = ({
                     </Text>
                   </View>
                   {impersonatingCrewMemberId === member.id && (
+                    <Ionicons name="checkmark-circle" size={24} color="#10b981" />
+                  )}
+                </TouchableOpacity>
+              ))
+            )}
+          </View>
+
+          {/* Salesperson Impersonation */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Impersonate Salesperson</Text>
+            <Text style={styles.sectionSubtitle}>
+              View the app as a specific salesperson for testing
+            </Text>
+
+            {salespeople.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Ionicons name="briefcase-outline" size={48} color="#d1d5db" />
+                <Text style={styles.emptyText}>No active salespeople</Text>
+              </View>
+            ) : (
+              salespeople.map(person => (
+                <TouchableOpacity
+                  key={person.id}
+                  style={[
+                    styles.crewMemberCard,
+                    impersonatingSalespersonId === person.id && styles.crewMemberCardActive,
+                  ]}
+                  onPress={() => handleRoleSwitch('salesperson', person.id)}
+                >
+                  <View style={[styles.roleIcon, { backgroundColor: '#fef3c7' }]}>
+                    <Ionicons name="trending-up" size={24} color="#f59e0b" />
+                  </View>
+                  <View style={styles.crewMemberInfo}>
+                    <Text style={styles.crewMemberName}>
+                      {person.firstName} {person.lastName}
+                    </Text>
+                    <View style={styles.badgeRow}>
+                      <Text style={[styles.crewMemberRole, { color: '#f59e0b' }]}>
+                        {person.territory || 'Sales'}
+                      </Text>
+                      <View style={[
+                        styles.permissionBadge,
+                        { backgroundColor: person.permissionLevel === 1 ? '#dbeafe' : '#dcfce7' }
+                      ]}>
+                        <Text style={[
+                          styles.permissionBadgeText,
+                          { color: person.permissionLevel === 1 ? '#1e40af' : '#047857' }
+                        ]}>
+                          Level {person.permissionLevel}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.crewMemberDetails}>
+                      {person.employeeNumber} • Target: ${(person.salesTarget / 1000).toFixed(0)}k
+                    </Text>
+                  </View>
+                  {impersonatingSalespersonId === person.id && (
                     <Ionicons name="checkmark-circle" size={24} color="#10b981" />
                   )}
                 </TouchableOpacity>

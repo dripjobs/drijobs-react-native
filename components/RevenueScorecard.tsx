@@ -34,6 +34,7 @@ export default function RevenueScorecard({ visible, onClose, jobs }: RevenueScor
   });
   const [revenueData, setRevenueData] = useState<RevenueCalculationResult | null>(null);
   const [fadeAnim] = useState(new Animated.Value(0));
+  const [selectedCrewForAudit, setSelectedCrewForAudit] = useState<string | null>(null);
 
   // Calculate revenue when inputs change
   useEffect(() => {
@@ -65,7 +66,16 @@ export default function RevenueScorecard({ visible, onClose, jobs }: RevenueScor
     setSettings(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const handleCrewCardPress = (crewId: string) => {
+    setSelectedCrewForAudit(crewId);
+  };
+
+  const handleCloseAuditModal = () => {
+    setSelectedCrewForAudit(null);
+  };
+
   const periodLabel = revenueService.formatPeriodLabel(period, currentDate);
+  const selectedCrewData = revenueData?.crewRevenues.find(crew => crew.crewId === selectedCrewForAudit);
 
   return (
     <Modal
@@ -169,7 +179,12 @@ export default function RevenueScorecard({ visible, onClose, jobs }: RevenueScor
             {revenueData && revenueData.crewRevenues.length > 0 ? (
               <Animated.View style={{ opacity: fadeAnim }}>
                 {revenueData.crewRevenues.map((crewRevenue, index) => (
-                  <View key={crewRevenue.crewId} style={styles.crewCard}>
+                  <TouchableOpacity 
+                    key={crewRevenue.crewId} 
+                    style={styles.crewCard}
+                    onPress={() => handleCrewCardPress(crewRevenue.crewId)}
+                    activeOpacity={0.7}
+                  >
                     <View style={styles.crewCardHeader}>
                       <View style={styles.crewRank}>
                         <Text style={styles.crewRankText}>#{index + 1}</Text>
@@ -218,7 +233,7 @@ export default function RevenueScorecard({ visible, onClose, jobs }: RevenueScor
                         />
                       </View>
                     )}
-                  </View>
+                  </TouchableOpacity>
                 ))}
               </Animated.View>
             ) : (
@@ -234,6 +249,88 @@ export default function RevenueScorecard({ visible, onClose, jobs }: RevenueScor
           </ScrollView>
         </View>
       </View>
+
+      {/* Audit Trail Modal */}
+      <Modal
+        visible={selectedCrewForAudit !== null}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={handleCloseAuditModal}
+      >
+        <View style={styles.auditModalOverlay}>
+          <View style={styles.auditModalContainer}>
+            {/* Audit Modal Header */}
+            <View style={styles.auditHeader}>
+              <TouchableOpacity onPress={handleCloseAuditModal} style={styles.auditBackButton}>
+                <ChevronLeft size={24} color="#6B7280" />
+              </TouchableOpacity>
+              <View style={styles.auditHeaderContent}>
+                <Text style={styles.auditHeaderTitle}>Job Breakdown</Text>
+                {selectedCrewData && (
+                  <Text style={styles.auditHeaderSubtitle}>{selectedCrewData.crewName}</Text>
+                )}
+              </View>
+              <View style={styles.headerSpacer} />
+            </View>
+
+            {/* Audit Summary Card */}
+            {selectedCrewData && (
+              <View style={styles.auditSummaryCard}>
+                <View style={styles.auditSummaryRow}>
+                  <View style={styles.auditSummaryItem}>
+                    <Text style={styles.auditSummaryLabel}>Total Revenue</Text>
+                    <Text style={styles.auditSummaryValue}>
+                      ${selectedCrewData.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </Text>
+                  </View>
+                  <View style={styles.auditSummaryDivider} />
+                  <View style={styles.auditSummaryItem}>
+                    <Text style={styles.auditSummaryLabel}>Total Jobs</Text>
+                    <Text style={styles.auditSummaryValue}>{selectedCrewData.jobCount}</Text>
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {/* Job List */}
+            <ScrollView style={styles.auditJobList} showsVerticalScrollIndicator={false}>
+              {selectedCrewData && selectedCrewData.jobs.length > 0 ? (
+                <>
+                  <Text style={styles.jobListHeader}>
+                    All Jobs for {periodLabel}
+                  </Text>
+                  {selectedCrewData.jobs.map((job, index) => (
+                    <View key={job.jobId} style={styles.auditJobCard}>
+                      <View style={styles.auditJobHeader}>
+                        <View style={styles.auditJobNumber}>
+                          <Text style={styles.auditJobNumberText}>{index + 1}</Text>
+                        </View>
+                        <View style={styles.auditJobInfo}>
+                          <Text style={styles.auditJobName}>{job.jobName}</Text>
+                          <Text style={styles.auditJobId}>Job ID: {job.jobId}</Text>
+                        </View>
+                      </View>
+                      <View style={styles.auditJobRevenue}>
+                        <View style={styles.auditRevenueIconContainer}>
+                          <DollarSign size={20} color="#10B981" />
+                        </View>
+                        <Text style={styles.auditJobRevenueAmount}>
+                          ${job.revenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                  <View style={styles.bottomSpacing} />
+                </>
+              ) : (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyStateText}>No jobs found</Text>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </Modal>
   );
 }
@@ -485,6 +582,168 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 24,
+  },
+  // Audit Modal Styles
+  auditModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  auditModalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    width: '90%',
+    maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  auditHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  auditBackButton: {
+    padding: 4,
+  },
+  auditHeaderContent: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  auditHeaderTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  auditHeaderSubtitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  headerSpacer: {
+    width: 40,
+  },
+  auditSummaryCard: {
+    backgroundColor: '#F9FAFB',
+    marginHorizontal: 20,
+    marginTop: 16,
+    marginBottom: 12,
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  auditSummaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  auditSummaryItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  auditSummaryDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: '#D1D5DB',
+    marginHorizontal: 16,
+  },
+  auditSummaryLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#6B7280',
+    marginBottom: 6,
+  },
+  auditSummaryValue: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  auditJobList: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  jobListHeader: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#111827',
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  auditJobCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  auditJobHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  auditJobNumber: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  auditJobNumberText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#6366F1',
+  },
+  auditJobInfo: {
+    flex: 1,
+  },
+  auditJobName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  auditJobId: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  auditJobRevenue: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FDF4',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  auditRevenueIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#D1FAE5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  auditJobRevenueAmount: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#10B981',
   },
 });
 
