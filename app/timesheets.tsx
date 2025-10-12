@@ -46,6 +46,7 @@ export default function TimesheetsScreen() {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('today');
   const [refreshing, setRefreshing] = useState(false);
   const [offlinePending, setOfflinePending] = useState(0);
+  const [adminTab, setAdminTab] = useState<'live' | 'entries'>('live');
 
   const isCrew = currentRole === 'crew';
   const currentCrewMemberId = isCrew ? impersonatingCrewMemberId || '1' : null;
@@ -524,8 +525,6 @@ export default function TimesheetsScreen() {
   }
 
   // Admin View - Show all timesheets with live tracking and management
-  const [adminTab, setAdminTab] = useState<'live' | 'entries'>('live');
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <Stack.Screen
