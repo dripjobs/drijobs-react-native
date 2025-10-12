@@ -38,9 +38,10 @@ export const ClockedInBanner: React.FC<ClockedInBannerProps> = ({ crewMemberId }
 
   useEffect(() => {
     loadSession();
+    // Check more frequently (every 5 seconds) to catch clock-out events quickly
     const interval = setInterval(() => {
       loadSession();
-    }, 60000); // Update every minute
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [crewMemberId, loadSession]);

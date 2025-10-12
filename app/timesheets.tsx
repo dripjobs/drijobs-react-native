@@ -202,7 +202,15 @@ export default function TimesheetsScreen() {
       const result = await timeTrackingService.clockOut(currentCrewMemberId!, notes);
 
       if (result.success) {
+        // Immediately clear the active session
         setActiveSession(null);
+        
+        // Force reload to confirm session is cleared
+        const checkSession = timeTrackingService.getActiveSessionByCrewMember(currentCrewMemberId!);
+        if (checkSession) {
+          console.warn('Session still active after clock out:', checkSession);
+        }
+        
         Alert.alert('Clocked Out', 'Successfully clocked out', [{ text: 'OK' }]);
         loadTimeEntries();
       } else {

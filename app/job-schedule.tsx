@@ -1,7 +1,9 @@
 import CallInitiationModal from '@/components/CallInitiationModal';
 import DrawerMenu from '@/components/DrawerMenu';
+import RevenueScorecard from '@/components/RevenueScorecard';
 import { useTabBar } from '@/contexts/TabBarContext';
-import { useIsCrew } from '@/contexts/UserRoleContext';
+import { useIsAdmin, useIsCrew } from '@/contexts/UserRoleContext';
+import { Job } from '@/types/jobs';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -28,13 +30,14 @@ import {
     Navigation,
     Phone,
     Plus,
+    TrendingUp,
     User,
     Users,
     Wrench,
     X,
     Zap
 } from 'lucide-react-native';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Animated, Dimensions, Modal, Platform, SafeAreaView, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { PanGestureHandler } from 'react-native-gesture-handler';
 
@@ -240,6 +243,7 @@ const monthNames = [
 export default function JobSchedule() {
   const { setIsTransparent, setIsVisible } = useTabBar();
   const isCrew = useIsCrew();
+  const isAdmin = useIsAdmin();
   const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -265,6 +269,9 @@ export default function JobSchedule() {
   const [expandedActionItem, setExpandedActionItem] = useState<string | null>(null);
   const [showCallInitiation, setShowCallInitiation] = useState(false);
   const [callContact, setCallContact] = useState({ name: '', phone: '' });
+  
+  // Revenue Scorecard State
+  const [showRevenueScorecard, setShowRevenueScorecard] = useState(false);
   
   // Edit Event Modal State
   const [showEditEventModal, setShowEditEventModal] = useState(false);
@@ -439,6 +446,44 @@ export default function JobSchedule() {
   const isCurrentMonth = currentDate.getMonth() === today.getMonth() && 
                         currentDate.getFullYear() === today.getFullYear();
 
+  // Convert jobEvents to Job format for Revenue Scorecard
+  const convertedJobs = useMemo((): Job[] => {
+    return jobEvents.map(event => {
+      // Convert day numbers to actual dates
+      const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), event.startDate);
+      const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), event.endDate);
+      
+      // Extract crew ID from assigned team or crew leader
+      const crewId = event.jobInfo?.crewLeader ? event.jobInfo.crewLeader.split(' ')[0].toLowerCase() : 'unassigned';
+      
+      return {
+        id: event.id.toString(),
+        workOrderNumber: `WO-${event.id.toString().padStart(4, '0')}`,
+        customerName: event.customer?.name || 'Unknown Customer',
+        businessName: event.customer?.company,
+        projectName: event.jobName,
+        address: event.jobAddress || event.customer?.address || '',
+        phone: event.customer?.phone || '',
+        jobStage: event.status as any,
+        contractValue: event.financial?.contractValue || event.amount || 0,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        daysInStage: 0,
+        assignedTo: {
+          projectManager: event.jobInfo?.projectManager,
+          crewLeader: event.jobInfo?.crewLeader,
+          salesperson: event.jobInfo?.salesperson || '',
+        },
+        assignedCrewIds: [crewId],
+        assignedCrewMemberIds: [],
+        priority: 'medium',
+        lastActivity: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+    });
+  }, [currentDate, jobEvents]);
+
   return (
     <SafeAreaView style={styles.container}>
       <DrawerMenu isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
@@ -456,6 +501,14 @@ export default function JobSchedule() {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Job Schedule</Text>
           <View style={styles.headerActions}>
+            {isAdmin && (
+              <TouchableOpacity 
+                style={styles.revenueScorecardButton}
+                onPress={() => setShowRevenueScorecard(true)}
+              >
+                <TrendingUp size={18} color="#FFFFFF" />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity 
               style={[styles.viewToggle, viewMode === 'grid' && styles.viewToggleActive]}
               onPress={() => setViewMode('grid')}
@@ -1493,6 +1546,15 @@ export default function JobSchedule() {
         contactName={callContact.name}
         phoneNumber={callContact.phone}
       />
+
+      {/* Revenue Scorecard Modal - Admin Only */}
+      {isAdmin && (
+        <RevenueScorecard
+          visible={showRevenueScorecard}
+          onClose={() => setShowRevenueScorecard(false)}
+          jobs={convertedJobs}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -1536,6 +1598,11 @@ const styles = StyleSheet.create({
   },
   viewToggleActive: {
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  revenueScorecardButton: {
+    padding: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 12,
   },
   monthNavigation: {
     flexDirection: 'row',

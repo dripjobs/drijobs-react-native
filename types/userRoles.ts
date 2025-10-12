@@ -3,8 +3,9 @@
  * Defines user roles and permissions for DripJobs
  */
 
-export type UserRole = 'admin' | 'accountant' | 'crew';
+export type UserRole = 'admin' | 'accountant' | 'crew' | 'salesperson';
 export type CrewPermissionLevel = 1 | 2 | 3;
+export type SalespersonPermissionLevel = 1 | 2 | 3;
 
 export interface UserPermissions {
   // General permissions
@@ -46,6 +47,14 @@ export interface UserPermissions {
   canChatWithCustomers: boolean;
   canPhoneCustomers: boolean;
   canViewContactDetails: boolean;
+
+  // Salesperson-specific permissions
+  canViewOwnSalesMetrics: boolean;
+  canManageOwnPipeline: boolean;
+  canScheduleAppointments: boolean;
+  canSendProposals: boolean;
+  canViewPipeline: boolean;
+  canEmailCustomers: boolean;
 }
 
 export interface RoleDefinition {

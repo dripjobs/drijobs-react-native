@@ -5,8 +5,8 @@ import { useIsCrew, useUserRole } from '@/contexts/UserRoleContext';
 import { timeTrackingService } from '@/services/TimeTrackingService';
 import { ActiveClockSession } from '@/types/crew';
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { Stack, router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     RefreshControl,
@@ -64,6 +64,28 @@ export default function MyDayScreen() {
     loadData();
     return () => setIsVisible(true);
   }, []);
+
+  // Reload active session when screen comes into focus (catches clock-out events)
+  useFocusEffect(
+    useCallback(() => {
+      if (currentCrewMemberId) {
+        const session = timeTrackingService.getActiveSessionByCrewMember(currentCrewMemberId);
+        setActiveSession(session);
+      }
+    }, [currentCrewMemberId])
+  );
+
+  // Poll for session changes every few seconds
+  useEffect(() => {
+    if (!currentCrewMemberId) return;
+    
+    const interval = setInterval(() => {
+      const session = timeTrackingService.getActiveSessionByCrewMember(currentCrewMemberId);
+      setActiveSession(session);
+    }, 5000); // Check every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [currentCrewMemberId]);
 
   const loadData = () => {
     setIsLoading(true);
