@@ -144,7 +144,7 @@ export const ClockInModal: React.FC<ClockInModalProps> = ({
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.header}>
                 <View style={styles.iconContainer}>
-                  <Ionicons name="play-circle" size={48} color="#10b981" />
+                  <Ionicons name="play-circle" size={36} color="#10b981" />
                 </View>
                 <Text style={styles.title}>Clock In</Text>
                 <Text style={styles.subtitle}>Starting work on:</Text>
@@ -330,56 +330,56 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '90%',
+    maxHeight: '95%',
     paddingBottom: Platform.OS === 'ios' ? 20 : 16,
   },
   header: {
     alignItems: 'center',
-    paddingTop: 24,
-    paddingHorizontal: 24,
-    paddingBottom: 16,
+    paddingTop: 16,
+    paddingHorizontal: 20,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6',
   },
   iconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: '#d1fae5',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '700',
     color: '#111827',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#6b7280',
-    marginBottom: 4,
+    marginBottom: 3,
   },
   jobName: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: '#10b981',
     textAlign: 'center',
   },
   notesSection: {
-    padding: 24,
+    padding: 16,
   },
   notesLabel: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: '#111827',
     marginBottom: 4,
   },
   notesHint: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#6b7280',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   notesInput: {
     borderWidth: 1,
@@ -398,12 +398,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   exampleSection: {
-    paddingHorizontal: 24,
-    paddingBottom: 24,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
     backgroundColor: '#f9fafb',
-    marginHorizontal: 24,
+    marginHorizontal: 16,
     borderRadius: 12,
-    padding: 16,
+    padding: 12,
   },
   exampleTitle: {
     fontSize: 13,
@@ -419,8 +419,8 @@ const styles = StyleSheet.create({
   buttons: {
     flexDirection: 'row',
     gap: 12,
-    paddingHorizontal: 24,
-    paddingTop: 16,
+    paddingHorizontal: 16,
+    paddingTop: 12,
   },
   button: {
     flex: 1,
@@ -462,7 +462,7 @@ const styles = StyleSheet.create({
   },
   // Location Section Styles
   locationSection: {
-    padding: 24,
+    padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6',
   },
