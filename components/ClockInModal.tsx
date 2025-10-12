@@ -1,17 +1,27 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import * as Location from 'expo-location';
+import React, { useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     KeyboardAvoidingView,
     Modal,
     Platform,
     SafeAreaView,
     ScrollView,
     StyleSheet,
+    Switch,
     Text,
     TextInput,
     TouchableOpacity,
     View,
 } from 'react-native';
+
+interface LocationData {
+  latitude: number;
+  longitude: number;
+  address?: string;
+  timestamp: string;
+}
 
 interface ClockInModalProps {
   visible: boolean;
@@ -27,14 +37,90 @@ export const ClockInModal: React.FC<ClockInModalProps> = ({
   onCancel,
 }) => {
   const [notes, setNotes] = useState('');
+  const [location, setLocation] = useState<LocationData | null>(null);
+  const [locationVerified, setLocationVerified] = useState(false);
+  const [loadingLocation, setLoadingLocation] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+
+  // Fetch location when modal opens
+  useEffect(() => {
+    if (visible) {
+      fetchLocation();
+    } else {
+      // Reset state when modal closes
+      setNotes('');
+      setLocation(null);
+      setLocationVerified(false);
+      setLocationError(null);
+    }
+  }, [visible]);
+
+  const fetchLocation = async () => {
+    setLoadingLocation(true);
+    setLocationError(null);
+    
+    try {
+      // Request permission
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      
+      if (status !== 'granted') {
+        setLocationError('Location permission denied. Please enable location access in settings.');
+        setLoadingLocation(false);
+        return;
+      }
+
+      // Get current position
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+
+      // Reverse geocode to get address
+      let address = 'Address lookup in progress...';
+      try {
+        const addresses = await Location.reverseGeocodeAsync({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+        
+        if (addresses && addresses.length > 0) {
+          const addr = addresses[0];
+          address = [
+            addr.street,
+            addr.city,
+            addr.region,
+            addr.postalCode
+          ].filter(Boolean).join(', ');
+        }
+      } catch (geoError) {
+        console.log('Geocoding error:', geoError);
+        address = 'Address unavailable';
+      }
+
+      setLocation({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        address,
+        timestamp: new Date().toISOString(),
+      });
+      setLoadingLocation(false);
+    } catch (error) {
+      console.error('Location error:', error);
+      setLocationError('Unable to get your location. Please check your GPS and try again.');
+      setLoadingLocation(false);
+    }
+  };
 
   const handleConfirm = () => {
     onConfirm(notes.trim() || undefined);
-    setNotes(''); // Reset notes for next time
+    setNotes('');
+    setLocation(null);
+    setLocationVerified(false);
   };
 
   const handleCancel = () => {
-    setNotes(''); // Reset notes
+    setNotes('');
+    setLocation(null);
+    setLocationVerified(false);
     onCancel();
   };
 
@@ -59,6 +145,89 @@ export const ClockInModal: React.FC<ClockInModalProps> = ({
                 <Text style={styles.title}>Clock In</Text>
                 <Text style={styles.subtitle}>Starting work on:</Text>
                 <Text style={styles.jobName}>{jobName}</Text>
+              </View>
+
+              {/* Location Verification Section */}
+              <View style={styles.locationSection}>
+                <View style={styles.locationHeader}>
+                  <Ionicons name="location" size={20} color="#3b82f6" />
+                  <Text style={styles.locationTitle}>Verify Location</Text>
+                </View>
+
+                {loadingLocation && (
+                  <View style={styles.locationLoading}>
+                    <ActivityIndicator size="small" color="#3b82f6" />
+                    <Text style={styles.locationLoadingText}>Getting your location...</Text>
+                  </View>
+                )}
+
+                {locationError && (
+                  <View style={styles.locationError}>
+                    <Ionicons name="warning" size={20} color="#ef4444" />
+                    <View style={styles.locationErrorTextContainer}>
+                      <Text style={styles.locationErrorText}>{locationError}</Text>
+                      <TouchableOpacity onPress={fetchLocation} style={styles.retryButton}>
+                        <Text style={styles.retryButtonText}>Retry</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+
+                {location && !loadingLocation && (
+                  <View style={styles.locationInfo}>
+                    <View style={styles.locationCard}>
+                      <View style={styles.locationRow}>
+                        <Ionicons name="pin" size={16} color="#6b7280" />
+                        <Text style={styles.locationLabel}>Address:</Text>
+                      </View>
+                      <Text style={styles.locationAddress}>{location.address}</Text>
+                      
+                      <View style={styles.coordinatesContainer}>
+                        <View style={styles.coordinateItem}>
+                          <Text style={styles.coordinateLabel}>Latitude:</Text>
+                          <Text style={styles.coordinateValue}>
+                            {location.latitude.toFixed(6)}°
+                          </Text>
+                        </View>
+                        <View style={styles.coordinateDivider} />
+                        <View style={styles.coordinateItem}>
+                          <Text style={styles.coordinateLabel}>Longitude:</Text>
+                          <Text style={styles.coordinateValue}>
+                            {location.longitude.toFixed(6)}°
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.timestampRow}>
+                        <Ionicons name="time-outline" size={14} color="#9ca3af" />
+                        <Text style={styles.timestamp}>
+                          Captured at {new Date(location.timestamp).toLocaleTimeString()}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Verification Toggle */}
+                    <View style={styles.verificationContainer}>
+                      <View style={styles.verificationContent}>
+                        <Ionicons 
+                          name={locationVerified ? "checkmark-circle" : "checkmark-circle-outline"} 
+                          size={24} 
+                          color={locationVerified ? "#10b981" : "#9ca3af"} 
+                        />
+                        <Text style={styles.verificationText}>
+                          I verify this is my current location
+                        </Text>
+                      </View>
+                      <Switch
+                        value={locationVerified}
+                        onValueChange={setLocationVerified}
+                        trackColor={{ false: '#d1d5db', true: '#86efac' }}
+                        thumbColor={locationVerified ? '#10b981' : '#f3f4f6'}
+                        ios_backgroundColor="#d1d5db"
+                      />
+                    </View>
+                  </View>
+                )}
               </View>
 
               <View style={styles.notesSection}>
@@ -98,13 +267,24 @@ export const ClockInModal: React.FC<ClockInModalProps> = ({
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.button, styles.confirmButton]}
+                style={[
+                  styles.button, 
+                  styles.confirmButton,
+                  (!locationVerified || loadingLocation) && styles.confirmButtonDisabled
+                ]}
                 onPress={handleConfirm}
+                disabled={!locationVerified || loadingLocation}
               >
                 <Ionicons name="play-circle" size={20} color="white" style={styles.buttonIcon} />
                 <Text style={styles.confirmButtonText}>Clock In</Text>
               </TouchableOpacity>
             </View>
+            
+            {!locationVerified && location && (
+              <Text style={styles.verificationWarning}>
+                Please verify your location to clock in
+              </Text>
+            )}
           </View>
         </SafeAreaView>
       </KeyboardAvoidingView>
@@ -244,6 +424,163 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: 'white',
+  },
+  confirmButtonDisabled: {
+    backgroundColor: '#9ca3af',
+    opacity: 0.6,
+  },
+  verificationWarning: {
+    fontSize: 13,
+    color: '#ef4444',
+    textAlign: 'center',
+    marginTop: 8,
+    paddingHorizontal: 24,
+  },
+  // Location Section Styles
+  locationSection: {
+    padding: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  locationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  locationTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  locationLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 16,
+    justifyContent: 'center',
+  },
+  locationLoadingText: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  locationError: {
+    flexDirection: 'row',
+    gap: 12,
+    padding: 16,
+    backgroundColor: '#fef2f2',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#fecaca',
+  },
+  locationErrorTextContainer: {
+    flex: 1,
+  },
+  locationErrorText: {
+    fontSize: 14,
+    color: '#dc2626',
+    marginBottom: 8,
+  },
+  retryButton: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#ef4444',
+    borderRadius: 6,
+  },
+  retryButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'white',
+  },
+  locationInfo: {
+    gap: 12,
+  },
+  locationCard: {
+    backgroundColor: '#f0f9ff',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  locationLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6b7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  locationAddress: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#111827',
+    marginBottom: 12,
+    lineHeight: 20,
+  },
+  coordinatesContainer: {
+    flexDirection: 'row',
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+  },
+  coordinateItem: {
+    flex: 1,
+  },
+  coordinateDivider: {
+    width: 1,
+    backgroundColor: '#e5e7eb',
+    marginHorizontal: 12,
+  },
+  coordinateLabel: {
+    fontSize: 11,
+    color: '#6b7280',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  coordinateValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1e40af',
+    fontVariant: ['tabular-nums'],
+  },
+  timestampRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  timestamp: {
+    fontSize: 11,
+    color: '#9ca3af',
+  },
+  verificationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'white',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+  },
+  verificationContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  verificationText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+    flex: 1,
   },
 });
 
