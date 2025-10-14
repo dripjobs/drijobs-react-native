@@ -61,13 +61,12 @@ const ALL_TABS: TabOption[] = [
 
 // Define default selected tabs (Dashboard must always be first)
 const DEFAULT_TABS: TabOption[] = [
-  ALL_TABS.find(t => t.id === 'index')!,      // Dashboard
-  ALL_TABS.find(t => t.id === 'contacts')!,   // Contacts
-  ALL_TABS.find(t => t.id === 'pipeline')!,   // Pipeline
-  ALL_TABS.find(t => t.id === 'phone')!,      // Voice
-  ALL_TABS.find(t => t.id === 'chat')!,       // Chat
-  ALL_TABS.find(t => t.id === 'team-chat')!,  // Team Chat
-  ALL_TABS.find(t => t.id === 'products')!,   // Products
+  ALL_TABS.find(t => t.id === 'index')!,        // Dashboard
+  ALL_TABS.find(t => t.id === 'contacts')!,     // Contacts
+  ALL_TABS.find(t => t.id === 'pipeline')!,     // Pipeline
+  ALL_TABS.find(t => t.id === 'appointments')!, // Appointments
+  ALL_TABS.find(t => t.id === 'job-schedule')!, // Job Schedule
+  ALL_TABS.find(t => t.id === 'phone')!,        // Voice
 ];
 
 // Define all available quick actions

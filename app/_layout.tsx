@@ -28,6 +28,7 @@ export default function RootLayout() {
                       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                       <Stack.Screen name="email" options={{ headerShown: false }} />
                       <Stack.Screen name="appointments" options={{ headerShown: false }} />
+                      <Stack.Screen name="job-schedule" options={{ headerShown: false }} />
                       <Stack.Screen name="proposals" options={{ headerShown: false }} />
                       <Stack.Screen name="proposal-builder" options={{ headerShown: false }} />
                       <Stack.Screen name="recurring-jobs" options={{ headerShown: false }} />
@@ -41,6 +42,17 @@ export default function RootLayout() {
                       <Stack.Screen name="metrics" options={{ headerShown: false }} />
                       <Stack.Screen name="quickbooks-oauth-callback" options={{ headerShown: false }} />
                       <Stack.Screen name="call-history" options={{ headerShown: false }} />
+                      <Stack.Screen name="timesheets" options={{ headerShown: false }} />
+                      <Stack.Screen name="invoices" options={{ headerShown: false }} />
+                      <Stack.Screen name="lead-center" options={{ headerShown: false }} />
+                      <Stack.Screen name="notifications" options={{ headerShown: false }} />
+                      <Stack.Screen name="crews" options={{ headerShown: false }} />
+                      <Stack.Screen name="crew-jobs" options={{ headerShown: false }} />
+                      <Stack.Screen name="my-day" options={{ headerShown: false }} />
+                      <Stack.Screen name="my-profile" options={{ headerShown: false }} />
+                      <Stack.Screen name="scoreboard" options={{ headerShown: false }} />
+                      <Stack.Screen name="search" options={{ headerShown: false }} />
+                      <Stack.Screen name="reviews" options={{ headerShown: false }} />
                       <Stack.Screen name="+not-found" />
                     </Stack>
                     <StatusBar style="auto" />
