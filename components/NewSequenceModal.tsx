@@ -18,37 +18,41 @@ const pipelineConfigs = {
     title: 'Lead Pipeline',
     stageLabels: {
       new_leads: 'New Leads',
-      qualified_leads: 'Qualified Leads', 
-      hot_leads: 'Hot Leads'
+      cold_leads: 'Cold Leads',
+      on_hold: 'On Hold',
+      warm_leads: 'Warm Leads',
+      not_a_fit: 'Not a Fit',
+      qualified: 'Qualified'
     }
   },
   opportunities: {
     title: 'Opportunities',
     stageLabels: {
-      new_opportunities: 'New Opportunities',
-      prospecting: 'Prospecting',
-      negotiating: 'Negotiating',
-      closed_won: 'Closed Won',
-      closed_lost: 'Closed Lost'
+      estimate_requested: 'Estimate Requested',
+      virtual_estimate: 'Virtual Estimate',
+      estimate_scheduled: 'Estimate Scheduled',
+      estimate_cancelled: 'Estimate Cancelled',
+      not_a_fit: 'Not a Fit',
+      qualified: 'Qualified'
     }
   },
   proposals: {
     title: 'Proposals',
     stageLabels: {
-      draft: 'Draft',
-      sent: 'Sent',
-      reviewed: 'Reviewed',
-      accepted: 'Accepted',
-      rejected: 'Rejected'
+      in_draft: 'In Draft',
+      proposal_sent: 'Proposal Sent',
+      on_hold: 'On Hold',
+      proposal_rejected: 'Proposal Rejected',
+      proposal_approved: 'Proposal Approved'
     }
   },
   jobs: {
     title: 'Jobs',
     stageLabels: {
-      scheduled: 'Scheduled',
+      pending_schedule: 'Pending Schedule',
       in_progress: 'In Progress',
-      completed: 'Completed',
-      cancelled: 'Cancelled'
+      project_scheduled: 'Project Scheduled',
+      project_complete: 'Project Complete'
     }
   }
 };

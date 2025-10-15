@@ -168,44 +168,47 @@ export interface AutomationAnalytics {
 export const PIPELINE_CONFIGS = {
   leads: {
     title: 'Lead Pipeline',
-    stages: ['new_leads', 'qualified_leads', 'hot_leads', 'cold_leads'],
+    stages: ['new_leads', 'cold_leads', 'on_hold', 'warm_leads', 'not_a_fit', 'qualified'],
     stageLabels: {
       new_leads: 'New Leads',
-      qualified_leads: 'Qualified Leads',
-      hot_leads: 'Hot Leads',
-      cold_leads: 'Cold Leads'
+      cold_leads: 'Cold Leads',
+      on_hold: 'On Hold',
+      warm_leads: 'Warm Leads',
+      not_a_fit: 'Not a Fit',
+      qualified: 'Qualified'
     }
   },
   opportunities: {
     title: 'Opportunities',
-    stages: ['new_opportunities', 'prospecting', 'negotiating', 'closed_won', 'closed_lost'],
+    stages: ['estimate_requested', 'virtual_estimate', 'estimate_scheduled', 'estimate_cancelled', 'not_a_fit', 'qualified'],
     stageLabels: {
-      new_opportunities: 'New Opportunities',
-      prospecting: 'Prospecting',
-      negotiating: 'Negotiating',
-      closed_won: 'Closed Won',
-      closed_lost: 'Closed Lost'
+      estimate_requested: 'Estimate Requested',
+      virtual_estimate: 'Virtual Estimate',
+      estimate_scheduled: 'Estimate Scheduled',
+      estimate_cancelled: 'Estimate Cancelled',
+      not_a_fit: 'Not a Fit',
+      qualified: 'Qualified'
     }
   },
   proposals: {
     title: 'Proposals',
-    stages: ['draft', 'sent', 'reviewed', 'accepted', 'rejected'],
+    stages: ['in_draft', 'proposal_sent', 'on_hold', 'proposal_rejected', 'proposal_approved'],
     stageLabels: {
-      draft: 'Draft',
-      sent: 'Sent',
-      reviewed: 'Reviewed',
-      accepted: 'Accepted',
-      rejected: 'Rejected'
+      in_draft: 'In Draft',
+      proposal_sent: 'Proposal Sent',
+      on_hold: 'On Hold',
+      proposal_rejected: 'Proposal Rejected',
+      proposal_approved: 'Proposal Approved'
     }
   },
   jobs: {
     title: 'Jobs',
-    stages: ['scheduled', 'in_progress', 'completed', 'cancelled'],
+    stages: ['pending_schedule', 'in_progress', 'project_scheduled', 'project_complete'],
     stageLabels: {
-      scheduled: 'Scheduled',
+      pending_schedule: 'Pending Schedule',
       in_progress: 'In Progress',
-      completed: 'Completed',
-      cancelled: 'Cancelled'
+      project_scheduled: 'Project Scheduled',
+      project_complete: 'Project Complete'
     }
   },
   invoices: {

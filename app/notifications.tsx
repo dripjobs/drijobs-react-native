@@ -178,7 +178,7 @@ export default function Notifications() {
   const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [filter, setFilter] = useState<'all' | 'deals' | 'team'>('all');
+  const [filter, setFilter] = useState<'all' | 'unread' | 'deals' | 'team'>('all');
   const [showDateFilter, setShowDateFilter] = useState(false);
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
@@ -219,6 +219,9 @@ export default function Notifications() {
   };
 
   const filteredNotifications = notifications.filter(n => {
+    // Filter by read status
+    if (filter === 'unread' && n.read) return false;
+    
     // Filter by category
     if (filter === 'deals' && n.category !== 'deals') return false;
     if (filter === 'team' && n.category !== 'team') return false;
@@ -273,6 +276,14 @@ export default function Notifications() {
           >
             <Text style={[styles.filterTabText, filter === 'all' && styles.filterTabTextActive]}>
               All ({notifications.length})
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.filterTab, filter === 'unread' && styles.filterTabActive]}
+            onPress={() => setFilter('unread')}
+          >
+            <Text style={[styles.filterTabText, filter === 'unread' && styles.filterTabTextActive]}>
+              Unread ({unreadCount})
             </Text>
           </TouchableOpacity>
           <TouchableOpacity 

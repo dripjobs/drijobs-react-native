@@ -1,26 +1,44 @@
 import { AddAreaWizard } from '@/components/AddAreaWizard';
+import { getSchedulingPresets } from '@/utils/schedulingPresets';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
+    Building2,
+    Calendar,
+    Check,
     ChevronLeft,
+    ChevronRight,
     Clock,
     Copy,
+    CreditCard,
+    DollarSign,
+    Edit2,
     Edit3,
     Eye,
     FileText,
+    Mail,
+    MapPin,
     MessageSquare,
     Monitor,
     Package,
     Paperclip,
     Percent,
+    Phone,
+    PhoneCall,
     Plus,
     Presentation,
     Send,
     Settings,
     Shield,
+    Star,
     Target,
-    Trash2
+    Trash2,
+    TrendingUp,
+    User,
+    UserCircle,
+    Users
 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
@@ -31,6 +49,7 @@ import {
     SafeAreaView,
     ScrollView,
     StyleSheet,
+    Switch,
     Text,
     TextInput,
     TouchableOpacity,
@@ -43,6 +62,8 @@ interface ProposalLineItem {
   description: string;
   quantity: number;
   unitPrice: number;
+  taxRate?: number;
+  taxAmount?: number;
   totalPrice: number;
   isOptional: boolean;
 }
@@ -57,6 +78,16 @@ interface ProposalMilestone {
   percentage: number;
 }
 
+interface Stakeholder {
+  id: string;
+  name: string;
+  role: string;
+  email: string;
+  phone?: string;
+  isPrimary?: boolean;
+  receiveProposals?: boolean;
+}
+
 export default function ProposalBuilder() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -66,20 +97,26 @@ export default function ProposalBuilder() {
   const isEditing = !!proposalId;
   const proposalStatus = (params.status as string) || 'draft'; // Get status from params
   const isScheduled = (params.isScheduled as string) === 'true'; // Get scheduled status from params
+  const scheduledDate = params.scheduledDate ? new Date(params.scheduledDate as string) : null;
+  const isBusiness = (params.isBusiness as string) === 'true'; // Business or individual proposal
   
   // Preview mode state
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   
   // Active tab state
-  const [activeTab, setActiveTab] = useState<'overview' | 'settings' | 'notes' | 'comments' | 'activity' | 'video' | 'presentation'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'stakeholders' | 'info' | 'settings' | 'notes' | 'comments' | 'activity' | 'video' | 'presentation'>('overview');
   
   // Public URL state
   const [showUrlModal, setShowUrlModal] = useState(false);
   
   // Form state
   const [title, setTitle] = useState('');
-  const [contactName, setContactName] = useState('');
-  const [businessName, setBusinessName] = useState('');
+  const [contactName, setContactName] = useState('Robert Johnson');
+  const [contactEmail, setContactEmail] = useState('robert@greenenergy.co');
+  const [contactPhone, setContactPhone] = useState('(555) 456-7890');
+  const [businessName, setBusinessName] = useState(isBusiness ? 'Green Energy Solutions' : '');
+  const [billingAddress, setBillingAddress] = useState('123 Business Plaza, Suite 100');
+  const [jobAddress, setJobAddress] = useState('456 Project Site Rd');
   const [validUntil, setValidUntil] = useState('');
   const [paymentTerms, setPaymentTerms] = useState('Net 30');
   const [terms, setTerms] = useState('');
@@ -88,10 +125,87 @@ export default function ProposalBuilder() {
   const [companyNotes, setCompanyNotes] = useState('');
   const [clientNotes, setClientNotes] = useState('');
   
+  // Job Info state
+  const [salesperson, setSalesperson] = useState('Chris Palmer');
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [completionDate, setCompletionDate] = useState<Date | null>(null);
+  const [jobType, setJobType] = useState('Commercial Installation');
+  const [priority, setPriority] = useState('High');
+  
+  // Stakeholders state (for business proposals)
+  const [stakeholders, setStakeholders] = useState<Stakeholder[]>(isBusiness ? [
+    { id: '1', name: 'Robert Johnson', role: 'CEO', email: 'robert@greenenergy.co', phone: '(555) 456-7890', isPrimary: true, receiveProposals: true },
+    { id: '2', name: 'Sarah Martinez', role: 'CFO', email: 'sarah@greenenergy.co', phone: '(555) 456-7891', receiveProposals: true },
+    { id: '3', name: 'Michael Chen', role: 'Project Manager', email: 'michael@greenenergy.co', phone: '(555) 456-7892', receiveProposals: false }
+  ] : []);
+  const [primaryContactId, setPrimaryContactId] = useState('1');
+  
+  // Deposit payment settings state
+  const [depositPaymentSettings, setDepositPaymentSettings] = useState({
+    allowCreditCard: true,
+    waiveCreditCardFee: false,
+    allowACH: true,
+    waiveACHFee: false,
+    allowOfflinePayment: true,
+  });
+  
+  // Related deal info
+  const [relatedDealId, setRelatedDealId] = useState('deal-solar-12345');
+  const [relatedDealTitle, setRelatedDealTitle] = useState('Commercial Solar Installation - Green Energy Solutions');
+  const [relatedDealStage, setRelatedDealStage] = useState('Proposal Sent');
+  const [relatedDealAmount, setRelatedDealAmount] = useState(125000);
+  const [relatedDealProbability, setRelatedDealProbability] = useState(75);
+  
+  // Send Modal state
+  const [showSendModal, setShowSendModal] = useState(false);
+  const [sendViaEmail, setSendViaEmail] = useState(true);
+  const [sendViaText, setSendViaText] = useState(false);
+  const [selectedStakeholderIds, setSelectedStakeholderIds] = useState<string[]>([]);
+  const [manualRecipients, setManualRecipients] = useState<any[]>([]);
+  const [showAddRecipientModal, setShowAddRecipientModal] = useState(false);
+  const [messageSubject, setMessageSubject] = useState('Your Proposal from DripJobs');
+  const [customEmailBody, setCustomEmailBody] = useState('');
+  const [customTextBody, setCustomTextBody] = useState('');
+  const [editingEmailMessage, setEditingEmailMessage] = useState(false);
+  const [editingTextMessage, setEditingTextMessage] = useState(false);
+  const [sendNow, setSendNow] = useState(true);
+  const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+  const [scheduledSendDate, setScheduledSendDate] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
+  
+  // Contact Modal state
+  const [showContactModal, setShowContactModal] = useState(false);
+  
+  // Job Info editing modal state
+  const [showJobInfoModal, setShowJobInfoModal] = useState(false);
+  const [editAddressLine1, setEditAddressLine1] = useState('');
+  const [editAddressLine2, setEditAddressLine2] = useState('');
+  const [editCity, setEditCity] = useState('');
+  const [editState, setEditState] = useState('');
+  const [editPostalCode, setEditPostalCode] = useState('');
+  const [editSalesperson, setEditSalesperson] = useState(salesperson);
+  const [editJobType, setEditJobType] = useState(jobType);
+  const [editStartDate, setEditStartDate] = useState<Date | null>(startDate);
+  const [editCompletionDate, setEditCompletionDate] = useState<Date | null>(completionDate);
+  const [showJobStartDatePicker, setShowJobStartDatePicker] = useState(false);
+  const [showJobCompletionDatePicker, setShowJobCompletionDatePicker] = useState(false);
+  const [showSalespersonDropdown, setShowSalespersonDropdown] = useState(false);
+  const [salespersonSearch, setSalespersonSearch] = useState('');
+  
   // Line items state
   const [lineItems, setLineItems] = useState<ProposalLineItem[]>([]);
   const [showAddItemModal, setShowAddItemModal] = useState(false);
   const [isAddingOptionalItem, setIsAddingOptionalItem] = useState(false);
+  
+  // Add line item form state
+  const [newItemName, setNewItemName] = useState('');
+  const [newItemDescription, setNewItemDescription] = useState('');
+  const [newItemQuantity, setNewItemQuantity] = useState('1');
+  const [newItemUnitPrice, setNewItemUnitPrice] = useState('');
+  const [newItemTax, setNewItemTax] = useState('');
+  const [showItemNameDropdown, setShowItemNameDropdown] = useState(false);
 
   // Initialize with line item from job creation if provided
   React.useEffect(() => {
@@ -137,9 +251,21 @@ export default function ProposalBuilder() {
   // Calculations
   const standardItems = lineItems.filter(item => !item.isOptional);
   const optionalItems = lineItems.filter(item => item.isOptional);
-  const subtotal = standardItems.reduce((sum, item) => sum + item.totalPrice, 0);
-  const optionalSubtotal = optionalItems.reduce((sum, item) => sum + item.totalPrice, 0);
-  const taxAmount = 0; // TODO: Calculate based on settings
+  
+  const subtotal = standardItems.reduce((sum, item) => {
+    return sum + (item.quantity * item.unitPrice);
+  }, 0);
+  
+  const taxAmount = standardItems.reduce((sum, item) => {
+    const itemSubtotal = item.quantity * item.unitPrice;
+    const itemTax = item.taxRate ? itemSubtotal * (item.taxRate / 100) : 0;
+    return sum + itemTax;
+  }, 0);
+  
+  const optionalSubtotal = optionalItems.reduce((sum, item) => {
+    return sum + (item.quantity * item.unitPrice);
+  }, 0);
+  
   const totalAmount = subtotal - discountAmount + taxAmount;
   const depositAmount = depositRequired
     ? depositType === 'amount'
@@ -150,6 +276,24 @@ export default function ProposalBuilder() {
   
   const formatCurrency = (amount: number) => {
     return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+  
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  };
+  
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  };
+  
+  const getStatusColor = (status: string) => {
+    switch(status) {
+      case 'draft': return { bg: '#F3F4F6', text: '#6B7280' };
+      case 'sent': return { bg: '#DBEAFE', text: '#1D4ED8' };
+      case 'accepted': return { bg: '#D1FAE5', text: '#059669' };
+      case 'rejected': return { bg: '#FEE2E2', text: '#DC2626' };
+      default: return { bg: '#F3F4F6', text: '#6B7280' };
+    }
   };
   
   // Generate public URL for proposal
@@ -184,21 +328,131 @@ export default function ProposalBuilder() {
   };
   
   const handleSend = () => {
-    // TODO: Implement send logic
-    Alert.alert('Send Proposal', 'Are you sure you want to send this proposal?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Send', onPress: () => console.log('Proposal sent') },
-    ]);
+    setShowSendModal(true);
+  };
+  
+  const handleToggleStakeholder = (stakeholderId: string) => {
+    if (selectedStakeholderIds.includes(stakeholderId)) {
+      setSelectedStakeholderIds(selectedStakeholderIds.filter(id => id !== stakeholderId));
+    } else {
+      setSelectedStakeholderIds([...selectedStakeholderIds, stakeholderId]);
+    }
+  };
+  
+  const handleSendProposal = () => {
+    // In real app, this would call an API
+    console.log('Sending proposal...');
+    console.log('Send via email:', sendViaEmail);
+    console.log('Send via text:', sendViaText);
+    console.log('Selected stakeholders:', selectedStakeholderIds);
+    console.log('Send now:', sendNow);
+    console.log('Scheduled date:', scheduledSendDate);
+    
+    setShowSendModal(false);
+    
+    if (!sendNow && scheduledSendDate) {
+      Alert.alert('Proposal Scheduled', `Your proposal will be sent on ${formatDate(scheduledSendDate)} at ${formatTime(scheduledSendDate)}`);
+    } else {
+      Alert.alert('Success', 'Your proposal has been sent!');
+    }
+  };
+
+  // Sample salespeople data
+  const availableSalespeople = [
+    'John Smith',
+    'Sarah Johnson', 
+    'Michael Chen',
+    'Emily Rodriguez',
+    'David Wilson',
+    'Jessica Martinez',
+    'Robert Taylor',
+    'Amanda Brown'
+  ];
+
+  const filteredSalespeople = availableSalespeople.filter(person =>
+    person.toLowerCase().includes(salespersonSearch.toLowerCase())
+  );
+
+  const handleEditJobInfo = () => {
+    // Initialize edit state with current values
+    // Parse existing job address if available
+    setEditAddressLine1('');
+    setEditAddressLine2('');
+    setEditCity('');
+    setEditState('');
+    setEditPostalCode('');
+    setEditSalesperson(salesperson);
+    setSalespersonSearch(salesperson);
+    setEditJobType(jobType);
+    setEditStartDate(startDate);
+    setEditCompletionDate(completionDate);
+    setShowSalespersonDropdown(false);
+    setShowJobInfoModal(true);
+  };
+
+  const handleSaveJobInfo = () => {
+    // In production, this would update the backend
+    // Combine address fields into jobAddress
+    const fullAddress = [
+      editAddressLine1,
+      editAddressLine2,
+      `${editCity}, ${editState} ${editPostalCode}`.trim()
+    ].filter(Boolean).join(', ');
+    
+    setJobAddress(fullAddress || jobAddress);
+    setSalesperson(editSalesperson);
+    setJobType(editJobType);
+    setStartDate(editStartDate);
+    setCompletionDate(editCompletionDate);
+    
+    Alert.alert('Success', 'Job information updated successfully');
+    setShowJobInfoModal(false);
   };
   
   const addLineItem = () => {
     setIsAddingOptionalItem(false);
+    setNewItemName('');
+    setNewItemDescription('');
+    setNewItemQuantity('1');
+    setNewItemUnitPrice('');
+    setNewItemTax('');
+    setShowItemNameDropdown(false);
     setShowAddItemModal(true);
   };
   
   const addOptionalItem = () => {
     setIsAddingOptionalItem(true);
+    setNewItemName('');
+    setNewItemDescription('');
+    setNewItemQuantity('1');
+    setNewItemUnitPrice('');
+    setNewItemTax('');
+    setShowItemNameDropdown(false);
     setShowAddItemModal(true);
+  };
+  
+  const handleAddLineItem = () => {
+    const quantity = parseFloat(newItemQuantity) || 0;
+    const unitPrice = parseFloat(newItemUnitPrice) || 0;
+    const taxRate = parseFloat(newItemTax) || 0;
+    const itemSubtotal = quantity * unitPrice;
+    const taxAmount = taxRate ? itemSubtotal * (taxRate / 100) : 0;
+    const totalPrice = itemSubtotal + taxAmount;
+    
+    const newItem: ProposalLineItem = {
+      id: Date.now().toString(),
+      name: newItemName,
+      description: newItemDescription,
+      quantity,
+      unitPrice,
+      taxRate: taxRate > 0 ? taxRate : undefined,
+      taxAmount: taxAmount > 0 ? taxAmount : undefined,
+      totalPrice,
+      isOptional: isAddingOptionalItem,
+    };
+    
+    setLineItems([...lineItems, newItem]);
+    setShowAddItemModal(false);
   };
   
   const removeLineItem = (id: string) => {
@@ -242,6 +496,8 @@ export default function ProposalBuilder() {
   const renderTabBar = () => {
     const tabs = [
       { id: 'overview', label: 'Overview', icon: FileText },
+      ...(isBusiness ? [{ id: 'stakeholders', label: 'Stakeholders', icon: Users }] : []),
+      { id: 'info', label: 'Info', icon: FileText },
       { id: 'settings', label: 'Settings', icon: Settings },
       { id: 'notes', label: 'Notes', icon: FileText },
       { id: 'comments', label: 'Comments', icon: MessageSquare },
@@ -643,28 +899,6 @@ export default function ProposalBuilder() {
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Contact Name</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter contact name"
-            placeholderTextColor="#9CA3AF"
-            value={contactName}
-            onChangeText={setContactName}
-          />
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Business Name</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter business name (optional)"
-            placeholderTextColor="#9CA3AF"
-            value={businessName}
-            onChangeText={setBusinessName}
-          />
-        </View>
-
-        <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Valid Until</Text>
           <TextInput
             style={styles.input}
@@ -674,11 +908,85 @@ export default function ProposalBuilder() {
             onChangeText={setValidUntil}
           />
         </View>
+        </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Payment Terms</Text>
-          <View style={styles.pickerContainer}>
-            <Text style={styles.pickerValue}>{paymentTerms}</Text>
+      {/* Deposit Payment Methods */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Deposit Payment Methods</Text>
+        <View style={styles.settingsCard}>
+          {/* Credit Card */}
+          <View style={styles.paymentOptionRow}>
+            <View style={styles.paymentOptionLeft}>
+              <CreditCard size={20} color="#6366F1" />
+              <View>
+                <Text style={styles.paymentOptionLabel}>Credit Card</Text>
+                <Text style={styles.paymentOptionFee}>2.9% + $0.30 fee</Text>
+              </View>
+            </View>
+            <Switch
+              value={depositPaymentSettings.allowCreditCard}
+              onValueChange={(value) => 
+                setDepositPaymentSettings(prev => ({ ...prev, allowCreditCard: value }))
+              }
+          />
+        </View>
+
+          {depositPaymentSettings.allowCreditCard && (
+            <View style={styles.paymentOptionSubRow}>
+              <Text style={styles.paymentOptionSubLabel}>Waive convenience fee</Text>
+              <Switch
+                value={depositPaymentSettings.waiveCreditCardFee}
+                onValueChange={(value) => 
+                  setDepositPaymentSettings(prev => ({ ...prev, waiveCreditCardFee: value }))
+                }
+          />
+        </View>
+          )}
+          
+          {/* ACH */}
+          <View style={styles.paymentOptionRow}>
+            <View style={styles.paymentOptionLeft}>
+              <Building2 size={20} color="#10B981" />
+              <View>
+                <Text style={styles.paymentOptionLabel}>ACH / Bank Transfer</Text>
+                <Text style={styles.paymentOptionFee}>1% fee (max $10)</Text>
+          </View>
+        </View>
+            <Switch
+              value={depositPaymentSettings.allowACH}
+              onValueChange={(value) => 
+                setDepositPaymentSettings(prev => ({ ...prev, allowACH: value }))
+              }
+            />
+          </View>
+          
+          {depositPaymentSettings.allowACH && (
+            <View style={styles.paymentOptionSubRow}>
+              <Text style={styles.paymentOptionSubLabel}>Waive ACH fee</Text>
+              <Switch
+                value={depositPaymentSettings.waiveACHFee}
+                onValueChange={(value) => 
+                  setDepositPaymentSettings(prev => ({ ...prev, waiveACHFee: value }))
+                }
+              />
+            </View>
+          )}
+          
+          {/* Offline Payment */}
+          <View style={styles.paymentOptionRow}>
+            <View style={styles.paymentOptionLeft}>
+              <DollarSign size={20} color="#6B7280" />
+              <View>
+                <Text style={styles.paymentOptionLabel}>Offline Payment</Text>
+                <Text style={styles.paymentOptionFee}>Cash, Check, Venmo, etc.</Text>
+              </View>
+            </View>
+            <Switch
+              value={depositPaymentSettings.allowOfflinePayment}
+              onValueChange={(value) => 
+                setDepositPaymentSettings(prev => ({ ...prev, allowOfflinePayment: value }))
+              }
+            />
           </View>
         </View>
       </View>
@@ -730,6 +1038,172 @@ export default function ProposalBuilder() {
             onChangeText={setClientNotes}
             textAlignVertical="top"
           />
+        </View>
+      </View>
+    </View>
+  );
+
+  const renderStakeholdersTab = () => (
+    <View style={styles.tabContent}>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Stakeholders</Text>
+        <View style={styles.stakeholdersList}>
+          {stakeholders.map((stakeholder) => (
+            <View key={stakeholder.id} style={styles.stakeholderCard}>
+              <View style={styles.stakeholderHeader}>
+                <View style={styles.stakeholderAvatar}>
+                  <Text style={styles.stakeholderAvatarText}>
+                    {stakeholder.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                  </Text>
+                </View>
+                <View style={styles.stakeholderInfo}>
+                  <View style={styles.stakeholderNameRow}>
+                    <Text style={styles.stakeholderName}>{stakeholder.name}</Text>
+                    {stakeholder.isPrimary && (
+                      <View style={styles.primaryBadge}>
+                        <Star size={10} color="#F59E0B" fill="#F59E0B" />
+                        <Text style={styles.primaryBadgeText}>PRIMARY</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.stakeholderRole}>{stakeholder.role}</Text>
+                </View>
+              </View>
+              <View style={styles.stakeholderContactInfo}>
+                <Text style={styles.stakeholderEmail}>{stakeholder.email}</Text>
+                {stakeholder.phone && (
+                  <Text style={styles.stakeholderPhone}>{stakeholder.phone}</Text>
+                )}
+              </View>
+              {stakeholder.receiveProposals && (
+                <View style={styles.receivesProposalsBadge}>
+                  <Text style={styles.receivesProposalsText}>Usually receives proposals</Text>
+                </View>
+              )}
+              <View style={styles.stakeholderActions}>
+                <TouchableOpacity style={styles.stakeholderActionButton}>
+                  <Eye size={16} color="#6366F1" />
+                  <Text style={styles.stakeholderActionText}>View</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.stakeholderActionButton}>
+                  <Send size={16} color="#6366F1" />
+                  <Text style={styles.stakeholderActionText}>Send Proposal</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.stakeholderActionButton}>
+                  <Mail size={16} color="#6366F1" />
+                  <Text style={styles.stakeholderActionText}>Email</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.stakeholderActionButton}>
+                  <MessageSquare size={16} color="#6366F1" />
+                  <Text style={styles.stakeholderActionText}>Text</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+
+  const renderInfoTab = () => (
+    <View style={styles.tabContent}>
+      {/* Customer Information */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Customer Information</Text>
+        
+        {businessName && (
+          <View style={styles.contactInfoRow}>
+            <Building2 size={18} color="#6B7280" />
+            <Text style={styles.contactInfoText}>{businessName}</Text>
+          </View>
+        )}
+        
+        <View style={styles.contactInfoRow}>
+          <User size={18} color="#6B7280" />
+          <Text style={styles.contactInfoText}>{contactName}</Text>
+        </View>
+        
+        <View style={styles.contactInfoRow}>
+          <Mail size={18} color="#6B7280" />
+          <Text style={styles.contactInfoText}>{contactEmail}</Text>
+        </View>
+        
+        {contactPhone && (
+          <View style={styles.contactInfoRow}>
+            <Phone size={18} color="#6B7280" />
+            <Text style={styles.contactInfoText}>{contactPhone}</Text>
+          </View>
+        )}
+        
+        {jobAddress && (
+          <View style={styles.contactInfoRow}>
+            <MapPin size={18} color="#6B7280" />
+            <Text style={styles.contactInfoText}>{jobAddress}</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Job Information */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Job Information</Text>
+          <TouchableOpacity 
+            style={styles.editIconButton}
+            onPress={handleEditJobInfo}
+          >
+            <Edit2 size={20} color="#6366F1" />
+          </TouchableOpacity>
+        </View>
+        
+        <View style={styles.jobInfoCard}>
+          {/* Job Address */}
+          <View style={styles.jobInfoRow}>
+            <View style={styles.jobInfoIcon}>
+              <MapPin size={18} color="#6B7280" />
+            </View>
+            <View style={styles.jobInfoContent}>
+              <Text style={styles.jobInfoLabel}>Job Address</Text>
+              <Text style={styles.jobInfoValue}>{jobAddress}</Text>
+            </View>
+          </View>
+
+          {/* Salesperson */}
+          <View style={styles.jobInfoRow}>
+            <View style={styles.jobInfoIcon}>
+              <User size={18} color="#6B7280" />
+            </View>
+            <View style={styles.jobInfoContent}>
+              <Text style={styles.jobInfoLabel}>Salesperson</Text>
+              <Text style={styles.jobInfoValue}>{salesperson}</Text>
+            </View>
+          </View>
+
+          {/* Job Type */}
+          <View style={styles.jobInfoRow}>
+            <View style={styles.jobInfoIcon}>
+              <FileText size={18} color="#6B7280" />
+            </View>
+            <View style={styles.jobInfoContent}>
+              <Text style={styles.jobInfoLabel}>Job Type</Text>
+              <Text style={styles.jobInfoValue}>{jobType}</Text>
+            </View>
+          </View>
+
+          {/* Date Range */}
+          {(startDate || completionDate) && (
+            <View style={styles.jobInfoRow}>
+              <View style={styles.jobInfoIcon}>
+                <Clock size={18} color="#6B7280" />
+              </View>
+              <View style={styles.jobInfoContent}>
+                <Text style={styles.jobInfoLabel}>Estimated Schedule</Text>
+                <Text style={styles.jobInfoValue}>
+                  {startDate ? formatDate(startDate) : 'TBD'}
+                  {completionDate && ` - ${formatDate(completionDate)}`}
+                </Text>
+              </View>
+            </View>
+          )}
         </View>
       </View>
     </View>
@@ -790,6 +1264,10 @@ export default function ProposalBuilder() {
     switch (activeTab) {
       case 'overview':
         return renderOverviewTab();
+      case 'stakeholders':
+        return renderStakeholdersTab();
+      case 'info':
+        return renderInfoTab();
       case 'settings':
         return renderSettingsTab();
       case 'notes':
@@ -828,7 +1306,19 @@ export default function ProposalBuilder() {
               {isEditing ? proposalId : 'Create a new business proposal'}
             </Text>
           </View>
-          <View style={styles.headerSpacer} />
+          <View style={styles.headerRight}>
+            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(proposalStatus).bg }]}>
+              <Text style={[styles.statusBadgeText, { color: getStatusColor(proposalStatus).text }]}>
+                {proposalStatus.toUpperCase()}
+              </Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.headerIconButton}
+              onPress={() => setShowContactModal(true)}
+            >
+              <User size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Action Buttons */}
@@ -862,6 +1352,24 @@ export default function ProposalBuilder() {
           )}
         </View>
       </LinearGradient>
+
+      {/* Scheduled Send Banner */}
+      {isScheduled && scheduledDate && (
+        <View style={styles.scheduledBanner}>
+          <Clock size={18} color="#F59E0B" />
+          <View style={styles.scheduledBannerContent}>
+            <Text style={styles.scheduledBannerText}>
+              Scheduled to send on {formatDate(scheduledDate)} at {formatTime(scheduledDate)}
+            </Text>
+          </View>
+          <TouchableOpacity 
+            style={styles.scheduledBannerButton}
+            onPress={() => setShowSendModal(true)}
+          >
+            <Text style={styles.scheduledBannerButtonText}>Edit</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Schedule Job Banner */}
       {proposalStatus === 'accepted' && !isScheduled && (
@@ -922,49 +1430,224 @@ export default function ProposalBuilder() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalBody}>
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+              {/* Item Name with Dropdown */}
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Item Name</Text>
+                <View style={[
+                  styles.input,
+                  focusedInput === 'itemName' && styles.inputFocused
+                ]}>
                 <TextInput
-                  style={styles.input}
-                  placeholder="Enter item name"
+                    style={styles.inputText}
+                    value={newItemName}
+                    onChangeText={setNewItemName}
+                    placeholder="Enter item name or select from products below"
                   placeholderTextColor="#9CA3AF"
+                    onFocus={() => setFocusedInput('itemName')}
+                    onBlur={() => setFocusedInput(null)}
                 />
               </View>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Description</Text>
-                <TextInput
-                  style={styles.textArea}
-                  placeholder="Enter item description"
-                  placeholderTextColor="#9CA3AF"
-                  multiline
-                  numberOfLines={3}
-                  textAlignVertical="top"
-                />
+                {/* Products/Services Quick Select */}
+                <TouchableOpacity
+                  style={styles.quickSelectToggle}
+                  onPress={() => setShowItemNameDropdown(!showItemNameDropdown)}
+                >
+                  <Text style={styles.quickSelectText}>
+                    {showItemNameDropdown ? 'Hide' : 'Show'} Products/Services
+                  </Text>
+                  <ChevronRight 
+                    size={16} 
+                    color="#6366F1" 
+                    style={{ transform: [{ rotate: showItemNameDropdown ? '90deg' : '0deg' }] }}
+                  />
+                </TouchableOpacity>
+                
+                {showItemNameDropdown && (
+                  <View style={styles.dropdownMenu}>
+                    <TouchableOpacity
+                      style={styles.dropdownItem}
+                      onPress={() => {
+                        setNewItemName('Exterior Painting');
+                        setNewItemUnitPrice('2500');
+                        setShowItemNameDropdown(false);
+                      }}
+                    >
+                      <Text style={styles.dropdownItemText}>Exterior Painting</Text>
+                      <Text style={styles.dropdownItemPrice}>$2,500.00</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.dropdownItem}
+                      onPress={() => {
+                        setNewItemName('Interior Painting');
+                        setNewItemUnitPrice('1800');
+                        setShowItemNameDropdown(false);
+                      }}
+                    >
+                      <Text style={styles.dropdownItemText}>Interior Painting</Text>
+                      <Text style={styles.dropdownItemPrice}>$1,800.00</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.dropdownItem}
+                      onPress={() => {
+                        setNewItemName('Deck Staining');
+                        setNewItemUnitPrice('1200');
+                        setShowItemNameDropdown(false);
+                      }}
+                    >
+                      <Text style={styles.dropdownItemText}>Deck Staining</Text>
+                      <Text style={styles.dropdownItemPrice}>$1,200.00</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.dropdownItem}
+                      onPress={() => {
+                        setNewItemName('Pressure Washing');
+                        setNewItemUnitPrice('350');
+                        setShowItemNameDropdown(false);
+                      }}
+                    >
+                      <Text style={styles.dropdownItemText}>Pressure Washing</Text>
+                      <Text style={styles.dropdownItemPrice}>$350.00</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.dropdownItem}
+                      onPress={() => {
+                        setNewItemName('Trim Work');
+                        setNewItemUnitPrice('800');
+                        setShowItemNameDropdown(false);
+                      }}
+                    >
+                      <Text style={styles.dropdownItemText}>Trim Work</Text>
+                      <Text style={styles.dropdownItemPrice}>$800.00</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.dropdownItem}
+                      onPress={() => {
+                        setNewItemName('Cabinet Refinishing');
+                        setNewItemUnitPrice('1500');
+                        setShowItemNameDropdown(false);
+                      }}
+                    >
+                      <Text style={styles.dropdownItemText}>Cabinet Refinishing</Text>
+                      <Text style={styles.dropdownItemPrice}>$1,500.00</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
 
+              {/* Quantity and Price Row */}
               <View style={styles.inputRow}>
                 <View style={styles.inputGroupHalf}>
                   <Text style={styles.inputLabel}>Quantity</Text>
+                  <View style={[
+                    styles.input,
+                    focusedInput === 'itemQuantity' && styles.inputFocused
+                  ]}>
                   <TextInput
-                    style={styles.input}
-                    placeholder="0"
-                    placeholderTextColor="#9CA3AF"
-                    keyboardType="numeric"
-                  />
+                      style={styles.inputText}
+                      value={newItemQuantity}
+                      onChangeText={setNewItemQuantity}
+                      placeholder="1"
+                      keyboardType="decimal-pad"
+                      onFocus={() => setFocusedInput('itemQuantity')}
+                      onBlur={() => setFocusedInput(null)}
+                    />
+                  </View>
                 </View>
 
                 <View style={styles.inputGroupHalf}>
                   <Text style={styles.inputLabel}>Unit Price</Text>
+                  <View style={[
+                    styles.input,
+                    focusedInput === 'itemUnitPrice' && styles.inputFocused
+                  ]}>
+                    <View style={styles.currencyInputWrapper}>
+                      <Text style={styles.currencySymbol}>$</Text>
                   <TextInput
-                    style={styles.input}
-                    placeholder="$0.00"
-                    placeholderTextColor="#9CA3AF"
-                    keyboardType="numeric"
-                  />
+                        style={styles.currencyInput}
+                        value={newItemUnitPrice}
+                        onChangeText={setNewItemUnitPrice}
+                        placeholder="0.00"
+                        keyboardType="decimal-pad"
+                        onFocus={() => setFocusedInput('itemUnitPrice')}
+                        onBlur={() => setFocusedInput(null)}
+                      />
+                    </View>
+                  </View>
                 </View>
               </View>
+
+              {/* Tax Field */}
+              <View style={styles.inputGroup}>
+                <View style={styles.taxHeaderRow}>
+                  <Text style={styles.inputLabel}>Tax Rate (Optional)</Text>
+                  <Text style={styles.taxHelpText}>e.g., 8.5 for 8.5%</Text>
+                </View>
+                <View style={[
+                  styles.input,
+                  focusedInput === 'itemTax' && styles.inputFocused
+                ]}>
+                  <TextInput
+                    style={styles.inputText}
+                    value={newItemTax}
+                    onChangeText={setNewItemTax}
+                    placeholder="0"
+                    keyboardType="decimal-pad"
+                    onFocus={() => setFocusedInput('itemTax')}
+                    onBlur={() => setFocusedInput(null)}
+                  />
+                  {newItemTax ? (
+                    <Text style={styles.taxPercentDisplay}>{newItemTax}%</Text>
+                  ) : null}
+                </View>
+              </View>
+
+              {/* Description */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Description</Text>
+                <TextInput
+                  style={styles.textArea}
+                  value={newItemDescription}
+                  onChangeText={setNewItemDescription}
+                  placeholder="Enter item description"
+                    placeholderTextColor="#9CA3AF"
+                  multiline
+                  numberOfLines={3}
+                  textAlignVertical="top"
+                  />
+                </View>
+
+              {/* Item Total Preview */}
+              {newItemQuantity && newItemUnitPrice && (
+                <View style={styles.itemTotalPreview}>
+                  <View style={styles.itemTotalRow}>
+                    <Text style={styles.itemTotalLabel}>Subtotal:</Text>
+                    <Text style={styles.itemTotalValue}>
+                      {formatCurrency(parseFloat(newItemQuantity) * parseFloat(newItemUnitPrice))}
+                    </Text>
+              </View>
+                  {newItemTax && parseFloat(newItemTax) > 0 && (
+                    <>
+                      <View style={styles.itemTotalRow}>
+                        <Text style={styles.itemTotalLabel}>Tax ({newItemTax}%):</Text>
+                        <Text style={styles.itemTotalValue}>
+                          {formatCurrency((parseFloat(newItemQuantity) * parseFloat(newItemUnitPrice)) * (parseFloat(newItemTax) / 100))}
+                        </Text>
+                      </View>
+                      <View style={[styles.itemTotalRow, styles.itemTotalRowFinal]}>
+                        <Text style={styles.itemTotalLabelFinal}>Total:</Text>
+                        <Text style={styles.itemTotalValueFinal}>
+                          {formatCurrency(
+                            (parseFloat(newItemQuantity) * parseFloat(newItemUnitPrice)) * 
+                            (1 + parseFloat(newItemTax) / 100)
+                          )}
+                        </Text>
+                      </View>
+                    </>
+                  )}
+                </View>
+              )}
             </ScrollView>
 
             <View style={styles.modalFooter}>
@@ -976,10 +1659,8 @@ export default function ProposalBuilder() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.modalButtonPrimary}
-                onPress={() => {
-                  // TODO: Add item logic
-                  setShowAddItemModal(false);
-                }}
+                onPress={handleAddLineItem}
+                disabled={!newItemName || !newItemQuantity || !newItemUnitPrice}
               >
                 <Text style={styles.modalButtonPrimaryText}>Add Item</Text>
               </TouchableOpacity>
@@ -1216,6 +1897,789 @@ export default function ProposalBuilder() {
           </View>
         </View>
       </Modal>
+
+      {/* Send Proposal Modal - Comprehensive */}
+      <Modal
+        visible={showSendModal}
+        animationType="slide"
+        onRequestClose={() => setShowSendModal(false)}
+      >
+        <SafeAreaView style={styles.sendModalContainer}>
+          <View style={styles.sendModalHeader}>
+            <TouchableOpacity onPress={() => setShowSendModal(false)}>
+              <ChevronLeft size={24} color="#111827" />
+            </TouchableOpacity>
+            <Text style={styles.sendModalTitle}>Send Proposal</Text>
+            <View style={{ width: 24 }} />
+          </View>
+
+          <ScrollView style={styles.sendModalContent} showsVerticalScrollIndicator={false}>
+            {/* Send Method */}
+            <View style={styles.sendModalSection}>
+              <Text style={styles.sendModalSectionTitle}>Send Via</Text>
+              <View style={styles.sendMethodOptions}>
+                <TouchableOpacity 
+                  style={[styles.sendMethodButton, sendViaEmail && styles.sendMethodButtonActive]}
+                  onPress={() => setSendViaEmail(!sendViaEmail)}
+                >
+                  <Mail size={20} color={sendViaEmail ? '#FFFFFF' : '#6366F1'} />
+                  <Text style={[
+                    styles.sendMethodButtonText,
+                    sendViaEmail && styles.sendMethodButtonTextActive
+                  ]}>Email</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.sendMethodButton, sendViaText && styles.sendMethodButtonActive]}
+                  onPress={() => setSendViaText(!sendViaText)}
+                >
+                  <MessageSquare size={20} color={sendViaText ? '#FFFFFF' : '#8B5CF6'} />
+                  <Text style={[
+                    styles.sendMethodButtonText,
+                    sendViaText && styles.sendMethodButtonTextActive
+                  ]}>Text</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Recipients */}
+            <View style={styles.sendModalSection}>
+              <Text style={styles.sendModalSectionTitle}>
+                {isBusiness ? 'Recipients (Select Stakeholders)' : 'Recipient'}
+              </Text>
+              
+              {isBusiness && stakeholders.length > 0 ? (
+                <View style={styles.stakeholderSelectionList}>
+                  {stakeholders.map((stakeholder) => {
+                    const isSelected = selectedStakeholderIds.includes(stakeholder.id);
+                    const isPrimary = stakeholder.id === primaryContactId;
+                    
+                    return (
+                      <TouchableOpacity
+                        key={stakeholder.id}
+                        style={[
+                          styles.stakeholderSelectionCard,
+                          isSelected && styles.stakeholderSelectionCardActive
+                        ]}
+                        onPress={() => handleToggleStakeholder(stakeholder.id)}
+                      >
+                        <View style={styles.stakeholderSelectionMain}>
+                          <View style={[
+                            styles.stakeholderCheckbox,
+                            isSelected && styles.stakeholderCheckboxActive
+                          ]}>
+                            {isSelected && <Check size={16} color="#FFFFFF" />}
+                          </View>
+                          <View style={styles.stakeholderSelectionInfo}>
+                            <View style={styles.stakeholderSelectionNameRow}>
+                              <Text style={styles.stakeholderSelectionName}>{stakeholder.name}</Text>
+                              {isPrimary && (
+                                <View style={styles.primaryBadgeSmall}>
+                                  <Star size={10} color="#F59E0B" fill="#F59E0B" />
+                                  <Text style={styles.primaryBadgeTextSmall}>Primary</Text>
+                                </View>
+                              )}
+                            </View>
+                            <Text style={styles.stakeholderSelectionRole}>{stakeholder.role}</Text>
+                            <Text style={styles.stakeholderSelectionEmail}>{stakeholder.email}</Text>
+                            {stakeholder.receiveProposals && (
+                              <View style={styles.receivesProposalsBadgeSmall}>
+                                <Text style={styles.receivesProposalsTextSmall}>Usually receives proposals</Text>
+                              </View>
+                            )}
+                          </View>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              ) : (
+                <View style={styles.recipientCard}>
+                  <View style={styles.recipientIcon}>
+                    <User size={20} color="#6366F1" />
+                  </View>
+                  <View style={styles.recipientInfo}>
+                    <Text style={styles.recipientName}>{contactName}</Text>
+                    <Text style={styles.recipientEmail}>{contactEmail}</Text>
+                  </View>
+                </View>
+              )}
+            </View>
+
+            {/* Email Message Preview */}
+            {sendViaEmail && (
+              <View style={styles.sendModalSection}>
+                <View style={styles.messagePreviewHeader}>
+                  <Text style={styles.sendModalSectionTitle}>Email Message Preview</Text>
+                  <TouchableOpacity 
+                    style={styles.editMessageButton}
+                    onPress={() => {
+                      if (!editingEmailMessage && !customEmailBody) {
+                        setCustomEmailBody(`Hi${isBusiness ? ' there' : ` ${contactName}`},\n\nPlease find your proposal for ${title || 'your project'}.\n\nTotal Amount: ${formatCurrency(totalAmount)}\n\nYou can view and accept your proposal here:\n{proposal-link}\n\nThank you for your business!`);
+                      }
+                      setEditingEmailMessage(!editingEmailMessage);
+                    }}
+                  >
+                    <Text style={styles.editMessageButtonText}>
+                      {editingEmailMessage ? 'Cancel' : 'Edit'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.emailPreviewCard}>
+                  {editingEmailMessage ? (
+                    <View style={styles.messageEditMode}>
+                      <View style={styles.editFieldGroup}>
+                        <Text style={styles.editFieldLabel}>Subject:</Text>
+                        <TextInput
+                          style={styles.editFieldInput}
+                          value={messageSubject}
+                          onChangeText={setMessageSubject}
+                          placeholder="Email subject"
+                        />
+                      </View>
+                      <View style={styles.editFieldGroup}>
+                        <Text style={styles.editFieldLabel}>Message:</Text>
+                        <TextInput
+                          style={[styles.editFieldInput, styles.editFieldTextarea]}
+                          value={customEmailBody}
+                          onChangeText={setCustomEmailBody}
+                          placeholder="Email message"
+                          multiline
+                          numberOfLines={8}
+                        />
+                      </View>
+                      <TouchableOpacity
+                        style={styles.saveEditButton}
+                        onPress={() => setEditingEmailMessage(false)}
+                      >
+                        <Text style={styles.saveEditButtonText}>Save Changes</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <>
+                      <View style={styles.emailPreviewHeader}>
+                        <Mail size={18} color="#6366F1" />
+                        <Text style={styles.emailPreviewSubject}>{messageSubject}</Text>
+                      </View>
+                      <View style={styles.emailPreviewBody}>
+                        <Text style={styles.emailPreviewText}>
+                          {customEmailBody || `Hi${isBusiness ? ' there' : ` ${contactName}`},\n\nPlease find your proposal for ${title || 'your project'}.\n\nTotal Amount: ${formatCurrency(totalAmount)}\n\nYou can view and accept your proposal here:\n{proposal-link}\n\nThank you for your business!`}
+                        </Text>
+                      </View>
+                    </>
+                  )}
+                </View>
+              </View>
+            )}
+
+            {/* Text Message Preview */}
+            {sendViaText && (
+              <View style={styles.sendModalSection}>
+                <View style={styles.messagePreviewHeader}>
+                  <Text style={styles.sendModalSectionTitle}>Text Message Preview</Text>
+                  <TouchableOpacity 
+                    style={styles.editMessageButton}
+                    onPress={() => {
+                      if (!editingTextMessage && !customTextBody) {
+                        setCustomTextBody(`Hi${isBusiness ? '' : ` ${contactName.split(' ')[0]}`}, your proposal for ${formatCurrency(totalAmount)} is ready. View & accept: {proposal-link}`);
+                      }
+                      setEditingTextMessage(!editingTextMessage);
+                    }}
+                  >
+                    <Text style={styles.editMessageButtonText}>
+                      {editingTextMessage ? 'Cancel' : 'Edit'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.textPreviewCard}>
+                  {editingTextMessage ? (
+                    <View style={styles.messageEditMode}>
+                      <View style={styles.editFieldGroup}>
+                        <Text style={styles.editFieldLabel}>Message:</Text>
+                        <TextInput
+                          style={[styles.editFieldInput, styles.editFieldTextarea]}
+                          value={customTextBody}
+                          onChangeText={setCustomTextBody}
+                          placeholder="Text message"
+                          multiline
+                          numberOfLines={4}
+                        />
+                        <Text style={styles.textPreviewCount}>
+                          {customTextBody.length} characters
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        style={styles.saveEditButton}
+                        onPress={() => setEditingTextMessage(false)}
+                      >
+                        <Text style={styles.saveEditButtonText}>Save Changes</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <>
+                      <View style={styles.textPreviewHeader}>
+                        <MessageSquare size={18} color="#8B5CF6" />
+                        <Text style={styles.textPreviewLabel}>SMS</Text>
+                      </View>
+                      <View style={styles.textPreviewBody}>
+                        <Text style={styles.textPreviewText}>
+                          {customTextBody || `Hi${isBusiness ? '' : ` ${contactName.split(' ')[0]}`}, your proposal for ${formatCurrency(totalAmount)} is ready. View & accept: {proposal-link}`}
+                        </Text>
+                        <Text style={styles.textPreviewCount}>
+                          {(customTextBody || `Hi${isBusiness ? '' : ` ${contactName.split(' ')[0]}`}, your proposal for ${formatCurrency(totalAmount)} is ready. View & accept: {proposal-link}`).length} characters
+                        </Text>
+                      </View>
+                    </>
+                  )}
+                </View>
+              </View>
+            )}
+
+            {/* Send Timing Section */}
+            <View style={styles.sendModalSection}>
+              <Text style={styles.sendModalSectionTitle}>Send Timing</Text>
+              <View style={styles.sendTimingOptions}>
+                <TouchableOpacity 
+                  style={[
+                    styles.sendTimingOption,
+                    sendNow && styles.sendTimingOptionActive
+                  ]}
+                  onPress={() => {
+                    setSendNow(true);
+                    setSelectedPreset(null);
+                    setScheduledSendDate(null);
+                  }}
+                >
+                  <Send size={16} color={sendNow ? '#FFFFFF' : '#6366F1'} />
+                  <Text style={[
+                    styles.sendTimingOptionText,
+                    sendNow && styles.sendTimingOptionTextActive
+                  ]}>Send Now</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.sendTimingOption,
+                    !sendNow && styles.sendTimingOptionActive
+                  ]}
+                  onPress={() => setSendNow(false)}
+                >
+                  <Clock size={16} color={!sendNow ? '#FFFFFF' : '#6366F1'} />
+                  <Text style={[
+                    styles.sendTimingOptionText,
+                    !sendNow && styles.sendTimingOptionTextActive
+                  ]}>Schedule</Text>
+                </TouchableOpacity>
+              </View>
+              
+              {!sendNow && (
+                <View style={styles.scheduleSection}>
+                  <Text style={styles.scheduleSectionLabel}>Select Time</Text>
+                  <View style={styles.schedulePresets}>
+                    {getSchedulingPresets().map((preset) => (
+                      <TouchableOpacity
+                        key={preset.id}
+                        style={[
+                          styles.schedulePresetButton,
+                          selectedPreset === preset.id && styles.schedulePresetButtonActive
+                        ]}
+                        onPress={() => {
+                          setSelectedPreset(preset.id);
+                          setScheduledSendDate(preset.date);
+                        }}
+                      >
+                        <Text style={[
+                          styles.schedulePresetText,
+                          selectedPreset === preset.id && styles.schedulePresetTextActive
+                        ]}>{preset.label}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  <TouchableOpacity
+                    style={styles.customDateButton}
+                    onPress={() => setShowDatePicker(true)}
+                  >
+                    <Calendar size={18} color="#6366F1" />
+                    <Text style={styles.customDateButtonText}>
+                      {scheduledSendDate && !selectedPreset
+                        ? `${formatDate(scheduledSendDate)} at ${formatTime(scheduledSendDate)}`
+                        : 'Custom Date & Time'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          </ScrollView>
+
+          <View style={styles.sendModalFooter}>
+            <TouchableOpacity
+              style={styles.sendModalButtonSecondary}
+              onPress={() => setShowSendModal(false)}
+            >
+              <Text style={styles.sendModalButtonSecondaryText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.sendModalButtonPrimary}
+              onPress={handleSendProposal}
+              disabled={!sendViaEmail && !sendViaText}
+            >
+              <Send size={18} color="#FFFFFF" />
+              <Text style={styles.sendModalButtonPrimaryText}>
+                {sendNow ? 'Send Now' : 'Schedule Send'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Contact Modal */}
+      <Modal
+        visible={showContactModal}
+        animationType="slide"
+        onRequestClose={() => setShowContactModal(false)}
+      >
+        <SafeAreaView style={styles.contactModalContainer}>
+          <LinearGradient colors={['#6366F1', '#8B5CF6']} style={styles.contactModalHeader}>
+            <TouchableOpacity onPress={() => setShowContactModal(false)} style={styles.backButton}>
+              <ChevronLeft size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <Text style={styles.contactModalTitle}>Customer Details</Text>
+            <View style={{ width: 40 }} />
+          </LinearGradient>
+
+          <ScrollView style={styles.contactModalContent}>
+            {/* Avatar and Name */}
+            <View style={styles.contactModalAvatar}>
+              <View style={styles.avatarCircle}>
+                <Text style={styles.avatarInitials}>
+                  {contactName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                </Text>
+              </View>
+              <Text style={styles.contactModalName}>{contactName}</Text>
+              {contactPhone && (
+                <Text style={styles.contactModalSubtext}>{contactPhone}</Text>
+              )}
+              <Text style={styles.contactModalSubtext}>{contactEmail}</Text>
+            </View>
+
+            {/* Quick Actions */}
+            <View style={styles.contactModalActions}>
+              <TouchableOpacity style={styles.contactModalActionButton}>
+                <PhoneCall size={22} color="#6366F1" />
+                <Text style={styles.contactModalActionText}>Call</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.contactModalActionButton}>
+                <Mail size={22} color="#6366F1" />
+                <Text style={styles.contactModalActionText}>Email</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.contactModalActionButton}>
+                <MapPin size={22} color="#6366F1" />
+                <Text style={styles.contactModalActionText}>Navigate</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.contactModalActionButton}>
+                <MessageSquare size={22} color="#6366F1" />
+                <Text style={styles.contactModalActionText}>Text</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Customer Information */}
+            <View style={styles.contactModalSection}>
+              <Text style={styles.contactModalSectionTitle}>Contact Information</Text>
+              <View style={styles.contactInfoCard}>
+                {businessName && (
+                  <View style={styles.contactInfoRow}>
+                    <Building2 size={20} color="#6366F1" />
+                    <View style={styles.contactInfoTextContainer}>
+                      <Text style={styles.contactInfoLabel}>Business</Text>
+                      <Text style={styles.contactInfoValue}>{businessName}</Text>
+                    </View>
+                  </View>
+                )}
+                <View style={styles.contactInfoRow}>
+                  <User size={20} color="#6366F1" />
+                  <View style={styles.contactInfoTextContainer}>
+                    <Text style={styles.contactInfoLabel}>Name</Text>
+                    <Text style={styles.contactInfoValue}>{contactName}</Text>
+                  </View>
+                </View>
+                <View style={styles.contactInfoRow}>
+                  <Mail size={20} color="#6366F1" />
+                  <View style={styles.contactInfoTextContainer}>
+                    <Text style={styles.contactInfoLabel}>Email</Text>
+                    <Text style={styles.contactInfoValue}>{contactEmail}</Text>
+                  </View>
+                </View>
+                {contactPhone && (
+                  <View style={styles.contactInfoRow}>
+                    <Phone size={20} color="#6366F1" />
+                    <View style={styles.contactInfoTextContainer}>
+                      <Text style={styles.contactInfoLabel}>Phone</Text>
+                      <Text style={styles.contactInfoValue}>{contactPhone}</Text>
+                    </View>
+                  </View>
+                )}
+                {billingAddress && (
+                  <View style={styles.contactInfoRow}>
+                    <MapPin size={20} color="#6366F1" />
+                    <View style={styles.contactInfoTextContainer}>
+                      <Text style={styles.contactInfoLabel}>Billing Address</Text>
+                      <Text style={styles.contactInfoValue}>{billingAddress}</Text>
+                    </View>
+                  </View>
+                )}
+                {jobAddress && jobAddress !== billingAddress && (
+                  <View style={styles.contactInfoRow}>
+                    <MapPin size={20} color="#8B5CF6" />
+                    <View style={styles.contactInfoTextContainer}>
+                      <Text style={styles.contactInfoLabel}>Job Address</Text>
+                      <Text style={styles.contactInfoValue}>{jobAddress}</Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {/* Business Stakeholders */}
+            {isBusiness && stakeholders && stakeholders.length > 0 && (
+              <View style={styles.contactModalSection}>
+                <Text style={styles.contactModalSectionTitle}>Business Stakeholders</Text>
+                <View style={styles.stakeholdersList}>
+                  {stakeholders.map((stakeholder) => (
+                    <View key={stakeholder.id} style={styles.stakeholderCard}>
+                      <View style={styles.stakeholderMain}>
+                        <View style={styles.stakeholderAvatar}>
+                          <Text style={styles.stakeholderInitials}>
+                            {stakeholder.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                          </Text>
+                        </View>
+                        <View style={styles.stakeholderInfo}>
+                          <View style={styles.stakeholderNameRow}>
+                            <Text style={styles.stakeholderName}>{stakeholder.name}</Text>
+                            {stakeholder.id === primaryContactId && (
+                              <View style={styles.primaryBadge}>
+                                <Star size={12} color="#F59E0B" fill="#F59E0B" />
+                              </View>
+                            )}
+                          </View>
+                          <Text style={styles.stakeholderRole}>{stakeholder.role}</Text>
+                          <Text style={styles.stakeholderEmail}>{stakeholder.email}</Text>
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Related Deals */}
+            {relatedDealId && (
+              <View style={styles.contactModalSection}>
+                <Text style={styles.contactModalSectionTitle}>Related Deals</Text>
+                <TouchableOpacity 
+                  style={styles.dealCard}
+                  onPress={() => {
+                    if (relatedDealId) {
+                      router.push('/(tabs)/team-chat');
+                      setShowContactModal(false);
+                    }
+                  }}
+                >
+                  <View style={styles.dealHeader}>
+                    <View style={styles.dealIconContainer}>
+                      <Building2 size={20} color="#6366F1" />
+                    </View>
+                    <View style={styles.dealInfo}>
+                      <Text style={styles.dealTitle}>{relatedDealTitle || 'Related Deal'}</Text>
+                      <Text style={styles.dealStage}>{relatedDealStage || 'In Progress'}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.dealMeta}>
+                    <View style={styles.dealMetaItem}>
+                      <DollarSign size={16} color="#10B981" />
+                      <Text style={styles.dealMetaText}>
+                        {formatCurrency(relatedDealAmount || totalAmount)}
+                      </Text>
+                    </View>
+                    {relatedDealProbability && (
+                      <View style={styles.dealMetaItem}>
+                        <TrendingUp size={16} color="#6366F1" />
+                        <Text style={styles.dealMetaText}>{relatedDealProbability}% Probability</Text>
+                      </View>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* View Contact Card Button */}
+            <View style={styles.contactModalFooter}>
+              <TouchableOpacity style={styles.viewContactButton}>
+                <UserCircle size={20} color="#6366F1" />
+                <Text style={styles.viewContactButtonText}>View Full Contact Card</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.bottomSpacing} />
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Job Information Edit Modal */}
+      <Modal
+        visible={showJobInfoModal}
+        animationType="slide"
+        onRequestClose={() => setShowJobInfoModal(false)}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowJobInfoModal(false)}>
+              <ChevronLeft size={24} color="#111827" />
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Edit Job Information</Text>
+            <View style={{ width: 24 }} />
+          </View>
+
+          <ScrollView style={styles.modalContent} contentContainerStyle={styles.modalContentInner} showsVerticalScrollIndicator={false}>
+            {/* Street Address Line 1 */}
+            <View style={styles.modalSection}>
+              <Text style={styles.modalSectionTitle}>Street Address</Text>
+              <View style={[
+                styles.inputContainer,
+                focusedInput === 'addressLine1' && styles.inputContainerFocused
+              ]}>
+                <MapPin size={20} color="#6B7280" />
+                <TextInput
+                  style={styles.input}
+                  value={editAddressLine1}
+                  onChangeText={setEditAddressLine1}
+                  placeholder="Street address"
+                  placeholderTextColor="#9CA3AF"
+                  onFocus={() => setFocusedInput('addressLine1')}
+                  onBlur={() => setFocusedInput(null)}
+                />
+              </View>
+            </View>
+
+            {/* Street Address Line 2 (Optional) */}
+            <View style={styles.modalSection}>
+              <Text style={styles.modalSectionTitle}>Apt, Suite, etc. (Optional)</Text>
+              <View style={[
+                styles.inputContainer,
+                focusedInput === 'addressLine2' && styles.inputContainerFocused
+              ]}>
+                <MapPin size={20} color="#6B7280" />
+                <TextInput
+                  style={styles.input}
+                  value={editAddressLine2}
+                  onChangeText={setEditAddressLine2}
+                  placeholder="Apartment, suite, unit, etc."
+                  placeholderTextColor="#9CA3AF"
+                  onFocus={() => setFocusedInput('addressLine2')}
+                  onBlur={() => setFocusedInput(null)}
+                />
+              </View>
+            </View>
+
+            {/* City, State, Postal in a row */}
+            <View style={styles.modalSection}>
+              <Text style={styles.modalSectionTitle}>City, State, ZIP</Text>
+              <View style={styles.addressRowContainer}>
+                {/* City */}
+                <View style={[styles.addressFieldContainer, { flex: 2 }]}>
+                  <TextInput
+                    style={styles.addressInput}
+                    value={editCity}
+                    onChangeText={setEditCity}
+                    placeholder="City"
+                    placeholderTextColor="#9CA3AF"
+                  />
+                </View>
+                
+                {/* State */}
+                <View style={[styles.addressFieldContainer, { flex: 1 }]}>
+                  <TextInput
+                    style={styles.addressInput}
+                    value={editState}
+                    onChangeText={setEditState}
+                    placeholder="State"
+                    placeholderTextColor="#9CA3AF"
+                    maxLength={2}
+                  />
+                </View>
+                
+                {/* ZIP */}
+                <View style={[styles.addressFieldContainer, { flex: 1 }]}>
+                  <TextInput
+                    style={styles.addressInput}
+                    value={editPostalCode}
+                    onChangeText={setEditPostalCode}
+                    placeholder="ZIP"
+                    placeholderTextColor="#9CA3AF"
+                    keyboardType="number-pad"
+                    maxLength={10}
+                  />
+                </View>
+              </View>
+            </View>
+
+            {/* Salesperson */}
+            <View style={styles.modalSection}>
+              <Text style={styles.modalSectionTitle}>Salesperson</Text>
+              <View style={[
+                styles.inputContainer,
+                focusedInput === 'salesperson' && styles.inputContainerFocused
+              ]}>
+                <User size={20} color="#6B7280" />
+                <TextInput
+                  style={styles.input}
+                  value={editSalesperson}
+                  onChangeText={setEditSalesperson}
+                  placeholder="Enter salesperson name"
+                  placeholderTextColor="#9CA3AF"
+                  onFocus={() => setFocusedInput('salesperson')}
+                  onBlur={() => setFocusedInput(null)}
+                />
+              </View>
+            </View>
+
+            {/* Job Type */}
+            <View style={styles.modalSection}>
+              <Text style={styles.modalSectionTitle}>Job Type</Text>
+              <View style={[
+                styles.inputContainer,
+                focusedInput === 'jobType' && styles.inputContainerFocused
+              ]}>
+                <FileText size={20} color="#6B7280" />
+                <TextInput
+                  style={styles.input}
+                  value={editJobType}
+                  onChangeText={setEditJobType}
+                  placeholder="Enter job type"
+                  placeholderTextColor="#9CA3AF"
+                  onFocus={() => setFocusedInput('jobType')}
+                  onBlur={() => setFocusedInput(null)}
+                />
+              </View>
+            </View>
+
+            {/* Estimated Start Date */}
+            <View style={styles.modalSection}>
+              <Text style={styles.modalSectionTitle}>Estimated Start Date</Text>
+              <TouchableOpacity
+                style={styles.datePickerButton}
+                onPress={() => setShowJobStartDatePicker(true)}
+              >
+                <Calendar size={20} color="#6B7280" />
+                <Text style={styles.datePickerButtonText}>
+                  {editStartDate ? formatDate(editStartDate.toISOString()) : 'Select estimated start date'}
+                </Text>
+                <ChevronRight size={20} color="#6B7280" />
+              </TouchableOpacity>
+              {showJobStartDatePicker && (
+                <DateTimePicker
+                  value={editStartDate || new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={(event, selectedDate) => {
+                    setShowJobStartDatePicker(false);
+                    if (selectedDate) {
+                      setEditStartDate(selectedDate);
+                    }
+                  }}
+                />
+              )}
+              {editStartDate && (
+                <TouchableOpacity
+                  style={styles.clearDateButton}
+                  onPress={() => setEditStartDate(null)}
+                >
+                  <Text style={styles.clearDateButtonText}>Clear Start Date</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Estimated End Date */}
+            <View style={styles.modalSection}>
+              <Text style={styles.modalSectionTitle}>Estimated End Date</Text>
+              <TouchableOpacity
+                style={styles.datePickerButton}
+                onPress={() => setShowJobCompletionDatePicker(true)}
+              >
+                <Calendar size={20} color="#6B7280" />
+                <Text style={styles.datePickerButtonText}>
+                  {editCompletionDate ? formatDate(editCompletionDate.toISOString()) : 'Select estimated end date'}
+                </Text>
+                <ChevronRight size={20} color="#6B7280" />
+              </TouchableOpacity>
+              {showJobCompletionDatePicker && (
+                <DateTimePicker
+                  value={editCompletionDate || new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={(event, selectedDate) => {
+                    setShowJobCompletionDatePicker(false);
+                    if (selectedDate) {
+                      setEditCompletionDate(selectedDate);
+                    }
+                  }}
+                />
+              )}
+              {editCompletionDate && (
+                <TouchableOpacity
+                  style={styles.clearDateButton}
+                  onPress={() => setEditCompletionDate(null)}
+                >
+                  <Text style={styles.clearDateButtonText}>Clear End Date</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Save Button */}
+            <TouchableOpacity
+              style={styles.modalActionButton}
+              onPress={handleSaveJobInfo}
+            >
+              <Text style={styles.modalActionButtonText}>Save Changes</Text>
+            </TouchableOpacity>
+
+            <View style={styles.bottomSpacing} />
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Date Picker for Send Scheduling */}
+      {showDatePicker && Platform.OS === 'ios' && (
+        <Modal
+          transparent
+          animationType="slide"
+          visible={showDatePicker}
+          onRequestClose={() => setShowDatePicker(false)}
+        >
+          <View style={styles.datePickerModalOverlay}>
+            <View style={styles.datePickerModal}>
+              <View style={styles.datePickerHeader}>
+                <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                  <Text style={styles.datePickerCancel}>Cancel</Text>
+                </TouchableOpacity>
+                <Text style={styles.datePickerTitle}>Select Date & Time</Text>
+                <TouchableOpacity onPress={() => {
+                  setShowDatePicker(false);
+                  setSelectedPreset(null);
+                }}>
+                  <Text style={styles.datePickerDone}>Done</Text>
+                </TouchableOpacity>
+              </View>
+              <DateTimePicker
+                value={scheduledSendDate || new Date()}
+                mode="datetime"
+                display="spinner"
+                onChange={(event, date) => {
+                  if (date) setScheduledSendDate(date);
+                }}
+              />
+            </View>
+          </View>
+        </Modal>
+      )}
     </SafeAreaView>
   );
 }
@@ -1645,9 +3109,11 @@ const styles = StyleSheet.create({
   },
   modalHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
@@ -1933,6 +3399,1123 @@ const styles = StyleSheet.create({
   scheduleJobDescription: {
     fontSize: 13,
     color: '#78350F',
+  },
+  // Header enhancements
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerIconButton: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 18,
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  statusBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  // Scheduled Banner
+  scheduledBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#FCD34D',
+    gap: 12,
+  },
+  scheduledBannerContent: {
+    flex: 1,
+  },
+  scheduledBannerText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#92400E',
+  },
+  scheduledBannerButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+  },
+  scheduledBannerButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#F59E0B',
+  },
+  // Stakeholders Tab Styles
+  stakeholdersList: {
+    gap: 12,
+  },
+  stakeholderCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  stakeholderHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  stakeholderAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#6366F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stakeholderAvatarText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  stakeholderInitials: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  stakeholderMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  stakeholderInfo: {
+    flex: 1,
+  },
+  stakeholderNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  stakeholderName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  stakeholderRole: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  stakeholderEmail: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  stakeholderPhone: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  stakeholderContactInfo: {
+    marginBottom: 12,
+  },
+  primaryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  primaryBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#F59E0B',
+    letterSpacing: 0.5,
+  },
+  primaryBadgeSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  primaryBadgeTextSmall: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#F59E0B',
+  },
+  receivesProposalsBadge: {
+    backgroundColor: '#DBEAFE',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+    marginTop: 8,
+  },
+  receivesProposalsText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1D4ED8',
+  },
+  receivesProposalsBadgeSmall: {
+    backgroundColor: '#DBEAFE',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginTop: 4,
+  },
+  receivesProposalsTextSmall: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#1D4ED8',
+  },
+  stakeholderActions: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  stakeholderActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#EEF2FF',
+    borderRadius: 8,
+  },
+  stakeholderActionText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  // Info Tab Styles - Contact Info
+  contactInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  contactInfoText: {
+    fontSize: 15,
+    color: '#111827',
+    flex: 1,
+  },
+  // Info Tab Styles - Job Info
+  jobInfoCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    gap: 16,
+  },
+  jobInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  jobInfoIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  jobInfoContent: {
+    flex: 1,
+  },
+  jobInfoLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  jobInfoValue: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  // Enhanced Add Item Modal Styles
+  inputText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#111827',
+  },
+  inputFocused: {
+    borderColor: '#6366F1',
+    borderWidth: 2,
+  },
+  quickSelectToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  quickSelectText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  dropdownMenu: {
+    marginTop: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  dropdownItemText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#111827',
+  },
+  dropdownItemPrice: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#6366F1',
+  },
+  currencyInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  currencySymbol: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginRight: 4,
+  },
+  currencyInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#111827',
+  },
+  taxHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  taxHelpText: {
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
+  taxPercentDisplay: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+    marginLeft: 8,
+  },
+  itemTotalPreview: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  itemTotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
+  itemTotalRowFinal: {
+    borderTopWidth: 2,
+    borderTopColor: '#6366F1',
+    marginTop: 8,
+    paddingTop: 12,
+  },
+  itemTotalLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  itemTotalValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  itemTotalLabelFinal: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  itemTotalValueFinal: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#6366F1',
+  },
+  // Payment Settings Styles
+  settingsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  paymentOptionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  paymentOptionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  paymentOptionLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  paymentOptionFee: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  paymentOptionSubRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingLeft: 44,
+    paddingVertical: 8,
+    backgroundColor: '#F9FAFB',
+    marginBottom: 8,
+  },
+  paymentOptionSubLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  // Send Modal Styles
+  sendModalContainer: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  sendModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  sendModalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  sendModalContent: {
+    flex: 1,
+  },
+  sendModalSection: {
+    backgroundColor: '#FFFFFF',
+    padding: 20,
+    marginBottom: 12,
+  },
+  sendModalSectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 12,
+  },
+  sendMethodOptions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  sendMethodButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+  },
+  sendMethodButtonActive: {
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
+  },
+  sendMethodButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  sendMethodButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  stakeholderSelectionList: {
+    gap: 12,
+  },
+  stakeholderSelectionCard: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+  },
+  stakeholderSelectionCardActive: {
+    borderColor: '#6366F1',
+    backgroundColor: '#EEF2FF',
+  },
+  stakeholderSelectionMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  stakeholderCheckbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#D1D5DB',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stakeholderCheckboxActive: {
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
+  },
+  stakeholderSelectionInfo: {
+    flex: 1,
+  },
+  stakeholderSelectionNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  stakeholderSelectionName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  stakeholderSelectionRole: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  stakeholderSelectionEmail: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  recipientCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#F9FAFB',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+  },
+  recipientIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recipientInfo: {
+    flex: 1,
+  },
+  recipientName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  recipientEmail: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  messagePreviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  editMessageButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#EEF2FF',
+    borderRadius: 8,
+  },
+  editMessageButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  emailPreviewCard: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  emailPreviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  emailPreviewSubject: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  emailPreviewBody: {
+    paddingTop: 12,
+  },
+  emailPreviewText: {
+    fontSize: 14,
+    lineHeight: 22,
+    color: '#374151',
+  },
+  textPreviewCard: {
+    backgroundColor: '#F5F3FF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#C4B5FD',
+  },
+  textPreviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  textPreviewLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#8B5CF6',
+  },
+  textPreviewBody: {
+  },
+  textPreviewText: {
+    fontSize: 14,
+    lineHeight: 22,
+    color: '#374151',
+    marginBottom: 8,
+  },
+  textPreviewCount: {
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
+  messageEditMode: {
+    gap: 16,
+  },
+  editFieldGroup: {
+    gap: 8,
+  },
+  editFieldLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  editFieldInput: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: '#111827',
+  },
+  editFieldTextarea: {
+    minHeight: 120,
+    textAlignVertical: 'top',
+  },
+  saveEditButton: {
+    backgroundColor: '#6366F1',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  saveEditButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  sendTimingOptions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  sendTimingOption: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+  },
+  sendTimingOptionActive: {
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
+  },
+  sendTimingOptionText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  sendTimingOptionTextActive: {
+    color: '#FFFFFF',
+  },
+  scheduleSection: {
+    marginTop: 16,
+    gap: 12,
+  },
+  scheduleSectionLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  schedulePresets: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  schedulePresetButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  schedulePresetButtonActive: {
+    backgroundColor: '#EEF2FF',
+    borderColor: '#6366F1',
+  },
+  schedulePresetText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  schedulePresetTextActive: {
+    color: '#6366F1',
+  },
+  customDateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+  },
+  customDateButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  sendModalFooter: {
+    flexDirection: 'row',
+    gap: 12,
+    padding: 20,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  sendModalButtonSecondary: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    alignItems: 'center',
+  },
+  sendModalButtonSecondaryText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  sendModalButtonPrimary: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#6366F1',
+  },
+  sendModalButtonPrimaryText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  // Contact Modal Styles
+  contactModalContainer: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  contactModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 20,
+  },
+  contactModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  contactModalContent: {
+    flex: 1,
+  },
+  contactModalAvatar: {
+    alignItems: 'center',
+    paddingVertical: 32,
+    backgroundColor: '#FFFFFF',
+    marginBottom: 12,
+  },
+  avatarCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#6366F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  avatarInitials: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  contactModalName: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  contactModalSubtext: {
+    fontSize: 16,
+    color: '#6B7280',
+  },
+  contactModalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    padding: 20,
+    backgroundColor: '#FFFFFF',
+    marginBottom: 12,
+  },
+  contactModalActionButton: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    backgroundColor: '#EEF2FF',
+    borderRadius: 12,
+  },
+  contactModalActionText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  contactModalSection: {
+    backgroundColor: '#FFFFFF',
+    padding: 20,
+    marginBottom: 12,
+  },
+  contactModalSectionTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 16,
+  },
+  contactInfoCard: {
+    gap: 12,
+  },
+  contactInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  contactInfoTextContainer: {
+    flex: 1,
+  },
+  contactInfoLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  contactInfoValue: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#111827',
+  },
+  dealCard: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  dealHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  dealIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dealInfo: {
+    flex: 1,
+  },
+  dealTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  dealStage: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  dealMeta: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  dealMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  dealMetaText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  contactModalFooter: {
+    padding: 20,
+    backgroundColor: '#FFFFFF',
+    marginBottom: 12,
+  },
+  viewContactButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    backgroundColor: '#EEF2FF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#6366F1',
+  },
+  viewContactButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  bottomSpacing: {
+    height: 40,
+  },
+  // Date Picker Modal Styles
+  datePickerModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  datePickerModal: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: 40,
+  },
+  datePickerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  datePickerCancel: {
+    fontSize: 16,
+    color: '#6B7280',
+  },
+  datePickerTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  datePickerDone: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#6366F1',
+  },
+  // Job Info Edit Modal Styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  modalContent: {
+    flex: 1,
+  },
+  modalContentInner: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  modalSection: {
+    marginBottom: 24,
+  },
+  modalSectionTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 12,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  inputContainerFocused: {
+    borderColor: '#6366F1',
+    borderWidth: 2,
+  },
+  editIconButton: {
+    padding: 8,
+    backgroundColor: '#EEF2FF',
+    borderRadius: 8,
+  },
+  datePickerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  datePickerButtonText: {
+    flex: 1,
+    fontSize: 15,
+    color: '#111827',
+  },
+  clearDateButton: {
+    marginTop: 8,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  clearDateButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#EF4444',
+  },
+  modalActionButton: {
+    backgroundColor: '#6366F1',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  modalActionButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  addressRowContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  addressFieldContainer: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#FFFFFF',
+  },
+  addressInput: {
+    fontSize: 15,
+    color: '#111827',
   },
 });
 

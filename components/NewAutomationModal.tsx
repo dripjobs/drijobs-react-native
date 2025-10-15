@@ -45,8 +45,8 @@ export default function NewAutomationModal({
   const [description, setDescription] = useState('');
   const [triggerType, setTriggerType] = useState<'proposal_status' | 'pipeline_change' | 'stage_change' | 'invoice_status' | 'job_status' | 'appointment_status'>('proposal_status');
   const [pipeline, setPipeline] = useState('proposals');
-  const [stage, setStage] = useState('accepted');
-  const [status, setStatus] = useState('accepted');
+  const [stage, setStage] = useState('proposal_approved');
+  const [status, setStatus] = useState('proposal_approved');
   const [fromStage, setFromStage] = useState('');
   const [toStage, setToStage] = useState('');
   const [fromPipeline, setFromPipeline] = useState('');
@@ -85,8 +85,8 @@ export default function NewAutomationModal({
     setDescription('');
     setTriggerType('proposal_status');
     setPipeline('proposals');
-    setStage('accepted');
-    setStatus('accepted');
+    setStage('proposal_approved');
+    setStatus('proposal_approved');
     setFromStage('');
     setToStage('');
     setFromPipeline('');

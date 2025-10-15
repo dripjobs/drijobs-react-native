@@ -58,25 +58,46 @@ export default function CreateLeadModal({ visible, onClose }: CreateLeadModalPro
   // Mock data - In real app, these would come from API/database
   const leadStages: LeadStage[] = [
     { 
-      id: 'new', 
-      name: 'New Lead', 
-      description: 'Fresh lead that needs initial contact',
+      id: 'new_leads', 
+      name: 'New Leads', 
+      description: 'Fresh leads that need initial contact',
       dripSequence: 'New Lead Nurture (5 emails over 2 weeks)',
       color: '#3B82F6'
     },
     { 
-      id: 'contacted', 
-      name: 'Contacted', 
-      description: 'Initial contact made, awaiting response',
-      dripSequence: 'Follow-up Sequence (3 emails over 1 week)',
-      color: '#8B5CF6'
+      id: 'cold_leads', 
+      name: 'Cold Leads', 
+      description: 'Leads requiring follow-up and nurturing',
+      dripSequence: 'Re-engagement Campaign (4 emails over 2 weeks)',
+      color: '#6366F1'
     },
     { 
-      id: 'proposal_sent', 
-      name: 'Proposal Sent', 
-      description: 'Proposal sent, awaiting decision',
-      dripSequence: 'Proposal Follow-up (4 emails over 2 weeks)',
+      id: 'on_hold', 
+      name: 'On Hold', 
+      description: 'Temporarily paused leads',
+      dripSequence: 'On Hold Check-in (2 emails per month)',
       color: '#F59E0B'
+    },
+    { 
+      id: 'warm_leads', 
+      name: 'Warm Leads', 
+      description: 'Engaged leads showing interest',
+      dripSequence: 'Warm Lead Follow-up (3 emails over 1 week)',
+      color: '#10B981'
+    },
+    { 
+      id: 'not_a_fit', 
+      name: 'Not a Fit', 
+      description: 'Leads that don\'t match our criteria',
+      dripSequence: 'None',
+      color: '#EF4444'
+    },
+    { 
+      id: 'qualified', 
+      name: 'Qualified', 
+      description: 'Qualified leads (closed - won)',
+      dripSequence: 'Onboarding Sequence (5 emails over 3 weeks)',
+      color: '#8B5CF6'
     },
   ];
 

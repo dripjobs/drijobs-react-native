@@ -8,6 +8,7 @@ import NewAppointmentModal from '@/components/NewAppointmentModal';
 import NewProposalModal from '@/components/NewProposalModal';
 import SendRequestModal from '@/components/SendRequestModal';
 import { useTabBar } from '@/contexts/TabBarContext';
+import { appointmentRequestService } from '@/services/AppointmentRequestService';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Calendar, CheckSquare, ChevronDown, ChevronRight, Clock, Copy, DollarSign, Edit, FileText, Filter, Mail, MapPin, MessageCircle, MessageSquare, MoreHorizontal, Navigation, Paperclip, Phone, PhoneCall, Plus, Search, StickyNote, Tag, Target, TrendingUp, User, UserPlus, X } from 'lucide-react-native';
@@ -796,7 +797,11 @@ export default function Contacts() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <DrawerMenu isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      <DrawerMenu 
+        isOpen={drawerOpen} 
+        onClose={() => setDrawerOpen(false)}
+        pendingRequestsCount={appointmentRequestService.getPendingRequestsCount()}
+      />
       
       {activeMenu && (
         <ContactMenu 

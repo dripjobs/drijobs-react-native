@@ -25,7 +25,7 @@ import {
     Users,
     X
 } from 'lucide-react-native';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
     Dimensions,
     Modal,
@@ -48,7 +48,7 @@ interface WorkOrder {
   projectName: string;
   address: string;
   phone: string;
-  jobStage: 'scheduled' | 'in-progress' | 'on-hold' | 'completed' | 'cancelled';
+  jobStage: 'pending_schedule' | 'in_progress' | 'project_scheduled' | 'project_complete';
   proposalNumber: string;
   contractValue: number;
   startDate: string;
@@ -65,7 +65,7 @@ interface WorkOrder {
   hasIssues?: boolean;
 }
 
-type JobStage = 'all' | 'scheduled' | 'in-progress' | 'on-hold' | 'completed' | 'cancelled';
+type JobStage = 'all' | 'pending_schedule' | 'in_progress' | 'project_scheduled' | 'project_complete';
 
 export default function WorkOrders() {
   const { setIsVisible } = useTabBar();
@@ -115,7 +115,7 @@ export default function WorkOrders() {
       projectName: 'Kitchen Remodel',
       address: '123 Oak Street, San Francisco, CA 94102',
       phone: '(555) 123-4567',
-      jobStage: 'in-progress',
+      jobStage: 'in_progress',
       proposalNumber: 'P-2445',
       contractValue: 45000,
       startDate: '2025-09-15',
@@ -138,7 +138,7 @@ export default function WorkOrders() {
       projectName: 'Master Bathroom Update',
       address: '456 Maple Ave, San Francisco, CA 94103',
       phone: '(555) 234-5678',
-      jobStage: 'scheduled',
+      jobStage: 'project_scheduled',
       proposalNumber: 'P-2448',
       contractValue: 28000,
       startDate: '2025-10-15',
@@ -158,7 +158,7 @@ export default function WorkOrders() {
       projectName: 'Deck Addition',
       address: '789 Pine St, Oakland, CA 94607',
       phone: '(555) 345-6789',
-      jobStage: 'in-progress',
+      jobStage: 'in_progress',
       proposalNumber: 'P-2432',
       contractValue: 32000,
       startDate: '2025-09-01',
@@ -182,7 +182,7 @@ export default function WorkOrders() {
       projectName: 'Full Home Renovation',
       address: '321 Elm St, Berkeley, CA 94704',
       phone: '(555) 456-7890',
-      jobStage: 'on-hold',
+      jobStage: 'pending_schedule',
       proposalNumber: 'P-2421',
       contractValue: 125000,
       startDate: '2025-08-15',
@@ -205,7 +205,7 @@ export default function WorkOrders() {
       projectName: 'Roof Replacement',
       address: '654 Cedar Ln, San Jose, CA 95110',
       phone: '(555) 567-8901',
-      jobStage: 'completed',
+      jobStage: 'project_complete',
       proposalNumber: 'P-2415',
       contractValue: 18000,
       startDate: '2025-08-01',
@@ -228,7 +228,7 @@ export default function WorkOrders() {
       projectName: 'Garage to Office Conversion',
       address: '987 Birch Ave, Palo Alto, CA 94301',
       phone: '(555) 678-9012',
-      jobStage: 'scheduled',
+      jobStage: 'project_scheduled',
       proposalNumber: 'P-2410',
       contractValue: 38000,
       startDate: '2025-10-20',
@@ -244,11 +244,10 @@ export default function WorkOrders() {
 
   const jobStages = [
     { key: 'all' as JobStage, label: 'All', count: mockWorkOrders.length },
-    { key: 'scheduled' as JobStage, label: 'Scheduled', count: mockWorkOrders.filter(wo => wo.jobStage === 'scheduled').length },
-    { key: 'in-progress' as JobStage, label: 'In Progress', count: mockWorkOrders.filter(wo => wo.jobStage === 'in-progress').length },
-    { key: 'on-hold' as JobStage, label: 'On Hold', count: mockWorkOrders.filter(wo => wo.jobStage === 'on-hold').length },
-    { key: 'completed' as JobStage, label: 'Completed', count: mockWorkOrders.filter(wo => wo.jobStage === 'completed').length },
-    { key: 'cancelled' as JobStage, label: 'Cancelled', count: mockWorkOrders.filter(wo => wo.jobStage === 'cancelled').length }
+    { key: 'pending_schedule' as JobStage, label: 'Pending Schedule', count: mockWorkOrders.filter(wo => wo.jobStage === 'pending_schedule').length },
+    { key: 'in_progress' as JobStage, label: 'In Progress', count: mockWorkOrders.filter(wo => wo.jobStage === 'in_progress').length },
+    { key: 'project_scheduled' as JobStage, label: 'Project Scheduled', count: mockWorkOrders.filter(wo => wo.jobStage === 'project_scheduled').length },
+    { key: 'project_complete' as JobStage, label: 'Project Complete', count: mockWorkOrders.filter(wo => wo.jobStage === 'project_complete').length }
   ];
 
   const getFilteredWorkOrders = () => {
@@ -296,11 +295,10 @@ export default function WorkOrders() {
 
   const getStageColor = (stage: string) => {
     switch (stage) {
-      case 'scheduled': return '#3B82F6';
-      case 'in-progress': return '#10B981';
-      case 'on-hold': return '#F59E0B';
-      case 'completed': return '#6B7280';
-      case 'cancelled': return '#EF4444';
+      case 'pending_schedule': return '#F59E0B';
+      case 'in_progress': return '#10B981';
+      case 'project_scheduled': return '#3B82F6';
+      case 'project_complete': return '#6B7280';
       default: return '#6B7280';
     }
   };

@@ -6,6 +6,7 @@ import NewAppointmentModal from '@/components/NewAppointmentModal';
 import NewProposalModal from '@/components/NewProposalModal';
 import SendRequestModal from '@/components/SendRequestModal';
 import { useTabBar } from '@/contexts/TabBarContext';
+import { appointmentRequestService } from '@/services/AppointmentRequestService';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -42,46 +43,11 @@ import Toast from 'react-native-toast-message';
 
 const { height: screenHeight } = Dimensions.get('window');
 
-// Sample data
-const appointmentRequests = [
-  {
-    id: 1,
-    name: 'Jennifer Martinez',
-    source: 'Website Form',
-    timeAgo: '7h ago',
-    phone: '(555) 111-2222',
-    email: 'jennifer@example.com',
-    notes: 'Interested in kitchen renovation. Looking for a consultation to discuss design options and budget.',
-    type: 'Consultation',
-    priority: 'high'
-  },
-  {
-    id: 2,
-    name: 'Robert Chen',
-    source: 'Referral',
-    timeAgo: '12h ago',
-    phone: '(555) 456-7890',
-    email: 'robert@greenenergy.co',
-    company: 'Green Energy Solutions',
-    notes: 'Commercial project inquiry. Need to discuss solar panel installation for office building.',
-    type: 'Estimate',
-    priority: 'medium'
-  },
-  {
-    id: 3,
-    name: 'Amanda Foster',
-    source: 'Google Ads',
-    timeAgo: '2d ago',
-    phone: '(555) 321-6547',
-    email: 'amanda@example.com',
-    notes: 'Bathroom remodel project. Wants to schedule a site visit to assess current condition.',
-    type: 'Site Visit',
-    priority: 'low'
-  }
-];
+// Get appointment requests from service
+const appointmentRequests = appointmentRequestService.getPendingRequests();
 
-// Sample appointment events
-const appointmentEvents = [
+// Sample appointment events (initial data)
+const initialAppointmentEvents = [
   { 
     id: 1, 
     date: 2, 
@@ -370,6 +336,11 @@ export default function Appointments() {
   const [showCallInitiation, setShowCallInitiation] = useState(false);
   const [callContact, setCallContact] = useState({ name: '', phone: '' });
   
+  // State for scheduling from request
+  const [appointmentInitialData, setAppointmentInitialData] = useState<any>(null);
+  const [appointmentStartStep, setAppointmentStartStep] = useState(1);
+  const [appointmentEvents, setAppointmentEvents] = useState(initialAppointmentEvents);
+  
   // Edit appointment form state
   const [editForm, setEditForm] = useState({
     date: '',
@@ -524,6 +495,30 @@ export default function Appointments() {
       setSelectedRequestIndex(prevIndex);
       setSelectedRequest(appointmentRequests[prevIndex]);
     }
+  };
+
+  const handleScheduleFromRequest = () => {
+    if (!selectedRequest) return;
+    
+    // Prepare data from selected request
+    const initialData = {
+      customerName: selectedRequest.name,
+      customerEmail: selectedRequest.email,
+      customerPhone: selectedRequest.phone,
+      customerType: selectedRequest.company ? 'business' as const : 'individual' as const,
+      companyName: selectedRequest.company || '',
+      eventType: selectedRequest.type, // e.g., "Estimate"
+      leadSource: selectedRequest.source, // e.g., "Website Form"
+      notes: selectedRequest.notes,
+    };
+    
+    // Close request queue modal
+    setShowRequestQueue(false);
+    
+    // Open new appointment modal at Step 3
+    setAppointmentInitialData(initialData);
+    setAppointmentStartStep(3);
+    setShowNewAppointment(true);
   };
 
   const handleCloseRequestQueue = () => {
@@ -719,6 +714,48 @@ export default function Appointments() {
 
   const handleAppointmentClose = () => {
     setShowNewAppointment(false);
+    setAppointmentInitialData(null);
+    setAppointmentStartStep(1);
+  };
+
+  const handleAppointmentSuccess = (appointmentData?: any) => {
+    // Add the new appointment to the calendar if appointment data is provided
+    if (appointmentData) {
+      const newAppointment = {
+        id: appointmentEvents.length + 1,
+        date: new Date(appointmentData.date).getDate(),
+        time: appointmentData.startTime,
+        duration: appointmentData.duration || 60,
+        name: appointmentData.customerName,
+        type: appointmentData.eventType?.toLowerCase() || 'estimate',
+        color: appointmentData.eventType === 'Estimate' ? '#8B5CF6' : 
+               appointmentData.eventType === 'Consultation' ? '#10B981' : 
+               appointmentData.eventType === 'Site Visit' ? '#06B6D4' : '#8B5CF6',
+        status: 'scheduled',
+        assignee: appointmentData.assignee || 'Unassigned',
+        phone: appointmentData.customerPhone || '',
+        address: appointmentData.location || '',
+        details: appointmentData.notes || '',
+        appointmentNotes: '',
+        adminNotes: '',
+        dealId: appointmentData.dealId || '',
+        photos: []
+      };
+
+      setAppointmentEvents([...appointmentEvents, newAppointment]);
+    }
+
+    // Show success toast after a brief delay to ensure modal has closed
+    setTimeout(() => {
+      Toast.show({
+        type: 'success',
+        text1: '✓ Appointment Scheduled',
+        text2: 'The appointment has been successfully added to your calendar.',
+        position: 'top',
+        visibilityTime: 4000,
+        topOffset: 60,
+      });
+    }, 100);
   };
 
   const handleNewProposal = () => {
@@ -1218,7 +1255,8 @@ export default function Appointments() {
                 },
               ]}
             >
-              <View style={styles.modalHandle} />
+              <SafeAreaView style={styles.modalSafeArea}>
+                <View style={styles.modalHandle} />
               
               <View style={styles.modalHeader}>
                 <View style={styles.modalHeaderLeft}>
@@ -1403,7 +1441,10 @@ export default function Appointments() {
                   </View>
 
                   {/* Schedule Appointment Call-to-Action */}
-                  <TouchableOpacity style={styles.scheduleAppointmentButton}>
+                  <TouchableOpacity 
+                    style={styles.scheduleAppointmentButton}
+                    onPress={handleScheduleFromRequest}
+                  >
                     <LinearGradient
                       colors={['#10B981', '#059669']}
                       start={{ x: 0, y: 0 }}
@@ -1447,43 +1488,66 @@ export default function Appointments() {
                 </ScrollView>
               ) : (
                 // Request List View
-                <ScrollView style={styles.requestListContainer}>
-                  {appointmentRequests.map((request) => (
+                <ScrollView 
+                  style={styles.requestListContainer}
+                  contentContainerStyle={styles.requestListContent}
+                >
+                  {appointmentRequests.map((request, index) => (
                     <TouchableOpacity
                       key={request.id}
                       style={styles.requestItem}
                       onPress={() => handleRequestSelect(request)}
+                      activeOpacity={0.7}
                     >
                       <View style={styles.requestItemHeader}>
-                        <View style={styles.requestItemIcon}>
-                          <User size={20} color="#6366F1" />
-                        </View>
-                        <View style={styles.requestItemInfo}>
-                          <Text style={styles.requestItemName}>{request.name}</Text>
-                          <Text style={styles.requestItemSource}>{request.source}</Text>
-                          <Text style={styles.requestItemTime}>{request.timeAgo}</Text>
-                        </View>
-                        <View style={styles.requestItemPriority}>
-                          <AlertCircle 
-                            size={16} 
+                        <View style={[
+                          styles.requestItemIcon,
+                          { backgroundColor: request.priority === 'high' ? '#FEF2F2' : request.priority === 'medium' ? '#FEF3C7' : '#F0FDF4' }
+                        ]}>
+                          <User 
+                            size={22} 
                             color={request.priority === 'high' ? '#EF4444' : request.priority === 'medium' ? '#F59E0B' : '#10B981'} 
                           />
+                        </View>
+                        <View style={styles.requestItemInfo}>
+                          <View style={styles.requestItemTopRow}>
+                            <Text style={styles.requestItemName}>{request.name}</Text>
+                            <View style={[
+                              styles.requestItemPriorityBadge,
+                              { backgroundColor: request.priority === 'high' ? '#FEE2E2' : request.priority === 'medium' ? '#FEF3C7' : '#DCFCE7' }
+                            ]}>
+                              <Text style={[
+                                styles.requestItemPriorityText,
+                                { color: request.priority === 'high' ? '#DC2626' : request.priority === 'medium' ? '#D97706' : '#16A34A' }
+                              ]}>
+                                {request.priority === 'high' ? 'High' : request.priority === 'medium' ? 'Medium' : 'Low'}
+                              </Text>
+                            </View>
+                          </View>
+                          <View style={styles.requestItemMetaRow}>
+                            <Text style={styles.requestItemSource}>{request.source}</Text>
+                            <Text style={styles.requestItemDot}>•</Text>
+                            <Text style={styles.requestItemTime}>{request.timeAgo}</Text>
+                          </View>
                         </View>
                       </View>
                       
                       <View style={styles.requestItemDetails}>
-                        <Text style={styles.requestItemNotes}>{request.notes}</Text>
+                        <Text style={styles.requestItemType}>{request.type}</Text>
+                        <Text style={styles.requestItemNotes} numberOfLines={2}>{request.notes}</Text>
                       </View>
                       
-                      <View style={styles.requestItemActions}>
-                        <TouchableOpacity style={styles.viewRequestButton}>
-                          <ChevronRight size={16} color="#6366F1" />
-                        </TouchableOpacity>
+                      <View style={styles.requestItemFooter}>
+                        <View style={styles.requestItemActions}>
+                          <Text style={styles.viewRequestText}>View Details</Text>
+                          <ChevronRight size={18} color="#6366F1" />
+                        </View>
                       </View>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
               )}
+              </SafeAreaView>
             </Animated.View>
           </PanGestureHandler>
         </View>
@@ -2104,6 +2168,9 @@ export default function Appointments() {
       <NewAppointmentModal 
         visible={showNewAppointment}
         onClose={handleAppointmentClose}
+        onSuccess={handleAppointmentSuccess}
+        initialData={appointmentInitialData}
+        startAtStep={appointmentStartStep}
       />
 
       {/* New Proposal Modal */}
@@ -2406,9 +2473,9 @@ const styles = StyleSheet.create({
   fullScreenModalContainer: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    marginTop: 50,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    marginTop: 0,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
   },
   fullScreenContent: {
     flex: 1,
@@ -3317,14 +3384,16 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
   },
   modalContainer: {
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: screenHeight * 0.98,
-    minHeight: screenHeight * 0.8,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    height: screenHeight,
+    minHeight: screenHeight,
+  },
+  modalSafeArea: {
+    flex: 1,
   },
   modalHandle: {
     width: 40,
@@ -3388,63 +3457,129 @@ const styles = StyleSheet.create({
   },
   requestListContainer: {
     flex: 1,
-    paddingHorizontal: 20,
+  },
+  requestListContent: {
+    padding: 20,
+    paddingTop: 16,
   },
   requestItem: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginVertical: 8,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   requestItemHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
+    alignItems: 'flex-start',
+    marginBottom: 16,
   },
   requestItemIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#EEF2FF',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   requestItemInfo: {
     flex: 1,
   },
+  requestItemTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
   requestItemName: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
     color: '#111827',
+    flex: 1,
+    marginRight: 8,
+  },
+  requestItemPriorityBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  requestItemPriorityText: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  requestItemMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   requestItemSource: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#6B7280',
+    fontWeight: '500',
     marginTop: 2,
   },
+  requestItemDot: {
+    fontSize: 13,
+    color: '#D1D5DB',
+    marginHorizontal: 6,
+    fontWeight: '700',
+  },
   requestItemTime: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#9CA3AF',
-    marginTop: 2,
+    fontWeight: '500',
   },
   requestItemPriority: {
     marginLeft: 8,
   },
   requestItemDetails: {
-    marginBottom: 12,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 14,
+  },
+  requestItemType: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#6366F1',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 6,
   },
   requestItemNotes: {
     fontSize: 14,
-    color: '#374151',
+    color: '#4B5563',
     lineHeight: 20,
+    fontWeight: '400',
+  },
+  requestItemFooter: {
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+    paddingTop: 12,
   },
   requestItemActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
+  },
+  viewRequestText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#6366F1',
   },
   viewRequestButton: {
     width: 32,

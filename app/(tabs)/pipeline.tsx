@@ -8,6 +8,8 @@ import NewAppointmentModal from '@/components/NewAppointmentModal';
 import NewProposalModal from '@/components/NewProposalModal';
 import SendRequestModal from '@/components/SendRequestModal';
 import { useTabBar } from '@/contexts/TabBarContext';
+import { appointmentRequestService } from '@/services/AppointmentRequestService';
+import { useRouter } from 'expo-router';
 import { Archive, ArrowRight, Building, Calendar, CheckSquare, ChevronLeft, ChevronRight, Clock, DollarSign, Edit, Eye, FileText, Filter, Mail, MapPin, MessageSquare, MoreVertical, Phone, Plus, Send, Tag, Target, Trash2, TrendingUp, User, X, Zap } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Animated, Dimensions, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -15,6 +17,7 @@ import { PanGestureHandler } from 'react-native-gesture-handler';
 
 export default function Pipeline() {
   const { setIsTransparent } = useTabBar();
+  const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedPipeline, setSelectedPipeline] = useState(0);
   const [selectedStage, setSelectedStage] = useState(0);
@@ -66,37 +69,38 @@ export default function Pipeline() {
         { name: 'Cold Leads', description: 'Leads requiring follow-up and nurturing' },
         { name: 'On Hold', description: 'Temporarily paused leads' },
         { name: 'Warm Leads', description: 'Engaged leads showing interest' },
-        { name: 'Not a Fit', description: 'Leads that don\'t match our criteria' }
+        { name: 'Not a Fit', description: 'Leads that don\'t match our criteria' },
+        { name: 'Qualified', description: 'Qualified leads (closed - won)' }
       ]
     },
     {
       name: 'Opportunities',
       stages: [
-        { name: 'Qualified', description: 'Verified opportunities ready for proposal' },
-        { name: 'Proposal Sent', description: 'Proposals delivered to prospects' },
-        { name: 'Negotiation', description: 'Active negotiation phase' },
-        { name: 'Decision Pending', description: 'Awaiting final decision' },
-        { name: 'Closed Won', description: 'Successfully closed opportunities' }
+        { name: 'Estimate Requested', description: 'Customer has requested an estimate' },
+        { name: 'Virtual Estimate', description: 'Virtual estimate in progress' },
+        { name: 'Estimate Scheduled', description: 'On-site estimate has been scheduled' },
+        { name: 'Estimate Cancelled', description: 'Estimate was cancelled' },
+        { name: 'Not a Fit', description: 'Opportunity is not a good fit' },
+        { name: 'Qualified', description: 'Qualified opportunity (closed - won)' }
       ]
     },
     {
       name: 'Proposals',
       stages: [
-        { name: 'Draft', description: 'Proposals being prepared' },
-        { name: 'Review', description: 'Internal review and approval' },
-        { name: 'Sent', description: 'Proposals delivered to clients' },
-        { name: 'Follow Up', description: 'Following up on sent proposals' },
-        { name: 'Accepted', description: 'Proposals accepted by clients' }
+        { name: 'In Draft', description: 'Proposal is being drafted' },
+        { name: 'Proposal Sent', description: 'Proposal has been sent to client' },
+        { name: 'On Hold', description: 'Proposal is on hold' },
+        { name: 'Proposal Rejected', description: 'Proposal was rejected by client' },
+        { name: 'Proposal Approved', description: 'Proposal approved (closed - won)' }
       ]
     },
     {
       name: 'Jobs',
       stages: [
-        { name: 'Scheduled', description: 'Jobs scheduled for execution' },
-        { name: 'In Progress', description: 'Active job execution' },
-        { name: 'Review', description: 'Quality review and inspection' },
-        { name: 'Completed', description: 'Jobs completed successfully' },
-        { name: 'Invoiced', description: 'Invoices sent to clients' }
+        { name: 'Pending Schedule', description: 'Job is pending scheduling' },
+        { name: 'In Progress', description: 'Job is currently in progress' },
+        { name: 'Project Scheduled', description: 'Project has been scheduled' },
+        { name: 'Project Complete', description: 'Project complete (closed - won)' }
       ]
     }
   ];
@@ -481,10 +485,33 @@ export default function Pipeline() {
     }
   };
 
+  // Mock invoice data for testing
+  const mockInvoices = [
+    {
+      id: 'INV-1001',
+      number: 'INV-1001',
+      issueDate: 'Oct 1, 2025',
+      dueDate: 'Oct 15, 2025',
+      amount: '$12,250.00',
+      balanceDue: 12250,
+      status: 'pending' as const,
+    },
+    {
+      id: 'INV-1002',
+      number: 'INV-1002',
+      issueDate: 'Sep 15, 2025',
+      dueDate: 'Sep 30, 2025',
+      amount: '$8,500.00',
+      balanceDue: 0,
+      status: 'paid' as const,
+    },
+  ];
+
   const tabs = [
     { id: 'Overview', label: 'Overview', icon: Eye, count: null },
     { id: 'Customer Journey', label: 'Customer Journey', icon: ArrowRight, count: null },
     { id: 'Proposals', label: 'Proposals', icon: FileText, count: 0 },
+    { id: 'Invoices', label: 'Invoices', icon: DollarSign, count: 2 },
     { id: 'Activity', label: 'Activity', icon: TrendingUp, count: null },
     { id: 'Notes', label: 'Notes', icon: FileText, count: 3 },
     { id: 'Tasks', label: 'Tasks', icon: CheckSquare, count: 2 },
@@ -1117,6 +1144,115 @@ export default function Pipeline() {
             </View> */}
           </View>
         );
+      case 'Invoices':
+        return (
+          <ScrollView style={styles.ccTabContent} showsVerticalScrollIndicator={false}>
+            <View style={styles.ccSection}>
+              {/* Related Invoices List */}
+              {mockInvoices.length > 0 ? (
+                mockInvoices.map((invoice) => (
+                  <TouchableOpacity
+                    key={invoice.id}
+                    style={styles.invoiceCard}
+                    onPress={() => {
+                      // Navigate to invoice detail
+                      router.push(`/invoices`);
+                      handleCloseCommandCenter();
+                    }}
+                  >
+                    <View style={styles.invoiceCardHeader}>
+                      <View style={styles.invoiceCardLeft}>
+                        <DollarSign size={20} color="#6366F1" />
+                        <View>
+                          <Text style={styles.invoiceNumber}>{invoice.number}</Text>
+                          <Text style={styles.invoiceDate}>
+                            Issued {invoice.issueDate}
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={styles.invoiceCardRight}>
+                        <Text style={styles.invoiceAmount}>
+                          {invoice.amount}
+                        </Text>
+                        <View style={[
+                          styles.invoiceStatusBadge,
+                          invoice.status === 'paid' && styles.invoiceStatusPaid,
+                          invoice.status === 'pending' && styles.invoiceStatusPending,
+                          invoice.status === 'overdue' && styles.invoiceStatusOverdue,
+                        ]}>
+                          <Text style={[
+                            styles.invoiceStatusText,
+                            invoice.status === 'paid' && styles.invoiceStatusTextPaid,
+                            invoice.status === 'pending' && styles.invoiceStatusTextPending,
+                            invoice.status === 'overdue' && styles.invoiceStatusTextOverdue,
+                          ]}>
+                            {invoice.status}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                    
+                    {/* Invoice Details */}
+                    <View style={styles.invoiceCardDetails}>
+                      <View style={styles.invoiceDetailRow}>
+                        <Text style={styles.invoiceDetailLabel}>Due Date:</Text>
+                        <Text style={styles.invoiceDetailValue}>{invoice.dueDate}</Text>
+                      </View>
+                      {invoice.balanceDue > 0 && (
+                        <View style={styles.invoiceDetailRow}>
+                          <Text style={styles.invoiceDetailLabel}>Balance Due:</Text>
+                          <Text style={[
+                            styles.invoiceDetailValue,
+                            styles.invoiceBalanceDue
+                          ]}>
+                            ${invoice.balanceDue.toLocaleString()}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    
+                    {/* Quick Actions */}
+                    <View style={styles.invoiceCardActions}>
+                      <TouchableOpacity 
+                        style={styles.invoiceActionButton}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          alert(`Send invoice ${invoice.number}`);
+                        }}
+                      >
+                        <Send size={16} color="#6366F1" />
+                        <Text style={styles.invoiceActionText}>Send</Text>
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity 
+                        style={styles.invoiceActionButton}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          alert(`Collect payment for ${invoice.number}`);
+                        }}
+                      >
+                        <DollarSign size={16} color="#059669" />
+                        <Text style={styles.invoiceActionText}>Collect</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <View style={styles.emptyState}>
+                  <DollarSign size={48} color="#D1D5DB" />
+                  <Text style={styles.emptyStateTitle}>No Invoices</Text>
+                  <Text style={styles.emptyStateDescription}>
+                    Create an invoice for this deal to get started
+                  </Text>
+                  <TouchableOpacity style={styles.emptyStateButton}>
+                    <Plus size={18} color="#FFFFFF" />
+                    <Text style={styles.emptyStateButtonText}>New Invoice</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          </ScrollView>
+        );
       case 'Activity':
         return (
           <View style={styles.activitySection}>
@@ -1457,7 +1593,11 @@ export default function Pipeline() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <DrawerMenu isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      <DrawerMenu 
+        isOpen={drawerOpen} 
+        onClose={() => setDrawerOpen(false)}
+        pendingRequestsCount={appointmentRequestService.getPendingRequestsCount()}
+      />
       
       {/* Header */}
       <View style={styles.header}>
@@ -4142,5 +4282,112 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
     color: '#F59E0B',
+  },
+  // Invoice Card Styles
+  invoiceCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  invoiceCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  invoiceCardLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  invoiceNumber: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  invoiceDate: {
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  invoiceCardRight: {
+    alignItems: 'flex-end',
+  },
+  invoiceAmount: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  invoiceStatusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  invoiceStatusPaid: {
+    backgroundColor: '#D1FAE5',
+  },
+  invoiceStatusPending: {
+    backgroundColor: '#FEF3C7',
+  },
+  invoiceStatusOverdue: {
+    backgroundColor: '#FEE2E2',
+  },
+  invoiceStatusText: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
+  invoiceStatusTextPaid: {
+    color: '#059669',
+  },
+  invoiceStatusTextPending: {
+    color: '#D97706',
+  },
+  invoiceStatusTextOverdue: {
+    color: '#DC2626',
+  },
+  invoiceCardDetails: {
+    gap: 6,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+    marginBottom: 12,
+  },
+  invoiceDetailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  invoiceDetailLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  invoiceDetailValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  invoiceBalanceDue: {
+    color: '#DC2626',
+  },
+  invoiceCardActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  invoiceActionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+  },
+  invoiceActionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
   },
 });

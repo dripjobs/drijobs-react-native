@@ -3,7 +3,7 @@
  * Extended to support crew assignments for time tracking
  */
 
-export type JobStage = 'scheduled' | 'in-progress' | 'on-hold' | 'completed' | 'cancelled';
+export type JobStage = 'pending_schedule' | 'in_progress' | 'project_scheduled' | 'project_complete';
 export type JobPriority = 'low' | 'medium' | 'high' | 'urgent';
 
 export interface Job {

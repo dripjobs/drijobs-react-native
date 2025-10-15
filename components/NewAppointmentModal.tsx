@@ -6,9 +6,21 @@ import { Modal, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, Touchable
 interface NewAppointmentModalProps {
   visible: boolean;
   onClose: () => void;
+  onSuccess?: (appointmentData?: any) => void;
+  initialData?: {
+    customerName: string;
+    customerEmail: string;
+    customerPhone: string;
+    customerType: 'individual' | 'business';
+    companyName?: string;
+    eventType?: string;
+    leadSource?: string;
+    notes?: string;
+  };
+  startAtStep?: number;
 }
 
-export default function NewAppointmentModal({ visible, onClose }: NewAppointmentModalProps) {
+export default function NewAppointmentModal({ visible, onClose, onSuccess, initialData, startAtStep }: NewAppointmentModalProps) {
   const [appointmentStep, setAppointmentStep] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
@@ -85,6 +97,53 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
 
   const [selectedSource, setSelectedSource] = useState<any>(null);
 
+  // Initialize with pre-populated data from request if provided
+  useEffect(() => {
+    if (initialData && visible) {
+      // Parse customer name
+      const nameParts = initialData.customerName.split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+
+      setAppointmentStep(startAtStep || 1);
+      setAppointmentData({
+        customerType: initialData.customerType,
+        customerStatus: 'new',
+        eventType: initialData.eventType || '',
+        user: '',
+        startDate: new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
+        startTime: '09:00 AM',
+        duration: '1 hour',
+        appointmentAddress: '',
+        billingAddress: '',
+        notes: initialData.notes || '',
+        gateCode: '',
+        reminders: true,
+        reminderType: 'both',
+        leadSource: initialData.leadSource || '',
+        jobSource: '',
+        firstName: initialData.customerType === 'individual' ? firstName : '',
+        lastName: initialData.customerType === 'individual' ? lastName : '',
+        email: initialData.customerEmail,
+        phone: initialData.customerPhone,
+        businessName: initialData.customerType === 'business' ? initialData.companyName || '' : '',
+        contactFirstName: initialData.customerType === 'business' ? firstName : '',
+        contactLastName: initialData.customerType === 'business' ? lastName : '',
+        contactEmail: initialData.customerType === 'business' ? initialData.customerEmail : '',
+        contactPhone: initialData.customerType === 'business' ? initialData.customerPhone : '',
+        contactTitle: ''
+      });
+
+      // Pre-select source if provided
+      if (initialData.leadSource) {
+        const source = leadSources.find(s => s.name === initialData.leadSource);
+        if (source) {
+          setSelectedSource(source);
+        }
+      }
+    }
+  }, [initialData, visible, startAtStep]);
+
   // Auto-populate job source when existing customer is selected
   useEffect(() => {
     if (appointmentData.customerStatus === 'existing' && selectedCustomer && selectedCustomer.originalLeadSource) {
@@ -125,6 +184,24 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
     return '';
   };
 
+  // Calculate display step for UI (adjust when starting from request)
+  const getDisplayStep = () => {
+    const stepOffset = (startAtStep || 1) - 1;
+    return appointmentStep - stepOffset;
+  };
+
+  // Get total steps for progress indicator
+  const getTotalSteps = () => {
+    return initialData ? 3 : 5; // 3 steps when from request, 5 when normal flow
+  };
+
+  // Get steps array for progress indicator
+  const getStepsArray = () => {
+    const totalSteps = getTotalSteps();
+    const stepOffset = (startAtStep || 1) - 1;
+    return Array.from({ length: totalSteps }, (_, i) => i + 1 + stepOffset);
+  };
+
   const canProceedToNext = () => {
     switch (appointmentStep) {
       case 1:
@@ -144,50 +221,55 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
   };
 
   const handleNext = () => {
-    if (canProceedToNext() && appointmentStep < 5) {
+    const maxStep = initialData ? 5 : 5; // Both flows end at step 5
+    if (canProceedToNext() && appointmentStep < maxStep) {
       setAppointmentStep(appointmentStep + 1);
     }
   };
 
   const handleBack = () => {
-    if (appointmentStep > 1) {
+    const minStep = startAtStep || 1;
+    if (appointmentStep > minStep) {
       setAppointmentStep(appointmentStep - 1);
     }
   };
 
   const handleClose = () => {
     onClose();
-    setAppointmentStep(1);
-    setSearchQuery('');
-    setSelectedCustomer(null);
-    setSelectedSource(null);
-    setAppointmentData({
-      customerType: '',
-      customerStatus: '',
-      eventType: '',
-      user: '',
-      startDate: '09/19/2025',
-      startTime: '09:00 AM',
-      duration: '1 hour',
-      appointmentAddress: '',
-      billingAddress: '',
-      notes: '',
-      gateCode: '',
-      reminders: true,
-      reminderType: 'both',
-      leadSource: '',
-      jobSource: '',
-      firstName: '',
-      lastName: '',
-      email: '',
-      phone: '',
-      businessName: '',
-      contactFirstName: '',
-      contactLastName: '',
-      contactEmail: '',
-      contactPhone: '',
-      contactTitle: ''
-    });
+    // Only reset if not coming from initialData, otherwise parent will handle
+    if (!initialData) {
+      setAppointmentStep(1);
+      setSearchQuery('');
+      setSelectedCustomer(null);
+      setSelectedSource(null);
+      setAppointmentData({
+        customerType: '',
+        customerStatus: '',
+        eventType: '',
+        user: '',
+        startDate: '09/19/2025',
+        startTime: '09:00 AM',
+        duration: '1 hour',
+        appointmentAddress: '',
+        billingAddress: '',
+        notes: '',
+        gateCode: '',
+        reminders: true,
+        reminderType: 'both',
+        leadSource: '',
+        jobSource: '',
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        businessName: '',
+        contactFirstName: '',
+        contactLastName: '',
+        contactEmail: '',
+        contactPhone: '',
+        contactTitle: ''
+      });
+    }
   };
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
@@ -713,7 +795,13 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
                   location: 'On-Site at Location',
                   createsDeal: false
                 }
-              ].map((event, index) => (
+              ].filter(event => {
+                // Only show Estimate when coming from request
+                if (initialData) {
+                  return event.type === 'Estimate';
+                }
+                return true;
+              }).map((event, index) => (
                 <TouchableOpacity
                   key={index}
                   style={[
@@ -738,7 +826,7 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
                   </View>
                   {event.createsDeal && (
                     <View style={styles.createsDealBadge}>
-                      <Text style={styles.createsDealText}>Creates Deal</Text>
+                      <Text style={styles.createsDealText}>{initialData ? 'Moves Deal' : 'Creates Deal'}</Text>
                     </View>
                   )}
                 </TouchableOpacity>
@@ -809,6 +897,40 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
           <View style={styles.appointmentStep}>
             <Text style={styles.stepTitle}>Schedule Details</Text>
             <Text style={styles.stepSubtitle}>Set the date, time, and duration for your appointment</Text>
+            
+            {/* Show preferred schedule when coming from request */}
+            {initialData && (
+              <View style={styles.preferredScheduleCard}>
+                <Text style={styles.preferredScheduleTitle}>Customer Preference</Text>
+                <View style={styles.preferredScheduleItem}>
+                  <View style={styles.preferredScheduleIcon}>
+                    <Calendar size={16} color="#10B981" />
+                  </View>
+                  <View style={styles.preferredScheduleInfo}>
+                    <Text style={styles.preferredScheduleLabel}>Preferred Date</Text>
+                    <Text style={styles.preferredScheduleValue}>Monday, August 25, 2025</Text>
+                  </View>
+                </View>
+                <View style={styles.preferredScheduleItem}>
+                  <View style={styles.preferredScheduleIcon}>
+                    <Clock size={16} color="#10B981" />
+                  </View>
+                  <View style={styles.preferredScheduleInfo}>
+                    <Text style={styles.preferredScheduleLabel}>Preferred Time</Text>
+                    <Text style={styles.preferredScheduleValue}>1:00 PM</Text>
+                  </View>
+                </View>
+                <View style={styles.preferredScheduleItem}>
+                  <View style={styles.preferredScheduleIcon}>
+                    <Calendar size={16} color="#F59E0B" />
+                  </View>
+                  <View style={styles.preferredScheduleInfo}>
+                    <Text style={styles.preferredScheduleLabel}>Secondary Date</Text>
+                    <Text style={styles.preferredScheduleValue}>Tuesday, August 26, 2025 at 2:00 PM</Text>
+                  </View>
+                </View>
+              </View>
+            )}
             
             <View style={styles.scheduleContainer}>
               {/* View Calendar Button */}
@@ -1047,14 +1169,15 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
         {/* Header */}
         <View style={styles.appointmentHeader}>
           <View style={styles.appointmentHeaderLeft}>
-            <Text style={styles.appointmentTitle}>New Appointment</Text>
+            <Text style={styles.appointmentTitle}>
+              {initialData ? `Schedule Appointment${getCustomerName() ? ` with ${getCustomerName()}` : ''}` : 'New Appointment'}
+            </Text>
             <Text style={styles.appointmentSubtitle}>
-              {appointmentStep === 1 && "Choose whether this proposal is for a business or individual customer, and whether they are new or existing."}
-              {appointmentStep === 2 && "Enter customer details or select an existing customer from your database."}
-              {appointmentStep === 3 && `Choose the event type for this appointment${getCustomerName() ? ` with ${getCustomerName()}` : ''}.`}
-              {appointmentStep === 4 && `Set the date, time, duration, and assign the user who will handle this appointment${getCustomerName() ? ` with ${getCustomerName()}` : ''}.`}
-              {appointmentStep === 5 && `Add any additional details or special instructions for this appointment${getCustomerName() ? ` with ${getCustomerName()}` : ''}.`}
-              {appointmentStep === 6 && `Set up reminders and review your appointment details${getCustomerName() ? ` for ${getCustomerName()}` : ''}.`}
+              {appointmentStep === 1 && !initialData && "Choose whether this proposal is for a business or individual customer, and whether they are new or existing."}
+              {appointmentStep === 2 && !initialData && "Enter customer details or select an existing customer from your database."}
+              {appointmentStep === 3 && `Choose the event type for this appointment${!initialData && getCustomerName() ? ` with ${getCustomerName()}` : ''}.`}
+              {appointmentStep === 4 && `Select the source where this appointment came from.`}
+              {appointmentStep === 5 && `Set the date, time, duration, and assign the user who will handle this appointment.`}
             </Text>
           </View>
           <TouchableOpacity 
@@ -1067,27 +1190,31 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
 
         {/* Progress Indicator */}
         <View style={styles.progressContainer}>
-          {[1, 2, 3, 4, 5].map((step) => (
-            <View key={step} style={styles.progressStep}>
-              <View style={[
-                styles.progressCircle,
-                step < appointmentStep && styles.progressCircleCompleted,
-                step === appointmentStep && styles.progressCircleActive
-              ]}>
-                {step < appointmentStep ? (
-                  <Check size={16} color="#FFFFFF" />
-                ) : (
-                  <Text style={[
-                    styles.progressText,
-                    step === appointmentStep && styles.progressTextActive
-                  ]}>
-                    {step}
-                  </Text>
-                )}
+          {getStepsArray().map((step, index) => {
+            const displayStep = index + 1;
+            const totalSteps = getTotalSteps();
+            return (
+              <View key={step} style={styles.progressStep}>
+                <View style={[
+                  styles.progressCircle,
+                  step < appointmentStep && styles.progressCircleCompleted,
+                  step === appointmentStep && styles.progressCircleActive
+                ]}>
+                  {step < appointmentStep ? (
+                    <Check size={16} color="#FFFFFF" />
+                  ) : (
+                    <Text style={[
+                      styles.progressText,
+                      step === appointmentStep && styles.progressTextActive
+                    ]}>
+                      {displayStep}
+                    </Text>
+                  )}
+                </View>
+                {index < totalSteps - 1 && <View style={styles.progressLine} />}
               </View>
-              {step < 5 && <View style={styles.progressLine} />}
-            </View>
-          ))}
+            );
+          })}
         </View>
 
         {/* Content */}
@@ -1139,10 +1266,21 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
                 style={[
                   styles.footerButton, 
                   styles.footerButtonPrimary,
-                  appointmentStep === 6 && styles.footerButtonCreate,
+                  (appointmentStep === 6 || (appointmentStep === 5 && initialData)) && styles.footerButtonCreate,
                   !canProceedToNext() && styles.footerButtonDisabled
                 ]}
-                onPress={appointmentStep === 6 ? handleClose : handleNext}
+                onPress={() => {
+                  const isLastStep = appointmentStep === 6 || (appointmentStep === 5 && initialData);
+                  if (isLastStep) {
+                    // Call onSuccess callback if provided with appointment data
+                    if (onSuccess) {
+                      onSuccess(appointmentData);
+                    }
+                    handleClose();
+                  } else {
+                    handleNext();
+                  }
+                }}
                 disabled={!canProceedToNext()}
               >
                 <Text style={[
@@ -1150,7 +1288,7 @@ export default function NewAppointmentModal({ visible, onClose }: NewAppointment
                   styles.footerButtonPrimaryText,
                   !canProceedToNext() && styles.footerButtonTextDisabled
                 ]}>
-                  {appointmentStep === 6 ? 'Create Appointment' : 'Next'}
+                  {appointmentStep === 6 ? 'Create Appointment' : appointmentStep === 5 && initialData ? 'Schedule Appointment' : 'Next'}
                 </Text>
               </TouchableOpacity>
           </View>
@@ -1487,6 +1625,49 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  // Preferred Schedule Styles
+  preferredScheduleCard: {
+    backgroundColor: '#F0FDF4',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  preferredScheduleTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#166534',
+    marginBottom: 12,
+  },
+  preferredScheduleItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  preferredScheduleIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  preferredScheduleInfo: {
+    flex: 1,
+  },
+  preferredScheduleLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#166534',
+    marginBottom: 2,
+  },
+  preferredScheduleValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#15803D',
   },
   // User Selection Styles
   userContainer: {

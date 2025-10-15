@@ -12,6 +12,7 @@ import StatCard from '@/components/StatCard';
 import StatDetailModal from '@/components/StatDetailModal';
 import { useTabBar } from '@/contexts/TabBarContext';
 import { useIsCrew } from '@/contexts/UserRoleContext';
+import { appointmentRequestService } from '@/services/AppointmentRequestService';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Bell, Building, Calendar, CheckSquare, ChevronDown, ChevronRight, Clock, Copy, DollarSign, Edit, Eye, FileText, Handshake, Lightbulb, Mail, MapPin, MessageSquare, MoreVertical, Navigation, Phone, Search, Target, TrendingUp, User, Users, X, Zap } from 'lucide-react-native';
@@ -41,6 +42,9 @@ export default function Dashboard() {
   const [showMeetingDetails, setShowMeetingDetails] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState<any>(null);
   const [meetingDetailsTranslateY] = useState(new Animated.Value(screenHeight));
+  const [showTaskDetails, setShowTaskDetails] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [taskDetailsTranslateY] = useState(new Animated.Value(screenHeight));
   const [activeMenu, setActiveMenu] = useState('myDay'); // 'myDay', 'stats', 'updates', or 'jobs'
   const [showStatusDropdown, setShowStatusDropdown] = useState(null);
   const [showTaskStatusDropdown, setShowTaskStatusDropdown] = useState(null);
@@ -545,6 +549,29 @@ export default function Dashboard() {
     });
   };
 
+  const handleTaskPress = (task: any) => {
+    setSelectedTask(task);
+    setShowTaskDetails(true);
+    
+    // Animate modal in from bottom
+    Animated.timing(taskDetailsTranslateY, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handleCloseTaskDetails = () => {
+    Animated.timing(taskDetailsTranslateY, {
+      toValue: screenHeight,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowTaskDetails(false);
+      setSelectedTask(null);
+    });
+  };
+
   const handleViewCalendar = () => {
     router.push('/appointments');
   };
@@ -563,6 +590,27 @@ export default function Dashboard() {
         handleCloseMeetingDetails();
       } else {
         Animated.spring(meetingDetailsTranslateY, {
+          toValue: 0,
+          useNativeDriver: true,
+        }).start();
+      }
+    }
+  };
+
+  // Gesture handlers for task details swipe to close
+  const onTaskDetailsGestureEvent = Animated.event(
+    [{ nativeEvent: { translationY: taskDetailsTranslateY } }],
+    { useNativeDriver: true }
+  );
+
+  const onTaskDetailsHandlerStateChange = (event: any) => {
+    if (event.nativeEvent.state === State.END) {
+      const { translationY, velocityY } = event.nativeEvent;
+      
+      if (translationY > 100 || velocityY > 500) {
+        handleCloseTaskDetails();
+      } else {
+        Animated.spring(taskDetailsTranslateY, {
           toValue: 0,
           useNativeDriver: true,
         }).start();
@@ -729,7 +777,11 @@ export default function Dashboard() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <DrawerMenu isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      <DrawerMenu 
+        isOpen={drawerOpen} 
+        onClose={() => setDrawerOpen(false)}
+        pendingRequestsCount={appointmentRequestService.getPendingRequestsCount()}
+      />
       
       <LinearGradient
         colors={['#6366F1', '#8B5CF6', '#A855F7']}
@@ -883,7 +935,7 @@ export default function Dashboard() {
                     
                     <TouchableOpacity 
                       style={styles.nextItemViewDetailsButton}
-                      onPress={() => nextItem.itemType === 'appointment' ? handleAppointmentPress(nextItem) : null}
+                      onPress={() => nextItem.itemType === 'appointment' ? handleAppointmentPress(nextItem) : handleTaskPress(nextItem)}
                     >
                       <Text style={styles.nextItemViewDetailsButtonText}>View Details</Text>
                       <ChevronRight size={16} color="#FFFFFF" />
@@ -1029,7 +1081,10 @@ export default function Dashboard() {
                               ]}>{item.itemType === 'task' ? (item as any).description : item.type}</Text>
                               
                               
-                              <TouchableOpacity style={styles.taskActionButton}>
+                              <TouchableOpacity 
+                                style={styles.taskActionButton}
+                                onPress={() => handleTaskPress(item)}
+                              >
                                 <Text style={styles.taskActionText}>View Details</Text>
                                 <ChevronRight size={16} color="#8B5CF6" />
                               </TouchableOpacity>
@@ -2104,6 +2159,121 @@ export default function Dashboard() {
                             </View>
                           ))}
                         </View>
+                      </View>
+                    )}
+
+                    <View style={styles.bottomSpacing} />
+                  </ScrollView>
+                </View>
+              )}
+            </Animated.View>
+          </PanGestureHandler>
+        </View>
+      </Modal>
+
+      {/* Task Details Modal */}
+      <Modal
+        visible={showTaskDetails}
+        transparent
+        animationType="none"
+        onRequestClose={handleCloseTaskDetails}
+      >
+        <View style={styles.fullScreenModalOverlay}>
+          <PanGestureHandler
+            onGestureEvent={onTaskDetailsGestureEvent}
+            onHandlerStateChange={onTaskDetailsHandlerStateChange}
+          >
+            <Animated.View
+              style={[
+                styles.fullScreenModalContainer,
+                {
+                  transform: [{ translateY: taskDetailsTranslateY }],
+                },
+              ]}
+            >
+              {selectedTask && (
+                <View style={styles.fullScreenContent}>
+                  {/* Header with Close Button */}
+                  <View style={styles.modalHeader}>
+                    <TouchableOpacity 
+                      style={styles.closeButton}
+                      onPress={handleCloseTaskDetails}
+                    >
+                      <X size={24} color="#6B7280" />
+                    </TouchableOpacity>
+                    <Text style={styles.modalHeaderTitle}>Task Details</Text>
+                    <View style={styles.headerSpacer} />
+                  </View>
+
+                  <ScrollView
+                    style={styles.fullScreenScrollView}
+                    showsVerticalScrollIndicator={false}
+                  >
+                    {/* Status Section */}
+                    <View style={styles.statusSection}>
+                      <Text style={styles.statusSectionLabel}>Status</Text>
+                      <TouchableOpacity 
+                        style={[styles.clickableStatusBadge, { backgroundColor: selectedTask.statusColor }]}
+                        onPress={() => setShowTaskStatusDropdown(showTaskStatusDropdown === selectedTask.id ? null : selectedTask.id)}
+                      >
+                        <Text style={styles.clickableStatusText}>{selectedTask.status || 'Pending'}</Text>
+                        <ChevronDown size={16} color="#FFFFFF" />
+                      </TouchableOpacity>
+                      
+                      {showTaskStatusDropdown === selectedTask.id && (
+                        <View style={styles.statusDropdown}>
+                          {taskStatusOptions.map((option) => (
+                            <TouchableOpacity
+                              key={option.value}
+                              style={styles.statusOption}
+                              onPress={() => handleTaskStatusChange(selectedTask.id, option.value)}
+                            >
+                              <View style={[styles.statusOptionColor, { backgroundColor: option.color }]} />
+                              <Text style={styles.statusOptionText}>{option.label}</Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Task Information Card */}
+                    <View style={styles.appointmentInfoCard}>
+                      <Text style={styles.cardTitle}>Task Information</Text>
+                      <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>Title:</Text>
+                        <Text style={styles.infoValue}>{selectedTask.title}</Text>
+                      </View>
+                      <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>Priority:</Text>
+                        <Text style={styles.infoValue}>{selectedTask.priority || 'Normal'}</Text>
+                      </View>
+                      <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>Due Date:</Text>
+                        <Text style={styles.infoValue}>{selectedTask.dueDate || 'Not set'}</Text>
+                      </View>
+                      <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>Time:</Text>
+                        <Text style={styles.infoValue}>{selectedTask.time}</Text>
+                      </View>
+                      {selectedTask.assignedBy && (
+                        <View style={styles.infoRow}>
+                          <Text style={styles.infoLabel}>Assigned By:</Text>
+                          <Text style={styles.infoValue}>{selectedTask.assignedBy}</Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Task Description */}
+                    <View style={styles.appointmentInfoCard}>
+                      <Text style={styles.cardTitle}>Description</Text>
+                      <Text style={styles.appointmentDetailsText}>{selectedTask.description}</Text>
+                    </View>
+
+                    {/* Action Type */}
+                    {selectedTask.actionType && (
+                      <View style={styles.appointmentInfoCard}>
+                        <Text style={styles.cardTitle}>Action Required</Text>
+                        <Text style={styles.infoValue}>{selectedTask.actionLabel || selectedTask.actionType}</Text>
                       </View>
                     )}
 

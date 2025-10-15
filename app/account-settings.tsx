@@ -1,5 +1,6 @@
 import { CrewPermissionSettingsModal } from '@/components/CrewPermissionSettingsModal';
 import FacebookIntegrationsManager from '@/components/FacebookIntegrationsManager';
+import TemplatesManager from '@/components/TemplatesManager';
 import { useAppSettings } from '@/contexts/AppSettingsContext';
 import { useUserRole } from '@/contexts/UserRoleContext';
 import QuickBooksService from '@/services/QuickBooksService';
@@ -73,7 +74,7 @@ import {
     View
 } from 'react-native';
 
-type SettingsTab = 'company' | 'brand' | 'email' | 'general' | 'leads' | 'events' | 'payments' | 'reminders' | 'app' | 'integrations';
+type SettingsTab = 'company' | 'brand' | 'email' | 'general' | 'leads' | 'events' | 'payments' | 'reminders' | 'app' | 'integrations' | 'templates';
 
 interface EventType {
     id: string;
@@ -270,6 +271,7 @@ export default function AccountSettings() {
         { id: 'payments', label: 'Payments', icon: CreditCard },
         { id: 'reminders', label: 'Reminders', icon: Bell },
         { id: 'crew', label: 'Crew Permissions', icon: Users },
+        { id: 'templates', label: 'Templates', icon: FileText },
         { id: 'integrations', label: 'Integrations', icon: Link },
     ];
 

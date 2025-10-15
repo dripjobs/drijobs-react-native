@@ -1,10 +1,12 @@
 import DrawerMenu from '@/components/DrawerMenu';
 import { InvoiceDetail } from '@/components/InvoiceDetail';
+import NewInvoiceModal from '@/components/NewInvoiceModal';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
     AlertCircle,
+    Building2,
     Calendar,
     CheckCircle,
     ChevronLeft,
@@ -12,6 +14,7 @@ import {
     Clock,
     FileText,
     Filter,
+    Plus,
     Search,
     XCircle
 } from 'lucide-react-native';
@@ -129,6 +132,45 @@ const invoiceData = [
     issueDate: '2025-09-13',
     items: ['Flooring Installation', 'Labor & Materials'],
     statusColor: '#10B981'
+  },
+  {
+    id: 11,
+    invoiceNumber: 'INV-1011',
+    customerName: 'Acme Construction Inc.',
+    businessName: 'Acme Construction Inc.',
+    amount: 24500.00,
+    status: 'pending',
+    dueDate: '2025-10-25',
+    issueDate: '2025-10-05',
+    items: ['Commercial Building Project - Phase 1', 'Materials & Labor'],
+    statusColor: '#F59E0B',
+    isBusiness: true
+  },
+  {
+    id: 12,
+    invoiceNumber: 'INV-1012',
+    customerName: 'TechStart Solutions LLC',
+    businessName: 'TechStart Solutions LLC',
+    amount: 18750.00,
+    status: 'overdue',
+    dueDate: '2025-09-22',
+    issueDate: '2025-09-08',
+    items: ['Office Renovation', 'IT Infrastructure Setup'],
+    statusColor: '#EF4444',
+    isBusiness: true
+  },
+  {
+    id: 13,
+    invoiceNumber: 'INV-1013',
+    customerName: 'Green Valley Developers',
+    businessName: 'Green Valley Developers',
+    amount: 32000.00,
+    status: 'paid',
+    dueDate: '2025-09-30',
+    issueDate: '2025-09-16',
+    items: ['Residential Complex - Foundation Work', 'Site Preparation'],
+    statusColor: '#10B981',
+    isBusiness: true
   }
 ];
 
@@ -146,6 +188,7 @@ export default function InvoicesPage() {
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const [showCreateInvoiceModal, setShowCreateInvoiceModal] = useState(false);
 
   const statusFilters = [
     { value: 'all', label: 'All', color: '#6B7280' },
@@ -177,7 +220,8 @@ export default function InvoicesPage() {
   // Filter invoices based on search, status, and date range
   const filteredInvoices = invoiceData.filter(invoice => {
     const matchesSearch = invoice.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         invoice.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase());
+                         invoice.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         (invoice.businessName && invoice.businessName.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesStatus = !selectedStatus || selectedStatus === 'all' || invoice.status === selectedStatus;
     
     // Date range filter
@@ -207,6 +251,35 @@ export default function InvoicesPage() {
   const handleOpenInvoice = () => {
     if (!selectedInvoice) return;
     
+    // Create business-specific data
+    const isBusinessInvoice = selectedInvoice.isBusiness === true;
+    const businessStakeholders = isBusinessInvoice ? [
+      {
+        id: '1',
+        name: 'John Anderson',
+        email: 'john.anderson@' + selectedInvoice.businessName.toLowerCase().replace(/ /g, '') + '.com',
+        phone: '(555) 123-4567',
+        role: 'CEO',
+        receiveInvoices: false,
+      },
+      {
+        id: '2',
+        name: 'Emily Roberts',
+        email: 'emily.roberts@' + selectedInvoice.businessName.toLowerCase().replace(/ /g, '') + '.com',
+        phone: '(555) 234-5678',
+        role: 'Billing Manager',
+        receiveInvoices: true,
+      },
+      {
+        id: '3',
+        name: 'Michael Chen',
+        email: 'michael.chen@' + selectedInvoice.businessName.toLowerCase().replace(/ /g, '') + '.com',
+        phone: '(555) 345-6789',
+        role: 'Operations Manager',
+        receiveInvoices: false,
+      },
+    ] : undefined;
+    
     // Create full invoice data for the editor
     const fullInvoice = {
       id: selectedInvoice.id.toString(),
@@ -226,6 +299,7 @@ export default function InvoicesPage() {
       subtotal: selectedInvoice.amount,
       taxAmount: 0,
       discountAmount: 0,
+      proposalDiscountAmount: isBusinessInvoice ? 500 : undefined,
       totalAmount: selectedInvoice.amount,
       amountPaid: selectedInvoice.status === 'paid' ? selectedInvoice.amount : 0,
       balanceDue: selectedInvoice.status === 'paid' ? 0 : selectedInvoice.amount,
@@ -244,12 +318,67 @@ export default function InvoicesPage() {
         allowBankPayment: true,
         alternativePayment: false,
         lineItemQuantityOnly: false,
+        paymentTerms: isBusinessInvoice ? 'Net 30 - Payment due within 30 days of invoice date.' : undefined,
       },
-      contactName: selectedInvoice.customerName,
-      contactEmail: selectedInvoice.customerName.toLowerCase().replace(' ', '.') + '@email.com',
-      contactPhone: '',
-      businessName: '',
-      businessAddress: '',
+      contactName: isBusinessInvoice ? businessStakeholders![0].name : selectedInvoice.customerName,
+      contactEmail: isBusinessInvoice ? businessStakeholders![0].email : selectedInvoice.customerName.toLowerCase().replace(' ', '.') + '@email.com',
+      contactPhone: isBusinessInvoice ? businessStakeholders![0].phone : '(555) 987-6543',
+      businessName: selectedInvoice.businessName || '',
+      businessAddress: isBusinessInvoice ? '123 Corporate Plaza, Business District, City, ST 12345' : '',
+      isBusiness: isBusinessInvoice,
+      primaryContactId: isBusinessInvoice ? '1' : undefined,
+      stakeholders: businessStakeholders,
+      billingAddress: isBusinessInvoice ? '456 Billing Ave, Suite 200, City, ST 12345' : undefined,
+      jobAddress: isBusinessInvoice ? '789 Project Site Rd, Industrial Park, City, ST 12345' : '321 Residential St, City, ST 12345',
+      relatedDealId: isBusinessInvoice ? 'DEAL-' + selectedInvoice.id : undefined,
+      relatedDealTitle: isBusinessInvoice ? selectedInvoice.businessName + ' - ' + selectedInvoice.items[0] : undefined,
+      relatedDealStage: isBusinessInvoice ? 'Proposal Stage' : undefined,
+      relatedDealAmount: isBusinessInvoice ? selectedInvoice.amount * 1.2 : undefined,
+      relatedDealProbability: isBusinessInvoice ? 75 : undefined,
+      relatedProposalId: isBusinessInvoice ? 'PROP-' + selectedInvoice.id : undefined,
+      relatedProposalNumber: isBusinessInvoice ? 'PROP-200' + selectedInvoice.id : undefined,
+      jobInfo: {
+        addressLine1: isBusinessInvoice ? '789 Project Site Rd' : '321 Residential St',
+        addressLine2: isBusinessInvoice ? 'Suite 200' : undefined,
+        city: 'Springfield',
+        state: 'CA',
+        postalCode: isBusinessInvoice ? '94105' : '94102',
+        salesperson: isBusinessInvoice ? 'Sarah Martinez' : 'Mike Johnson',
+        startDate: selectedInvoice.issueDate,
+        endDate: selectedInvoice.status === 'paid' ? selectedInvoice.dueDate : undefined,
+        crew: isBusinessInvoice ? 'Team Alpha' : undefined,
+        teamMembers: isBusinessInvoice ? undefined : [
+          { name: 'John Doe', role: 'Lead Painter' },
+          { name: 'Jane Smith', role: 'Assistant' }
+        ],
+      },
+      scheduledSendDate: selectedInvoice.invoiceNumber === 'INV-1013' ? '2025-10-15T20:00:00.000Z' : undefined,
+      activityLog: [
+        {
+          id: '1',
+          action: 'Invoice created',
+          details: 'Initial invoice generated from proposal',
+          user: 'System',
+          timestamp: selectedInvoice.issueDate + ' at 9:30 AM',
+          icon: 'edit' as const,
+        },
+        ...(selectedInvoice.status !== 'draft' ? [{
+          id: '2',
+          action: 'Invoice sent',
+          details: `Sent to ${isBusinessInvoice ? businessStakeholders![0].email : selectedInvoice.customerName.toLowerCase().replace(' ', '.') + '@email.com'}`,
+          user: 'Sarah Martinez',
+          timestamp: selectedInvoice.issueDate + ' at 10:15 AM',
+          icon: 'send' as const,
+        }] : []),
+        ...(selectedInvoice.status === 'paid' ? [{
+          id: '3',
+          action: 'Payment received',
+          details: `$${selectedInvoice.amount.toFixed(2)} paid via Credit Card`,
+          user: 'System',
+          timestamp: selectedInvoice.dueDate + ' at 2:45 PM',
+          icon: 'payment' as const,
+        }] : []),
+      ],
     };
     
     setInvoiceForEditor(fullInvoice);
@@ -275,7 +404,20 @@ export default function InvoicesPage() {
             <ChevronLeft size={24} color="#FFFFFF" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Invoices</Text>
-          <View style={styles.headerSpacer} />
+          <View style={styles.headerActions}>
+            <TouchableOpacity 
+              style={styles.headerActionButton}
+              onPress={() => setShowCreateInvoiceModal(true)}
+            >
+              <Plus size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.headerActionButton}
+              onPress={() => setShowFilterModal(true)}
+            >
+              <Filter size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Search Bar */}
@@ -290,12 +432,6 @@ export default function InvoicesPage() {
               onChangeText={setSearchQuery}
             />
           </View>
-          <TouchableOpacity 
-            style={styles.filterButton}
-            onPress={() => setShowFilterModal(true)}
-          >
-            <Filter size={20} color="#FFFFFF" />
-          </TouchableOpacity>
         </View>
 
         {/* Status Filter Chips */}
@@ -343,14 +479,21 @@ export default function InvoicesPage() {
             filteredInvoices.map((invoice) => (
               <TouchableOpacity
                 key={invoice.id}
-                style={styles.invoiceCard}
+                style={[styles.invoiceCard, invoice.isBusiness && styles.invoiceCardBusiness]}
                 onPress={() => handleInvoicePress(invoice)}
               >
                 <View style={styles.invoiceContent}>
                   <View style={styles.invoiceLeft}>
                     <View style={[styles.statusIndicator, { backgroundColor: invoice.statusColor }]} />
                     <View style={styles.invoiceInfo}>
-                      <Text style={styles.customerName}>{invoice.customerName}</Text>
+                      <View style={styles.customerNameRow}>
+                        {invoice.isBusiness && (
+                          <Building2 size={18} color="#8B5CF6" style={{ marginRight: 6 }} />
+                        )}
+                        <Text style={styles.customerName}>
+                          {invoice.businessName || invoice.customerName}
+                        </Text>
+                      </View>
                       <Text style={styles.invoiceNumber}>{invoice.invoiceNumber}</Text>
                     </View>
                   </View>
@@ -609,6 +752,18 @@ export default function InvoicesPage() {
           />
         )}
       </Modal>
+
+      {/* Create Invoice Modal */}
+      <NewInvoiceModal
+        visible={showCreateInvoiceModal}
+        onClose={() => setShowCreateInvoiceModal(false)}
+        onInvoiceCreated={(invoiceId) => {
+          setShowCreateInvoiceModal(false);
+          // In production, fetch the created invoice and open it
+          console.log('Invoice created:', invoiceId);
+          // For now, just show a success message
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -639,8 +794,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-  headerSpacer: {
+  headerActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  headerActionButton: {
     width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -745,6 +909,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#F1F5F9',
   },
+  invoiceCardBusiness: {
+    backgroundColor: '#F5F3FF',
+    borderLeftWidth: 4,
+    borderLeftColor: '#8B5CF6',
+  },
   invoiceContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -765,11 +934,15 @@ const styles = StyleSheet.create({
   invoiceInfo: {
     flex: 1,
   },
+  customerNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   customerName: {
     fontSize: 16,
     fontWeight: '700',
     color: '#111827',
-    marginBottom: 4,
   },
   invoiceNumber: {
     fontSize: 13,

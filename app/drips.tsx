@@ -226,70 +226,76 @@ const mockDripService = {
 const pipelineConfigs = {
   leads: {
     title: 'Lead Pipeline',
-    stages: ['new_leads', 'cold_leads', 'on_hold', 'warm_leads'],
+    stages: ['new_leads', 'cold_leads', 'on_hold', 'warm_leads', 'not_a_fit', 'qualified'],
     stageLabels: {
       new_leads: 'New Leads',
       cold_leads: 'Cold Leads', 
       on_hold: 'On Hold',
-      warm_leads: 'Warm Leads'
+      warm_leads: 'Warm Leads',
+      not_a_fit: 'Not a Fit',
+      qualified: 'Qualified'
     },
     stageDescriptions: {
       new_leads: 'Fresh leads that need initial contact',
       cold_leads: 'Leads that need nurturing',
       on_hold: 'Leads temporarily paused',
-      warm_leads: 'Engaged leads ready to convert'
+      warm_leads: 'Engaged leads ready to convert',
+      not_a_fit: 'Leads that don\'t match our criteria',
+      qualified: 'Qualified leads (closed - won)'
     }
   },
   opportunities: {
     title: 'Opportunities',
-    stages: ['new_opportunities', 'prospecting', 'negotiating', 'closed_won', 'closed_lost'],
+    stages: ['estimate_requested', 'virtual_estimate', 'estimate_scheduled', 'estimate_cancelled', 'not_a_fit', 'qualified'],
     stageLabels: {
-      new_opportunities: 'New Opportunities',
-      prospecting: 'Prospecting',
-      negotiating: 'Negotiating',
-      closed_won: 'Closed Won',
-      closed_lost: 'Closed Lost'
+      estimate_requested: 'Estimate Requested',
+      virtual_estimate: 'Virtual Estimate',
+      estimate_scheduled: 'Estimate Scheduled',
+      estimate_cancelled: 'Estimate Cancelled',
+      not_a_fit: 'Not a Fit',
+      qualified: 'Qualified'
     },
     stageDescriptions: {
-      new_opportunities: 'New business opportunities identified',
-      prospecting: 'Actively prospecting and qualifying',
-      negotiating: 'In negotiation phase',
-      closed_won: 'Successfully closed deals',
-      closed_lost: 'Lost opportunities'
+      estimate_requested: 'Customer has requested an estimate',
+      virtual_estimate: 'Virtual estimate in progress',
+      estimate_scheduled: 'On-site estimate has been scheduled',
+      estimate_cancelled: 'Estimate was cancelled',
+      not_a_fit: 'Opportunity is not a good fit',
+      qualified: 'Qualified opportunity (closed - won)'
     }
   },
   proposals: {
     title: 'Proposals',
-    stages: ['draft', 'sent', 'reviewed', 'accepted', 'rejected'],
+    stages: ['in_draft', 'proposal_sent', 'on_hold', 'proposal_rejected', 'proposal_approved'],
     stageLabels: {
-      draft: 'Draft',
-      sent: 'Sent',
-      reviewed: 'Reviewed',
-      accepted: 'Accepted',
-      rejected: 'Rejected'
+      in_draft: 'In Draft',
+      proposal_sent: 'Proposal Sent',
+      on_hold: 'On Hold',
+      proposal_rejected: 'Proposal Rejected',
+      proposal_approved: 'Proposal Approved'
     },
     stageDescriptions: {
-      draft: 'Proposal being drafted',
-      sent: 'Proposal sent to client',
-      reviewed: 'Client is reviewing',
-      accepted: 'Proposal accepted',
-      rejected: 'Proposal rejected'
+      in_draft: 'Proposal is being drafted',
+      proposal_sent: 'Proposal has been sent to client',
+      on_hold: 'Proposal is on hold',
+      proposal_rejected: 'Proposal was rejected by client',
+      proposal_approved: 'Proposal approved (closed - won)'
     }
   },
   jobs: {
     title: 'Jobs',
-    stages: ['scheduled', 'in_progress', 'completed', 'cancelled'],
+    stages: ['pending_schedule', 'in_progress', 'project_scheduled', 'project_complete'],
     stageLabels: {
-      scheduled: 'Scheduled',
+      pending_schedule: 'Pending Schedule',
       in_progress: 'In Progress',
-      completed: 'Completed',
-      cancelled: 'Cancelled'
+      project_scheduled: 'Project Scheduled',
+      project_complete: 'Project Complete'
     },
     stageDescriptions: {
-      scheduled: 'Jobs scheduled for future',
-      in_progress: 'Jobs currently being worked on',
-      completed: 'Successfully completed jobs',
-      cancelled: 'Cancelled jobs'
+      pending_schedule: 'Job is pending scheduling',
+      in_progress: 'Job is currently in progress',
+      project_scheduled: 'Project has been scheduled',
+      project_complete: 'Project complete (closed - won)'
     }
   }
 };

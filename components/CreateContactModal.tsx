@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, MapPin, User, X } from 'lucide-react-native';
+import { CheckSquare, ChevronDown, ChevronLeft, ChevronRight, MapPin, User, X } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Alert, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -20,7 +20,6 @@ export default function CreateContactModal({ visible, onClose, onContactCreated 
     phone: '',
     secondaryEmail: '',
     secondaryPhone: '',
-    title: '',
   });
 
   // Address Information
@@ -40,6 +39,7 @@ export default function CreateContactModal({ visible, onClose, onContactCreated 
 
   const [formErrors, setFormErrors] = useState<{[key: string]: string}>({});
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
+  const [showLeadSourceDropdown, setShowLeadSourceDropdown] = useState(false);
 
   const leadSources = [
     'Website',
@@ -63,7 +63,6 @@ export default function CreateContactModal({ visible, onClose, onContactCreated 
       phone: '',
       secondaryEmail: '',
       secondaryPhone: '',
-      title: '',
     });
     setAddressData({
       street: '',
@@ -91,14 +90,18 @@ export default function CreateContactModal({ visible, onClose, onContactCreated 
       errors.lastName = 'Last name is required';
     }
     
-    if (!contactData.email.trim()) {
-      errors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(contactData.email)) {
-      errors.email = 'Email is invalid';
-    }
-
-    if (!contactData.phone.trim()) {
-      errors.phone = 'Phone is required';
+    // Require at least one: email OR phone
+    const hasEmail = contactData.email.trim();
+    const hasPhone = contactData.phone.trim();
+    
+    if (!hasEmail && !hasPhone) {
+      errors.email = 'Either email or phone is required';
+      errors.phone = 'Either email or phone is required';
+    } else {
+      // If email is provided, validate format
+      if (hasEmail && !/\S+@\S+\.\S+/.test(contactData.email)) {
+        errors.email = 'Email is invalid';
+      }
     }
     
     setFormErrors(errors);
@@ -137,12 +140,12 @@ export default function CreateContactModal({ visible, onClose, onContactCreated 
         secondaryEmail: contactData.secondaryEmail,
         secondaryPhone: contactData.secondaryPhone,
         company: '',
-        title: contactData.title,
         address: addressData.street ? 
           `${addressData.street}, ${addressData.city}, ${addressData.state} ${addressData.zip}` : 
           '',
         fullAddress: addressData,
         leadSource: additionalData.leadSource,
+        originalLeadSource: additionalData.leadSource,
         notes: additionalData.notes,
         createdAt: new Date().toISOString(),
         deals: [],
@@ -326,21 +329,6 @@ export default function CreateContactModal({ visible, onClose, onContactCreated 
           keyboardType="phone-pad"
         />
       </View>
-
-      <View style={styles.formSection}>
-        <Text style={styles.formLabel}>Job Title</Text>
-        <TextInput
-          style={[
-            styles.formInput,
-            focusedInput === 'title' && styles.formInputFocused
-          ]}
-          value={contactData.title}
-          onChangeText={(text) => setContactData({...contactData, title: text})}
-          onFocus={() => setFocusedInput('title')}
-          onBlur={() => setFocusedInput(null)}
-          placeholder="e.g., Operations Manager"
-        />
-      </View>
     </View>
   );
 
@@ -450,24 +438,56 @@ export default function CreateContactModal({ visible, onClose, onContactCreated 
       <View style={styles.formSection}>
         <Text style={styles.formLabel}>Lead Source</Text>
         <Text style={styles.formHelper}>How did you find this contact?</Text>
-        <View style={styles.sourceGrid}>
-          {leadSources.map((source) => (
-            <TouchableOpacity
-              key={source}
-              style={[
-                styles.sourceChip,
-                additionalData.leadSource === source && styles.sourceChipActive
-              ]}
-              onPress={() => setAdditionalData({...additionalData, leadSource: source})}
-            >
-              <Text style={[
-                styles.sourceChipText,
-                additionalData.leadSource === source && styles.sourceChipTextActive
-              ]}>
-                {source}
-              </Text>
-            </TouchableOpacity>
-          ))}
+        <View style={styles.dropdownContainer}>
+          <TouchableOpacity 
+            style={[
+              styles.dropdownButton,
+              showLeadSourceDropdown && styles.dropdownButtonActive
+            ]}
+            onPress={() => setShowLeadSourceDropdown(!showLeadSourceDropdown)}
+          >
+            <Text style={[
+              styles.dropdownText,
+              !additionalData.leadSource && styles.dropdownPlaceholder
+            ]}>
+              {additionalData.leadSource || 'Select lead source'}
+            </Text>
+            <ChevronDown size={20} color="#6B7280" />
+          </TouchableOpacity>
+          
+          {showLeadSourceDropdown && (
+            <View style={styles.dropdownMenu}>
+              <ScrollView 
+                style={styles.dropdownScroll}
+                nestedScrollEnabled={true}
+                showsVerticalScrollIndicator={false}
+              >
+                {leadSources.map((source) => (
+                  <TouchableOpacity
+                    key={source}
+                    style={[
+                      styles.dropdownOption,
+                      additionalData.leadSource === source && styles.dropdownOptionSelected
+                    ]}
+                    onPress={() => {
+                      setAdditionalData({...additionalData, leadSource: source});
+                      setShowLeadSourceDropdown(false);
+                    }}
+                  >
+                    <Text style={[
+                      styles.dropdownOptionText,
+                      additionalData.leadSource === source && styles.dropdownOptionTextSelected
+                    ]}>
+                      {source}
+                    </Text>
+                    {additionalData.leadSource === source && (
+                      <CheckSquare size={18} color="#6366F1" />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
         </View>
       </View>
 
@@ -701,30 +721,73 @@ const styles = StyleSheet.create({
     height: 100,
     paddingTop: 14,
   },
-  sourceGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
+  // Dropdown Styles
+  dropdownContainer: {
+    position: 'relative',
+    zIndex: 1000,
   },
-  sourceChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+  dropdownButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
     borderRadius: 10,
-    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderWidth: 2,
     borderColor: '#E5E7EB',
   },
-  sourceChipActive: {
-    backgroundColor: '#EEF2FF',
+  dropdownButtonActive: {
     borderColor: '#6366F1',
   },
-  sourceChipText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6B7280',
+  dropdownText: {
+    fontSize: 16,
+    color: '#1D1D1F',
+    flex: 1,
   },
-  sourceChipTextActive: {
+  dropdownPlaceholder: {
+    color: '#9CA3AF',
+  },
+  dropdownMenu: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    marginTop: 4,
+    maxHeight: 240,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+    zIndex: 1001,
+  },
+  dropdownScroll: {
+    maxHeight: 240,
+  },
+  dropdownOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  dropdownOptionSelected: {
+    backgroundColor: '#F0F9FF',
+  },
+  dropdownOptionText: {
+    fontSize: 16,
+    color: '#1F2937',
+  },
+  dropdownOptionTextSelected: {
     color: '#6366F1',
+    fontWeight: '600',
   },
   infoBox: {
     flexDirection: 'row',

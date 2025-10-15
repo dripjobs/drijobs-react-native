@@ -131,6 +131,45 @@ export default function TeamChat() {
       }
     };
   }, [isCrew]);
+
+  // Simulate typing indicators when a channel/DM is opened
+  // In a real app, this would listen to WebSocket/real-time events from the server
+  useEffect(() => {
+    if (!selectedChannel && !selectedDM) return;
+
+    const threadId = selectedChannel ? selectedChannel.id : `dm-${selectedDM?.id}`;
+    
+    // Randomly simulate someone typing when you open a channel (30% chance)
+    if (Math.random() > 0.7) {
+      const randomUser = teamMembers[Math.floor(Math.random() * (teamMembers.length - 1)) + 1];
+      
+      setTimeout(() => {
+        setTypingUsers(prev => ({
+          ...prev,
+          [threadId]: [randomUser.name]
+        }));
+
+        // Clear typing indicator after 3-5 seconds
+        const timeout = setTimeout(() => {
+          setTypingUsers(prev => {
+            const updated = { ...prev };
+            delete updated[threadId];
+            return updated;
+          });
+        }, 3000 + Math.random() * 2000);
+
+        typingTimeoutRef.current[threadId] = timeout;
+      }, 1000 + Math.random() * 2000); // Start typing after 1-3 seconds
+    }
+
+    // Cleanup function
+    return () => {
+      if (typingTimeoutRef.current[threadId]) {
+        clearTimeout(typingTimeoutRef.current[threadId]);
+        delete typingTimeoutRef.current[threadId];
+      }
+    };
+  }, [selectedChannel, selectedDM]);
   const [selectedChannel, setSelectedChannel] = useState<TeamChannel | null>(null);
   const [selectedDM, setSelectedDM] = useState<TeamDirectMessage | null>(null);
   const [newMessage, setNewMessage] = useState('');
@@ -175,6 +214,10 @@ export default function TeamChat() {
   const [showAddMember, setShowAddMember] = useState(false);
   const [addMemberSearchQuery, setAddMemberSearchQuery] = useState('');
   const [channelMembers, setChannelMembers] = useState<string[]>(['1', '2', '3']); // Member IDs in channel
+  
+  // Typing indicator states
+  const [typingUsers, setTypingUsers] = useState<{[key: string]: string[]}>({}); // threadId -> array of user names
+  const typingTimeoutRef = useRef<{[key: string]: NodeJS.Timeout}>({});
   
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -751,6 +794,53 @@ export default function TeamChat() {
     }
   };
 
+  // Helper function to add a typing user to a thread
+  // In a real app, this would be called when receiving typing notifications from the server
+  const addTypingUser = (threadId: string, userName: string) => {
+    setTypingUsers(prev => {
+      const currentUsers = prev[threadId] || [];
+      if (currentUsers.includes(userName)) return prev;
+      
+      return {
+        ...prev,
+        [threadId]: [...currentUsers, userName]
+      };
+    });
+
+    // Auto-remove after 3 seconds if no new typing event
+    if (typingTimeoutRef.current[`${threadId}-${userName}`]) {
+      clearTimeout(typingTimeoutRef.current[`${threadId}-${userName}`]);
+    }
+
+    typingTimeoutRef.current[`${threadId}-${userName}`] = setTimeout(() => {
+      removeTypingUser(threadId, userName);
+    }, 3000);
+  };
+
+  // Helper function to remove a typing user from a thread
+  const removeTypingUser = (threadId: string, userName: string) => {
+    setTypingUsers(prev => {
+      const currentUsers = prev[threadId] || [];
+      const updatedUsers = currentUsers.filter(name => name !== userName);
+      
+      if (updatedUsers.length === 0) {
+        const updated = { ...prev };
+        delete updated[threadId];
+        return updated;
+      }
+      
+      return {
+        ...prev,
+        [threadId]: updatedUsers
+      };
+    });
+
+    if (typingTimeoutRef.current[`${threadId}-${userName}`]) {
+      clearTimeout(typingTimeoutRef.current[`${threadId}-${userName}`]);
+      delete typingTimeoutRef.current[`${threadId}-${userName}`];
+    }
+  };
+
   const handleTextChange = (text: string) => {
     setNewMessage(text);
     
@@ -768,6 +858,10 @@ export default function TeamChat() {
     } else {
       setShowUserMention(false);
     }
+
+    // In a real implementation, this would broadcast typing status to the server
+    // The server would then notify other users in the same channel/DM that this user is typing
+    // Example: broadcastTypingStatus(threadId, currentUserId, text.length > 0);
   };
 
   const handleUserMention = (user: string) => {
@@ -2066,6 +2160,33 @@ export default function TeamChat() {
             ))}
           </ScrollView>
 
+          {/* Typing Indicator */}
+          {(() => {
+            const threadId = selectedChannel ? selectedChannel.id : `dm-${selectedDM?.id}`;
+            const currentTypingUsers = typingUsers[threadId] || [];
+            
+            if (currentTypingUsers.length === 0) return null;
+            
+            return (
+              <View style={styles.typingIndicatorBottom}>
+                <View style={styles.typingBubbleBottom}>
+                  <View style={styles.typingDots}>
+                    <View style={[styles.typingDot, styles.typingDot1]} />
+                    <View style={[styles.typingDot, styles.typingDot2]} />
+                    <View style={[styles.typingDot, styles.typingDot3]} />
+                  </View>
+                  <Text style={styles.typingTextBottom}>
+                    {currentTypingUsers.length === 1
+                      ? `${currentTypingUsers[0]} is typing...`
+                      : currentTypingUsers.length === 2
+                      ? `${currentTypingUsers[0]} and ${currentTypingUsers[1]} are typing...`
+                      : `${currentTypingUsers[0]} and ${currentTypingUsers.length - 1} others are typing...`}
+                  </Text>
+                </View>
+              </View>
+            );
+          })()}
+
           {/* Message Input */}
           <KeyboardAvoidingView 
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -3119,6 +3240,50 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6366F1',
     marginLeft: 4,
+  },
+  typingIndicatorBottom: {
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  typingBubbleBottom: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  typingDots: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  typingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#9CA3AF',
+  },
+  typingDot1: {
+    opacity: 0.4,
+  },
+  typingDot2: {
+    opacity: 0.6,
+  },
+  typingDot3: {
+    opacity: 0.8,
+  },
+  typingTextBottom: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '500',
   },
   messageInputContainer: {
     backgroundColor: '#FFFFFF',

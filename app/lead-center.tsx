@@ -51,21 +51,21 @@ interface DripSequence {
 }
 
 const stages = [
-  { value: 'new-leads', label: 'New Leads' },
-  { value: 'contacted', label: 'Contacted' },
+  { value: 'new_leads', label: 'New Leads' },
+  { value: 'cold_leads', label: 'Cold Leads' },
+  { value: 'on_hold', label: 'On Hold' },
+  { value: 'warm_leads', label: 'Warm Leads' },
+  { value: 'not_a_fit', label: 'Not a Fit' },
   { value: 'qualified', label: 'Qualified' },
-  { value: 'proposal-sent', label: 'Proposal Sent' },
-  { value: 'negotiation', label: 'Negotiation' },
 ];
 
 // Mock drip sequences - in production, this would come from a service/API
 const mockDripSequences: DripSequence[] = [
-  { id: 'drip-1', name: 'Welcome New Leads', description: 'Initial welcome sequence for new leads', stage: 'new-leads' },
-  { id: 'drip-2', name: 'Follow Up Sequence', description: 'Follow up with prospects who showed interest', stage: 'new-leads' },
-  { id: 'drip-3', name: 'Re-engagement Campaign', description: 'Re-engage cold leads', stage: 'contacted' },
-  { id: 'drip-4', name: 'Qualification Nurture', description: 'Nurture qualified leads', stage: 'qualified' },
-  { id: 'drip-5', name: 'Proposal Follow-up', description: 'Follow up after proposal sent', stage: 'proposal-sent' },
-  { id: 'drip-6', name: 'Negotiation Support', description: 'Support during negotiation phase', stage: 'negotiation' },
+  { id: 'drip-1', name: 'Welcome New Leads', description: 'Initial welcome sequence for new leads', stage: 'new_leads' },
+  { id: 'drip-2', name: 'Follow Up Sequence', description: 'Follow up with prospects who showed interest', stage: 'new_leads' },
+  { id: 'drip-3', name: 'Re-engagement Campaign', description: 'Re-engage cold leads', stage: 'cold_leads' },
+  { id: 'drip-4', name: 'Warm Lead Nurture', description: 'Nurture warm leads', stage: 'warm_leads' },
+  { id: 'drip-5', name: 'Qualification Follow-up', description: 'Follow up with qualified leads', stage: 'qualified' },
 ];
 
 export default function LeadCenter() {
@@ -85,7 +85,7 @@ export default function LeadCenter() {
         'Click "Test Connection" to verify',
       ],
       setupUrl: 'https://ads.google.com/localservices',
-      stage: 'new-leads',
+      stage: 'new_leads',
       dripSequenceId: null,
     },
     {
@@ -104,7 +104,7 @@ export default function LeadCenter() {
         'Copy the access token provided',
       ],
       setupUrl: 'https://business.facebook.com',
-      stage: 'new-leads',
+      stage: 'new_leads',
       dripSequenceId: null,
     },
     {
@@ -123,7 +123,7 @@ export default function LeadCenter() {
         'Leads will sync every 15 minutes',
       ],
       setupUrl: 'https://pro.angi.com',
-      stage: 'new-leads',
+      stage: 'new_leads',
       dripSequenceId: null,
     },
     {
@@ -142,7 +142,7 @@ export default function LeadCenter() {
         'Test the connection by sending a test lead',
       ],
       setupUrl: 'https://www.thumbtack.com/pro',
-      stage: 'new-leads',
+      stage: 'new_leads',
       dripSequenceId: null,
     },
     {
@@ -159,7 +159,7 @@ export default function LeadCenter() {
         'Customize form fields in the advanced settings',
         'Set up notifications for new submissions',
       ],
-      stage: 'new-leads',
+      stage: 'new_leads',
       dripSequenceId: null,
     },
     {
@@ -176,7 +176,7 @@ export default function LeadCenter() {
         'Calls will be recorded and transcribed',
         'Leads are created automatically from call data',
       ],
-      stage: 'new-leads',
+      stage: 'new_leads',
       dripSequenceId: null,
     },
   ]);
@@ -184,7 +184,7 @@ export default function LeadCenter() {
   const [selectedSource, setSelectedSource] = useState<LeadSource | null>(null);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [editingApiKey, setEditingApiKey] = useState('');
-  const [editingStage, setEditingStage] = useState('new-leads');
+  const [editingStage, setEditingStage] = useState('new_leads');
   const [editingDripSequenceId, setEditingDripSequenceId] = useState<string | null>(null);
   const [showStageDropdown, setShowStageDropdown] = useState(false);
   const [showDripSequenceDropdown, setShowDripSequenceDropdown] = useState(false);
