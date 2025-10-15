@@ -1,4 +1,4 @@
-import { CheckSquare, ChevronDown, ChevronLeft, ChevronRight, MapPin, User, X } from 'lucide-react-native';
+import { Building2, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, MapPin, User, X } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Alert, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -6,9 +6,10 @@ interface CreateContactModalProps {
   visible: boolean;
   onClose: () => void;
   onContactCreated?: (contact: any) => void;
+  onNavigateToBusiness?: () => void;
 }
 
-export default function CreateContactModal({ visible, onClose, onContactCreated }: CreateContactModalProps) {
+export default function CreateContactModal({ visible, onClose, onContactCreated, onNavigateToBusiness }: CreateContactModalProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -225,6 +226,23 @@ export default function CreateContactModal({ visible, onClose, onContactCreated 
       <Text style={styles.stepDescription}>
         Enter the contact's basic information
       </Text>
+
+      {/* Business Creation Helper */}
+      {onNavigateToBusiness && (
+        <TouchableOpacity 
+          style={styles.businessHelperBanner}
+          onPress={() => {
+            resetForm();
+            onClose();
+            onNavigateToBusiness();
+          }}
+        >
+          <Building2 size={20} color="#6366F1" />
+          <Text style={styles.businessHelperText}>
+            Need to add a new business? <Text style={styles.businessHelperLink}>Click here</Text>
+          </Text>
+        </TouchableOpacity>
+      )}
 
       <View style={styles.formSection}>
         <Text style={styles.formLabel}>First Name *</Text>
@@ -860,6 +878,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  businessHelperBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#EEF2FF',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+  },
+  businessHelperText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#4F46E5',
+    lineHeight: 20,
+  },
+  businessHelperLink: {
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
 });
 

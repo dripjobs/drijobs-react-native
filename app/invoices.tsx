@@ -1,4 +1,5 @@
 import DrawerMenu from '@/components/DrawerMenu';
+import DripRefreshControl, { RefreshLogo } from '@/components/DripRefreshControl';
 import { InvoiceDetail } from '@/components/InvoiceDetail';
 import NewInvoiceModal from '@/components/NewInvoiceModal';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -189,13 +190,23 @@ export default function InvoicesPage() {
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const [showCreateInvoiceModal, setShowCreateInvoiceModal] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    // Simulate API refresh - in production, fetch latest invoices
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1500);
+  };
 
   const statusFilters = [
     { value: 'all', label: 'All', color: '#6B7280' },
     { value: 'paid', label: 'Paid', color: '#10B981' },
     { value: 'pending', label: 'Pending', color: '#F59E0B' },
     { value: 'overdue', label: 'Overdue', color: '#EF4444' },
-    { value: 'draft', label: 'Draft', color: '#6B7280' }
+    { value: 'draft', label: 'Draft', color: '#6B7280' },
+    { value: 'business', label: 'Business', color: '#8B5CF6' }
   ];
 
   const getStatusIcon = (status: string) => {
@@ -208,6 +219,8 @@ export default function InvoicesPage() {
         return <AlertCircle size={20} color="#EF4444" />;
       case 'draft':
         return <FileText size={20} color="#6B7280" />;
+      case 'business':
+        return <Building2 size={20} color="#8B5CF6" />;
       default:
         return <FileText size={20} color="#6B7280" />;
     }
@@ -222,7 +235,8 @@ export default function InvoicesPage() {
     const matchesSearch = invoice.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          invoice.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          (invoice.businessName && invoice.businessName.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesStatus = !selectedStatus || selectedStatus === 'all' || invoice.status === selectedStatus;
+    const matchesStatus = !selectedStatus || selectedStatus === 'all' || 
+                         (selectedStatus === 'business' ? invoice.isBusiness : invoice.status === selectedStatus);
     
     // Date range filter
     let matchesDateRange = true;
@@ -392,6 +406,9 @@ export default function InvoicesPage() {
     <SafeAreaView style={styles.container}>
       <DrawerMenu isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
       
+      {/* Logo appears during refresh */}
+      <RefreshLogo visible={refreshing} />
+      
       {/* Header */}
       <LinearGradient
         colors={['#6366F1', '#8B5CF6', '#A855F7']}
@@ -464,7 +481,17 @@ export default function InvoicesPage() {
       {/* Invoice List */}
       <ScrollView 
         style={styles.content}
+        contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
+        bounces={true}
+        alwaysBounceVertical={true}
+        scrollEventThrottle={16}
+        refreshControl={
+          <DripRefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+          />
+        }
       >
         <View style={styles.invoiceList}>
           {filteredInvoices.length === 0 ? (
@@ -867,6 +894,9 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  contentContainer: {
+    flexGrow: 1,
   },
   invoiceList: {
     padding: 20,

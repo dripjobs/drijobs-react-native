@@ -1,5 +1,28 @@
 import { TemplateType } from '@/types/templates';
 
+// Default subject lines for email templates
+export const DEFAULT_SUBJECTS: Partial<Record<TemplateType, string>> = {
+  terms_and_conditions: 'Terms and Conditions',
+  proposal_email: 'Your Proposal from {{company.name}} is Ready',
+  invoice_email: 'Invoice #{{invoice.number}} from {{company.name}}',
+  receipt_email: 'Payment Receipt - {{company.name}}',
+  payment_request_email: 'Payment Reminder - Invoice #{{invoice.number}}',
+  appointment_scheduled_email: 'Appointment Confirmed - {{appointment.date}}',
+  appointment_rescheduled_email: 'Appointment Rescheduled - {{appointment.date}}',
+  job_scheduled_email: 'Job Scheduled - {{job.title}}',
+  job_rescheduled_email: 'Job Rescheduled - {{job.title}}',
+  work_order_email: 'Work Order - {{job.title}}',
+  change_order_email: 'Change Order Request - {{job.title}}',
+  secret_work_order_email: 'Work Order Update',
+  on_site_estimate_scheduled_email: 'On-Site Estimate Scheduled',
+  booking_form_email: 'Schedule Your Service with {{company.name}}',
+  confirmation_email_template: 'Confirmation - {{company.name}}',
+  resolve_email_template: 'Issue Resolution Update',
+  financing_offers_received_email: 'Financing Options Available',
+  financing_approved_estimate_accepted_email: 'Financing Approved!',
+  financing_approved_estimate_pending_email: 'Financing Approved - Next Steps',
+};
+
 // Default HTML templates for all template types
 export const DEFAULT_TEMPLATES: Record<TemplateType, string> = {
   // Terms & Conditions
@@ -763,6 +786,16 @@ export const DEFAULT_TEMPLATES: Record<TemplateType, string> = {
 // Get default template content by type
 export function getDefaultTemplate(type: TemplateType): string {
   return DEFAULT_TEMPLATES[type] || '';
+}
+
+// Get default subject line by type
+export function getDefaultSubject(type: TemplateType): string | undefined {
+  return DEFAULT_SUBJECTS[type];
+}
+
+// Check if a template type is an email (not SMS)
+export function isEmailTemplate(type: TemplateType): boolean {
+  return !type.includes('_sms') && type !== 'invoice_fineprint';
 }
 
 // Get default Terms & Conditions variations

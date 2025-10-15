@@ -9,7 +9,7 @@ import TextComposeModal from '@/components/TextComposeModal';
 import { useTabBar } from '@/contexts/TabBarContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, Building, Calendar, Camera, ChevronRight, DollarSign, FileText, Image, Mail, MapPin, Phone, Search, Send, TrendingUp, Upload, User, X } from 'lucide-react-native';
+import { ArrowLeft, Building, Calendar, Camera, ChevronRight, DollarSign, Edit2, FileText, Image, Mail, MapPin, Phone, Search, Send, TrendingUp, Upload, User, X } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import { Dimensions, Keyboard, KeyboardAvoidingView, Modal, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -23,6 +23,12 @@ interface ChatThread {
   lastMessageSender: 'customer' | 'business';
   unreadCount: number;
   customerPhone: string;
+  stage?: 'lead' | 'opportunity' | 'proposal' | 'job';
+  dealId?: number;
+  assignedSalesperson?: string;
+  assignedProjectManager?: string;
+  assignedTeamMembers?: string[];
+  createdBy?: string;
 }
 
 interface Message {
@@ -60,6 +66,18 @@ export default function Chat() {
   // Compose mode states
   const [showTextCompose, setShowTextCompose] = useState(false);
   const [composeCustomer, setComposeCustomer] = useState<any>(null);
+  const [showComposeSearch, setShowComposeSearch] = useState(false);
+  const [composeSearchQuery, setComposeSearchQuery] = useState('');
+  
+  // Filter states
+  const [activeFilter, setActiveFilter] = useState<'all' | 'unread' | 'lead' | 'opportunity' | 'proposal' | 'job'>('all');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [advancedFilters, setAdvancedFilters] = useState({
+    salesperson: 'All',
+    projectManager: 'All',
+    teamMember: 'All',
+    userRole: 'All'
+  });
   
   // Quick Actions modal states
   const [showNewAppointment, setShowNewAppointment] = useState(false);
@@ -70,23 +88,71 @@ export default function Chat() {
   
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Handle route parameters for compose mode
-  useEffect(() => {
-    if (params.composeMode === 'true' && params.customerName) {
-      // Set up compose mode with customer data
-      const customer = {
-        id: params.customerId || params.contactId,
-        name: params.customerName,
-        phone: params.customerPhone,
-        email: params.customerEmail
-      };
-      setComposeCustomer(customer);
-      setShowTextCompose(true);
-    }
-  }, [params]);
+  // Mock contacts for compose search
+  const allContacts = [
+    { id: 1, name: 'Sarah Wilson', company: 'TechCorp Inc.', phone: '+1 (555) 123-4567', email: 'sarah.wilson@techcorp.com' },
+    { id: 2, name: 'Mike Chen', company: 'StartupXYZ', phone: '+1 (555) 987-6543', email: 'mike@email.com' },
+    { id: 3, name: 'Emily Rodriguez', company: 'InnovateNow', phone: '+1 (555) 456-7890', email: 'emily.r@email.com' },
+    { id: 4, name: 'David Kim', company: 'DevSolutions', phone: '+1 (555) 321-0987', email: 'david.kim@email.com' },
+    { id: 5, name: 'Lisa Thompson', company: 'GrowthCo', phone: '+1 (555) 654-3210', email: 'lisa.t@email.com' },
+    { id: 6, name: 'John Martinez', company: 'FlowTech', phone: '+1 (555) 789-0123', email: 'j.martinez@email.com' },
+    { id: 7, name: 'Anna Foster', company: 'GrowthMax', phone: '+1 (555) 456-1234', email: 'anna.f@email.com' },
+    { id: 8, name: 'Robert Chang', company: 'CodeBase', phone: '+1 (555) 321-7890', email: 'r.chang@email.com' },
+  ];
 
-  // Mock chat threads data
-  const chatThreads: ChatThread[] = [
+  const filteredComposeContacts = allContacts.filter(contact =>
+    contact.name.toLowerCase().includes(composeSearchQuery.toLowerCase()) ||
+    contact.company.toLowerCase().includes(composeSearchQuery.toLowerCase()) ||
+    contact.phone.includes(composeSearchQuery)
+  );
+
+  // Filter options for advanced filters
+  const filterOptions = {
+    salespeople: ['All', 'John Smith', 'Sarah Wilson', 'Mike Chen'],
+    projectManagers: ['All', 'David Kim', 'Emily Rodriguez', 'Lisa Thompson'],
+    teamMembers: ['All', 'Anna Foster', 'Robert Chang', 'John Martinez'],
+    userRoles: ['All', 'Admin', 'Salesperson', 'Project Manager', 'Team Member']
+  };
+
+  // Stage filter options
+  const stageFilters = [
+    { key: 'all', label: 'All' },
+    { key: 'unread', label: 'Unread' },
+    { key: 'lead', label: 'Lead' },
+    { key: 'opportunity', label: 'Opportunity' },
+    { key: 'proposal', label: 'Proposal' },
+    { key: 'job', label: 'Job' },
+  ];
+
+  // Handle route parameters - open thread directly
+  useEffect(() => {
+    if (params.contactId && params.contactName) {
+      // Find existing thread or create a new one
+      const existingThread = chatThreads.find(
+        t => t.id === parseInt(params.contactId as string, 10)
+      );
+      
+      if (existingThread) {
+        // Open existing thread
+        setSelectedThread(existingThread);
+      } else {
+        // Create new thread object
+        const newThread: ChatThread = {
+          id: parseInt(params.contactId as string, 10) || Date.now(),
+          customerName: params.contactName as string,
+          lastMessage: '',
+          lastMessageTime: '',
+          lastMessageSender: 'customer',
+          unreadCount: 0,
+          customerPhone: (params.contactPhone as string) || ''
+        };
+        setSelectedThread(newThread);
+      }
+    }
+  }, [params.contactId, params.contactName]);
+
+  // Chat threads state with stage and assignment information
+  const [chatThreads, setChatThreads] = useState<ChatThread[]>([
     {
       id: 1,
       customerName: 'Robert Johnson',
@@ -94,7 +160,13 @@ export default function Chat() {
       lastMessageTime: '10:45 AM',
       lastMessageSender: 'customer',
       unreadCount: 0,
-      customerPhone: '(352) 895-5224'
+      customerPhone: '(352) 895-5224',
+      stage: 'job',
+      dealId: 101,
+      assignedSalesperson: 'John Smith',
+      assignedProjectManager: 'David Kim',
+      assignedTeamMembers: ['Anna Foster', 'Robert Chang'],
+      createdBy: 'John Smith'
     },
     {
       id: 2,
@@ -103,7 +175,13 @@ export default function Chat() {
       lastMessageTime: '9:30 AM',
       lastMessageSender: 'customer',
       unreadCount: 2,
-      customerPhone: '(555) 123-4567'
+      customerPhone: '(555) 123-4567',
+      stage: 'proposal',
+      dealId: 102,
+      assignedSalesperson: 'Sarah Wilson',
+      assignedProjectManager: 'Emily Rodriguez',
+      assignedTeamMembers: ['John Martinez'],
+      createdBy: 'Sarah Wilson'
     },
     {
       id: 3,
@@ -112,7 +190,13 @@ export default function Chat() {
       lastMessageTime: 'Yesterday',
       lastMessageSender: 'customer',
       unreadCount: 0,
-      customerPhone: '(555) 987-6543'
+      customerPhone: '(555) 987-6543',
+      stage: 'opportunity',
+      dealId: 103,
+      assignedSalesperson: 'Mike Chen',
+      assignedProjectManager: 'David Kim',
+      assignedTeamMembers: ['Anna Foster'],
+      createdBy: 'Mike Chen'
     },
     {
       id: 4,
@@ -121,7 +205,13 @@ export default function Chat() {
       lastMessageTime: 'Yesterday',
       lastMessageSender: 'business',
       unreadCount: 0,
-      customerPhone: '(555) 456-7890'
+      customerPhone: '(555) 456-7890',
+      stage: 'lead',
+      dealId: 104,
+      assignedSalesperson: 'John Smith',
+      assignedProjectManager: 'Lisa Thompson',
+      assignedTeamMembers: ['Robert Chang'],
+      createdBy: 'John Smith'
     },
     {
       id: 5,
@@ -130,9 +220,15 @@ export default function Chat() {
       lastMessageTime: '2 days ago',
       lastMessageSender: 'customer',
       unreadCount: 1,
-      customerPhone: '(555) 234-5678'
+      customerPhone: '(555) 234-5678',
+      stage: 'opportunity',
+      dealId: 105,
+      assignedSalesperson: 'Sarah Wilson',
+      assignedProjectManager: 'David Kim',
+      assignedTeamMembers: ['Anna Foster', 'John Martinez'],
+      createdBy: 'Sarah Wilson'
     },
-  ];
+  ]);
 
   // Mock messages for selected thread
   const mockMessages: { [key: number]: Message[] } = {
@@ -188,9 +284,61 @@ export default function Chat() {
     ],
   };
 
-  const filteredThreads = chatThreads.filter(thread =>
-    thread.customerName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter logic combining search, stage, and advanced filters
+  const getFilteredThreads = () => {
+    let filtered = chatThreads;
+    
+    // Apply stage filter
+    switch (activeFilter) {
+      case 'unread':
+        filtered = filtered.filter(t => t.unreadCount > 0);
+        break;
+      case 'lead':
+        filtered = filtered.filter(t => t.stage === 'lead');
+        break;
+      case 'opportunity':
+        filtered = filtered.filter(t => t.stage === 'opportunity');
+        break;
+      case 'proposal':
+        filtered = filtered.filter(t => t.stage === 'proposal');
+        break;
+      case 'job':
+        filtered = filtered.filter(t => t.stage === 'job');
+        break;
+      default:
+        // 'all' - no stage filtering
+        break;
+    }
+    
+    // Apply advanced filters
+    if (advancedFilters.salesperson !== 'All') {
+      filtered = filtered.filter(t => t.assignedSalesperson === advancedFilters.salesperson);
+    }
+    
+    if (advancedFilters.projectManager !== 'All') {
+      filtered = filtered.filter(t => t.assignedProjectManager === advancedFilters.projectManager);
+    }
+    
+    if (advancedFilters.teamMember !== 'All') {
+      filtered = filtered.filter(t => 
+        t.assignedTeamMembers?.includes(advancedFilters.teamMember)
+      );
+    }
+    
+    // Apply search query
+    if (searchQuery) {
+      filtered = filtered.filter(t => 
+        t.customerName.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    return filtered;
+  };
+  
+  const filteredThreads = getFilteredThreads();
+  
+  // Count active advanced filters
+  const activeAdvancedFilterCount = Object.values(advancedFilters).filter(v => v !== 'All').length;
 
   // Initialize messages from mock data
   useEffect(() => {
@@ -389,6 +537,54 @@ export default function Chat() {
     setShowCreateJob(true);
   };
 
+  const handleOpenCompose = () => {
+    setShowComposeSearch(true);
+    setComposeSearchQuery('');
+  };
+
+  const handleSelectContact = (contact: any) => {
+    // Find or create thread for this contact
+    const existingThread = chatThreads.find(t => t.id === contact.id);
+    
+    if (existingThread) {
+      setSelectedThread(existingThread);
+    } else {
+      // Create new thread
+      const newThread: ChatThread = {
+        id: contact.id,
+        customerName: contact.name,
+        lastMessage: '',
+        lastMessageTime: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+        lastMessageSender: 'customer',
+        unreadCount: 0,
+        customerPhone: contact.phone,
+        stage: 'lead', // New contacts default to lead stage
+        assignedSalesperson: 'John Smith', // Default - would come from current user in production
+        createdBy: 'John Smith'
+      };
+      
+      // Add new thread to state
+      setChatThreads(prevThreads => [newThread, ...prevThreads]);
+      setSelectedThread(newThread);
+    }
+    
+    setShowComposeSearch(false);
+    setComposeSearchQuery('');
+  };
+
+  const handleClearFilters = () => {
+    setAdvancedFilters({
+      salesperson: 'All',
+      projectManager: 'All',
+      teamMember: 'All',
+      userRole: 'All'
+    });
+  };
+
+  const handleApplyFilters = () => {
+    setShowAdvancedFilters(false);
+  };
+
   const handleSendTextMessage = async (message: string, customer: any) => {
     try {
       // Create a new chat thread if one doesn't exist
@@ -414,13 +610,44 @@ export default function Chat() {
         };
       });
 
-      // If this is a new thread, add it to the chat threads list
-      // In a real app, this would be handled by the backend
-      console.log('Text message sent:', { message, customer });
+      // Find or create the thread
+      let thread = chatThreads.find(t => t.id === threadId);
+      const currentTime = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      
+      if (!thread) {
+        // Create a new thread object
+        thread = {
+          id: threadId,
+          customerName: customer.name,
+          lastMessage: message,
+          lastMessageTime: currentTime,
+          lastMessageSender: 'business',
+          unreadCount: 0,
+          customerPhone: customer.phone || '',
+          stage: 'lead',
+          assignedSalesperson: 'John Smith',
+          createdBy: 'John Smith'
+        };
+        
+        // Add new thread to state
+        setChatThreads(prevThreads => [thread!, ...prevThreads]);
+      } else {
+        // Update existing thread with new message
+        setChatThreads(prevThreads => 
+          prevThreads.map(t => 
+            t.id === threadId 
+              ? { ...t, lastMessage: message, lastMessageTime: currentTime, lastMessageSender: 'business' }
+              : t
+          )
+        );
+      }
       
       // Close the compose modal
       setShowTextCompose(false);
       setComposeCustomer(null);
+      
+      // Navigate to the thread
+      setSelectedThread(thread);
       
     } catch (error) {
       console.error('Error sending text message:', error);
@@ -453,14 +680,17 @@ export default function Chat() {
                 </View>
               </TouchableOpacity>
               <Text style={styles.headerTitle}>Messages</Text>
-              <TouchableOpacity style={styles.headerButton}>
-                <Phone size={24} color="#FFFFFF" />
+              <TouchableOpacity 
+                style={styles.headerButton}
+                onPress={handleOpenCompose}
+              >
+                <Edit2 size={24} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
 
             <View style={styles.searchContainer}>
               <View style={styles.searchBox}>
-                <Search size={20} color="#6B7280" />
+                <Search size={20} color="#FFFFFF" />
                 <TextInput
                   style={styles.searchInput}
                   placeholder="Search conversations..."
@@ -471,6 +701,55 @@ export default function Chat() {
               </View>
             </View>
           </LinearGradient>
+
+          {/* Stage Filter Chips */}
+          <View style={styles.filtersContainer}>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filtersScrollContent}
+            >
+              {stageFilters.map((filter) => (
+                <TouchableOpacity
+                  key={filter.key}
+                  style={[
+                    styles.filterChip,
+                    activeFilter === filter.key && styles.filterChipActive
+                  ]}
+                  onPress={() => setActiveFilter(filter.key as any)}
+                >
+                  <Text style={[
+                    styles.filterChipText,
+                    activeFilter === filter.key && styles.filterChipTextActive
+                  ]}>
+                    {filter.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+              
+              {/* Advanced Filters Button */}
+              <TouchableOpacity
+                style={[
+                  styles.filterChip,
+                  styles.advancedFilterChip,
+                  activeAdvancedFilterCount > 0 && styles.advancedFilterChipActive
+                ]}
+                onPress={() => setShowAdvancedFilters(true)}
+              >
+                <Text style={[
+                  styles.filterChipText,
+                  activeAdvancedFilterCount > 0 && styles.filterChipTextActive
+                ]}>
+                  Advanced
+                </Text>
+                {activeAdvancedFilterCount > 0 && (
+                  <View style={styles.filterBadge}>
+                    <Text style={styles.filterBadgeText}>{activeAdvancedFilterCount}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
 
           <ScrollView 
             style={styles.content}
@@ -569,6 +848,212 @@ export default function Chat() {
             customer={composeCustomer}
             onSendMessage={handleSendTextMessage}
           />
+
+          {/* Compose Search Modal */}
+          <Modal
+            visible={showComposeSearch}
+            animationType="slide"
+            presentationStyle="pageSheet"
+            onRequestClose={() => setShowComposeSearch(false)}
+          >
+            <SafeAreaView style={styles.composeModalContainer}>
+              <View style={styles.composeModalHeader}>
+                <TouchableOpacity 
+                  style={styles.closeButton}
+                  onPress={() => setShowComposeSearch(false)}
+                >
+                  <X size={24} color="#6B7280" />
+                </TouchableOpacity>
+                <Text style={styles.composeModalTitle}>New Message</Text>
+                <View style={{ width: 40 }} />
+              </View>
+
+              <View style={styles.composeSearchContainer}>
+                <View style={styles.composeSearchBox}>
+                  <Search size={20} color="#9CA3AF" />
+                  <TextInput
+                    style={styles.composeSearchInput}
+                    placeholder="Search contacts..."
+                    value={composeSearchQuery}
+                    onChangeText={setComposeSearchQuery}
+                    placeholderTextColor="#9CA3AF"
+                    autoFocus
+                  />
+                  {composeSearchQuery.length > 0 && (
+                    <TouchableOpacity onPress={() => setComposeSearchQuery('')}>
+                      <X size={20} color="#9CA3AF" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+
+              <ScrollView style={styles.composeContactsList} showsVerticalScrollIndicator={false}>
+                {composeSearchQuery.length > 0 ? (
+                  filteredComposeContacts.length > 0 ? (
+                    filteredComposeContacts.map((contact) => (
+                      <TouchableOpacity
+                        key={contact.id}
+                        style={styles.composeContactItem}
+                        onPress={() => handleSelectContact(contact)}
+                      >
+                        <View style={styles.composeContactAvatar}>
+                          <Text style={styles.composeContactAvatarText}>
+                            {contact.name.split(' ').map(n => n[0]).join('')}
+                          </Text>
+                        </View>
+                        <View style={styles.composeContactInfo}>
+                          <Text style={styles.composeContactName}>{contact.name}</Text>
+                          <Text style={styles.composeContactCompany}>{contact.company}</Text>
+                          <Text style={styles.composeContactPhone}>{contact.phone}</Text>
+                        </View>
+                        <ChevronRight size={20} color="#9CA3AF" />
+                      </TouchableOpacity>
+                    ))
+                  ) : (
+                    <View style={styles.composeEmptyState}>
+                      <User size={48} color="#D1D5DB" />
+                      <Text style={styles.composeEmptyStateText}>No contacts found</Text>
+                    </View>
+                  )
+                ) : (
+                  <View style={styles.composeEmptyState}>
+                    <Search size={48} color="#D1D5DB" />
+                    <Text style={styles.composeEmptyStateText}>Search for a contact to start messaging</Text>
+                  </View>
+                )}
+              </ScrollView>
+            </SafeAreaView>
+          </Modal>
+
+          {/* Advanced Filters Modal */}
+          <Modal
+            visible={showAdvancedFilters}
+            animationType="slide"
+            presentationStyle="pageSheet"
+            onRequestClose={() => setShowAdvancedFilters(false)}
+          >
+            <SafeAreaView style={styles.composeModalContainer}>
+              <View style={styles.composeModalHeader}>
+                <TouchableOpacity 
+                  style={styles.closeButton}
+                  onPress={() => setShowAdvancedFilters(false)}
+                >
+                  <X size={24} color="#6B7280" />
+                </TouchableOpacity>
+                <Text style={styles.composeModalTitle}>Advanced Filters</Text>
+                <TouchableOpacity onPress={handleClearFilters}>
+                  <Text style={styles.clearFiltersText}>Clear All</Text>
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView style={styles.advancedFiltersContent} showsVerticalScrollIndicator={false}>
+                {/* Salesperson Filter */}
+                <View style={styles.advancedFilterSection}>
+                  <Text style={styles.advancedFilterLabel}>Salesperson</Text>
+                  <View style={styles.advancedFilterChips}>
+                    {filterOptions.salespeople.map((person) => (
+                      <TouchableOpacity
+                        key={person}
+                        style={[
+                          styles.advancedFilterChipItem,
+                          advancedFilters.salesperson === person && styles.advancedFilterChipItemActive
+                        ]}
+                        onPress={() => setAdvancedFilters({...advancedFilters, salesperson: person})}
+                      >
+                        <Text style={[
+                          styles.advancedFilterChipItemText,
+                          advancedFilters.salesperson === person && styles.advancedFilterChipItemTextActive
+                        ]}>
+                          {person}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Project Manager Filter */}
+                <View style={styles.advancedFilterSection}>
+                  <Text style={styles.advancedFilterLabel}>Project Manager</Text>
+                  <View style={styles.advancedFilterChips}>
+                    {filterOptions.projectManagers.map((pm) => (
+                      <TouchableOpacity
+                        key={pm}
+                        style={[
+                          styles.advancedFilterChipItem,
+                          advancedFilters.projectManager === pm && styles.advancedFilterChipItemActive
+                        ]}
+                        onPress={() => setAdvancedFilters({...advancedFilters, projectManager: pm})}
+                      >
+                        <Text style={[
+                          styles.advancedFilterChipItemText,
+                          advancedFilters.projectManager === pm && styles.advancedFilterChipItemTextActive
+                        ]}>
+                          {pm}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Team Member Filter */}
+                <View style={styles.advancedFilterSection}>
+                  <Text style={styles.advancedFilterLabel}>Team Member</Text>
+                  <View style={styles.advancedFilterChips}>
+                    {filterOptions.teamMembers.map((member) => (
+                      <TouchableOpacity
+                        key={member}
+                        style={[
+                          styles.advancedFilterChipItem,
+                          advancedFilters.teamMember === member && styles.advancedFilterChipItemActive
+                        ]}
+                        onPress={() => setAdvancedFilters({...advancedFilters, teamMember: member})}
+                      >
+                        <Text style={[
+                          styles.advancedFilterChipItemText,
+                          advancedFilters.teamMember === member && styles.advancedFilterChipItemTextActive
+                        ]}>
+                          {member}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* User Role Filter */}
+                <View style={styles.advancedFilterSection}>
+                  <Text style={styles.advancedFilterLabel}>User Role</Text>
+                  <View style={styles.advancedFilterChips}>
+                    {filterOptions.userRoles.map((role) => (
+                      <TouchableOpacity
+                        key={role}
+                        style={[
+                          styles.advancedFilterChipItem,
+                          advancedFilters.userRole === role && styles.advancedFilterChipItemActive
+                        ]}
+                        onPress={() => setAdvancedFilters({...advancedFilters, userRole: role})}
+                      >
+                        <Text style={[
+                          styles.advancedFilterChipItemText,
+                          advancedFilters.userRole === role && styles.advancedFilterChipItemTextActive
+                        ]}>
+                          {role}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              </ScrollView>
+
+              <View style={styles.advancedFiltersFooter}>
+                <TouchableOpacity 
+                  style={styles.applyFiltersButton}
+                  onPress={handleApplyFilters}
+                >
+                  <Text style={styles.applyFiltersText}>Apply Filters</Text>
+                </TouchableOpacity>
+              </View>
+            </SafeAreaView>
+          </Modal>
         </>
       ) : (
         // Individual Chat Thread View
@@ -1780,5 +2265,235 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: '#111827',
+  },
+  // Compose Modal Styles
+  composeModalContainer: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+  },
+  composeModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  composeModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  closeButton: {
+    padding: 8,
+  },
+  composeSearchContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  composeSearchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  composeSearchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#111827',
+  },
+  composeContactsList: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+  },
+  composeContactItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  composeContactAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#6366F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  composeContactAvatarText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  composeContactInfo: {
+    flex: 1,
+  },
+  composeContactName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  composeContactCompany: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 2,
+  },
+  composeContactPhone: {
+    fontSize: 13,
+    color: '#9CA3AF',
+  },
+  composeEmptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 80,
+  },
+  composeEmptyStateText: {
+    fontSize: 16,
+    color: '#9CA3AF',
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  // Filter Styles
+  filtersContainer: {
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    paddingVertical: 12,
+  },
+  filtersScrollContent: {
+    paddingHorizontal: 20,
+    gap: 8,
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginRight: 8,
+  },
+  filterChipActive: {
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
+  },
+  filterChipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  filterChipTextActive: {
+    color: '#FFFFFF',
+  },
+  advancedFilterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  advancedFilterChipActive: {
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
+  },
+  filterBadge: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  filterBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#6366F1',
+  },
+  // Advanced Filters Modal Styles
+  clearFiltersText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+    padding: 8,
+  },
+  advancedFiltersContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  advancedFilterSection: {
+    marginBottom: 32,
+  },
+  advancedFilterLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 12,
+  },
+  advancedFilterChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  advancedFilterChipItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+  },
+  advancedFilterChipItemActive: {
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
+  },
+  advancedFilterChipItemText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  advancedFilterChipItemTextActive: {
+    color: '#FFFFFF',
+  },
+  advancedFiltersFooter: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  applyFiltersButton: {
+    backgroundColor: '#6366F1',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  applyFiltersText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });

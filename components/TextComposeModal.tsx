@@ -1,5 +1,5 @@
 import { MessageSquare, Phone, Send, User, X } from 'lucide-react-native';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     Alert,
     Modal,
@@ -35,6 +35,22 @@ export default function TextComposeModal({
 }: TextComposeModalProps) {
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const isClosingRef = useRef(false);
+
+  // Reset closing flag when modal opens
+  useEffect(() => {
+    if (visible) {
+      isClosingRef.current = false;
+    }
+  }, [visible]);
+
+  // Reset message when modal closes
+  useEffect(() => {
+    if (!visible) {
+      setMessage('');
+      setIsSending(false);
+    }
+  }, [visible]);
 
   const handleSend = async () => {
     if (!message.trim()) {
@@ -47,6 +63,8 @@ export default function TextComposeModal({
       return;
     }
 
+    if (isClosingRef.current) return;
+    
     setIsSending(true);
     
     try {
@@ -55,20 +73,23 @@ export default function TextComposeModal({
         await onSendMessage(message.trim(), customer);
       }
       
-      // Clear the message and close modal
-      setMessage('');
-      onClose();
+      // Mark as closing before calling onClose
+      isClosingRef.current = true;
       
       // Show success message
       Alert.alert('Message Sent', `Text message sent to ${customer.name}`);
+      
+      // Close modal
+      onClose();
     } catch (error) {
       Alert.alert('Error', 'Failed to send message. Please try again.');
-    } finally {
       setIsSending(false);
     }
   };
 
   const handleClose = () => {
+    if (isClosingRef.current) return;
+    
     if (message.trim()) {
       Alert.alert(
         'Discard Message',
@@ -79,13 +100,14 @@ export default function TextComposeModal({
             text: 'Discard', 
             style: 'destructive',
             onPress: () => {
-              setMessage('');
+              isClosingRef.current = true;
               onClose();
             }
           }
         ]
       );
     } else {
+      isClosingRef.current = true;
       onClose();
     }
   };

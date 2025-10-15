@@ -2,6 +2,7 @@ import CreateBusinessModal from '@/components/CreateBusinessModal';
 import CreateJobModal from '@/components/CreateJobModal';
 import CreateLeadModal from '@/components/CreateLeadModal';
 import DrawerMenu from '@/components/DrawerMenu';
+import DripRefreshControl from '@/components/DripRefreshControl';
 import FloatingActionMenu from '@/components/FloatingActionMenu';
 import NewAppointmentModal from '@/components/NewAppointmentModal';
 import NewProposalModal from '@/components/NewProposalModal';
@@ -11,7 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Building2, Calendar, CheckSquare, ChevronDown, ChevronRight, Copy, DollarSign, Edit, FileText, Filter, Mail, MapPin, MessageSquare, MoreHorizontal, Navigation, Paperclip, Phone, Plus, Search, Star, StickyNote, Tag, User, UserPlus, Users, X } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Alert, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Linking, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function Businesses() {
   const { setIsTransparent } = useTabBar();
@@ -55,6 +56,15 @@ export default function Businesses() {
   const [showFAB, setShowFAB] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [showQuickActionsSlider, setShowQuickActionsSlider] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    // Simulate API refresh - in production, fetch latest businesses
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1500);
+  };
   
   // Quick Actions modal states
   const [showNewAppointment, setShowNewAppointment] = useState(false);
@@ -298,6 +308,54 @@ export default function Businesses() {
   const handleViewBusinessCard = (business: any) => {
     setSelectedBusiness(business);
     setShowBusinessCard(true);
+  };
+
+  // Business Quick Actions
+  const handleBusinessCall = (business: any) => {
+    if (business.phone) {
+      Linking.openURL(`tel:${business.phone}`);
+    } else {
+      Alert.alert('No Phone Number', 'This business does not have a phone number on file.');
+    }
+  };
+
+  const handleBusinessEmail = (business: any) => {
+    if (business.email) {
+      router.push({
+        pathname: '/email',
+        params: { 
+          to: business.email, 
+          name: business.name 
+        }
+      });
+    } else {
+      Alert.alert('No Email', 'This business does not have an email address on file.');
+    }
+  };
+
+  const handleBusinessText = (business: any) => {
+    if (business.primaryContact) {
+      // Navigate directly to chat thread with primary contact
+      router.push({
+        pathname: '/(tabs)/chat',
+        params: { 
+          contactId: (business.primaryContact.id || business.id).toString(),
+          contactName: business.primaryContact.name,
+          contactPhone: business.primaryContact.phone || ''
+        }
+      });
+    } else {
+      Alert.alert('No Primary Contact', 'This business does not have a primary contact assigned.');
+    }
+  };
+
+  const handleBusinessNavigate = (business: any) => {
+    if (business.address) {
+      const address = encodeURIComponent(business.address);
+      Linking.openURL(`https://maps.apple.com/?address=${address}`);
+    } else {
+      Alert.alert('No Address', 'This business does not have an address on file.');
+    }
   };
 
   const handleBusinessAction = (actionType: string, value: string) => {
@@ -576,6 +634,12 @@ export default function Businesses() {
         style={styles.content} 
         showsVerticalScrollIndicator={false} 
         contentContainerStyle={styles.contentContainer}
+        refreshControl={
+          <DripRefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+          />
+        }
         onScroll={(event) => {
           const currentScrollY = event.nativeEvent.contentOffset.y;
           if (currentScrollY > 50) {
@@ -596,7 +660,7 @@ export default function Businesses() {
             <View key={business.id} style={styles.businessCard}>
               <TouchableOpacity 
                 style={styles.businessRow}
-                onPress={() => handleBusinessPress(business)}
+                onPress={() => handleExpandBusiness(business.id)}
               >
                 <View style={[styles.avatar, { backgroundColor: '#0EA5E9' }]}>
                   <Building2 size={24} color="#FFFFFF" />
@@ -621,13 +685,7 @@ export default function Businesses() {
                   </View>
                 </View>
                 
-                <TouchableOpacity 
-                  style={styles.expandButton}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    handleExpandBusiness(business.id);
-                  }}
-                >
+                <View style={styles.expandButton}>
                   <ChevronRight 
                     size={20} 
                     color="#6B7280" 
@@ -635,25 +693,37 @@ export default function Businesses() {
                       transform: [{ rotate: expandedBusiness === business.id ? '90deg' : '0deg' }] 
                     }} 
                   />
-                </TouchableOpacity>
+                </View>
               </TouchableOpacity>
               
               {expandedBusiness === business.id && (
                 <View style={styles.expandedContent}>
                   <View style={styles.businessActions}>
-                    <TouchableOpacity style={styles.actionButton}>
+                    <TouchableOpacity 
+                      style={styles.actionButton}
+                      onPress={() => handleBusinessCall(business)}
+                    >
                       <Phone size={16} color="#10B981" />
                       <Text style={styles.actionText}>Call</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.actionButton}>
+                    <TouchableOpacity 
+                      style={styles.actionButton}
+                      onPress={() => handleBusinessEmail(business)}
+                    >
                       <Mail size={16} color="#3B82F6" />
                       <Text style={styles.actionText}>Email</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.actionButton}>
+                    <TouchableOpacity 
+                      style={styles.actionButton}
+                      onPress={() => handleBusinessText(business)}
+                    >
                       <MessageSquare size={16} color="#8B5CF6" />
                       <Text style={styles.actionText}>Text</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.actionButton}>
+                    <TouchableOpacity 
+                      style={styles.actionButton}
+                      onPress={() => handleBusinessNavigate(business)}
+                    >
                       <Navigation size={16} color="#F59E0B" />
                       <Text style={styles.actionText}>Navigate</Text>
                     </TouchableOpacity>

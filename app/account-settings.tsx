@@ -1,4 +1,3 @@
-import { CrewPermissionSettingsModal } from '@/components/CrewPermissionSettingsModal';
 import FacebookIntegrationsManager from '@/components/FacebookIntegrationsManager';
 import TemplatesManager from '@/components/TemplatesManager';
 import { useAppSettings } from '@/contexts/AppSettingsContext';
@@ -2207,6 +2206,9 @@ export default function AccountSettings() {
 
                     </View>
                 );
+
+            case 'templates':
+                return <TemplatesManager />;
 
             default:
                 return null;

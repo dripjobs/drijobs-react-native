@@ -3,10 +3,10 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
+    Building2,
     Calendar,
     CheckCircle,
     ChevronLeft,
-    ChevronRight,
     Clock,
     Edit,
     FileText,
@@ -23,6 +23,81 @@ const proposalData = [
   {
     id: 1,
     proposalNumber: 'PROP-2001',
+    customerName: 'Green Energy Solutions',
+    amount: 185000.00,
+    status: 'sent',
+    sentDate: '2025-10-05',
+    createdDate: '2025-10-01',
+    description: 'Commercial Solar Panel Installation - 50kW System',
+    items: ['Site Assessment', 'Solar Panels & Equipment', 'Installation', 'Electrical Work', 'Permits & Inspection'],
+    statusColor: '#3B82F6',
+    isBusiness: true,
+    businessName: 'Green Energy Solutions',
+    stakeholders: [
+      { id: '1', name: 'Robert Chen', role: 'CEO', email: 'robert@greenenergy.co', phone: '(555) 456-7890', isPrimary: true, receiveProposals: true },
+      { id: '2', name: 'Sarah Martinez', role: 'CFO', email: 'sarah@greenenergy.co', phone: '(555) 456-7891', receiveProposals: true },
+      { id: '3', name: 'Michael Johnson', role: 'Operations Manager', email: 'michael@greenenergy.co', phone: '(555) 456-7892', receiveProposals: false }
+    ]
+  },
+  {
+    id: 101,
+    proposalNumber: 'PROP-2101',
+    customerName: 'TechStart Inc.',
+    amount: 95000.00,
+    status: 'draft',
+    sentDate: null,
+    createdDate: '2025-10-08',
+    description: 'Office Build-Out for Tech Startup - 3,500 sq ft',
+    items: ['Space Planning', 'Electrical & Network', 'Lighting', 'Conference Rooms', 'Common Areas', 'Labor'],
+    statusColor: '#6B7280',
+    isBusiness: true,
+    businessName: 'TechStart Inc.',
+    stakeholders: [
+      { id: '1', name: 'Emily Rodriguez', role: 'Founder & CEO', email: 'emily@techstart.io', phone: '(555) 789-0123', isPrimary: true, receiveProposals: true },
+      { id: '2', name: 'David Kim', role: 'COO', email: 'david@techstart.io', phone: '(555) 789-0124', receiveProposals: true },
+      { id: '3', name: 'Jennifer Lee', role: 'Office Manager', email: 'jennifer@techstart.io', phone: '(555) 789-0125', receiveProposals: true }
+    ]
+  },
+  {
+    id: 102,
+    proposalNumber: 'PROP-2102',
+    customerName: 'Mountain View Restaurant Group',
+    amount: 215000.00,
+    status: 'accepted',
+    sentDate: '2025-09-28',
+    createdDate: '2025-09-20',
+    description: 'Restaurant Renovation & Kitchen Upgrade',
+    items: ['Kitchen Equipment', 'Ventilation System', 'Dining Area Remodel', 'Bar Installation', 'Permits', 'Labor'],
+    statusColor: '#10B981',
+    isBusiness: true,
+    businessName: 'Mountain View Restaurant Group',
+    stakeholders: [
+      { id: '1', name: 'Antonio Rossi', role: 'Owner & Head Chef', email: 'antonio@mountainviewgroup.com', phone: '(555) 234-5678', isPrimary: true, receiveProposals: true },
+      { id: '2', name: 'Maria Gonzales', role: 'General Manager', email: 'maria@mountainviewgroup.com', phone: '(555) 234-5679', receiveProposals: true }
+    ]
+  },
+  {
+    id: 103,
+    proposalNumber: 'PROP-2103',
+    customerName: 'Precision Dental Care',
+    amount: 128000.00,
+    status: 'sent',
+    sentDate: '2025-10-10',
+    createdDate: '2025-10-05',
+    description: 'Dental Office Expansion - 4 New Operatories',
+    items: ['Build-Out Construction', 'Plumbing & Special Systems', 'Electrical & Equipment Prep', 'Finishing', 'Labor'],
+    statusColor: '#3B82F6',
+    isBusiness: true,
+    businessName: 'Precision Dental Care',
+    stakeholders: [
+      { id: '1', name: 'Dr. James Patterson', role: 'Practice Owner', email: 'dr.patterson@precisiondental.com', phone: '(555) 345-6789', isPrimary: true, receiveProposals: true },
+      { id: '2', name: 'Lisa Anderson', role: 'Office Manager', email: 'lisa@precisiondental.com', phone: '(555) 345-6790', receiveProposals: true },
+      { id: '3', name: 'Dr. Rachel Kim', role: 'Associate Dentist', email: 'dr.kim@precisiondental.com', phone: '(555) 345-6791', receiveProposals: false }
+    ]
+  },
+  {
+    id: 2,
+    proposalNumber: 'PROP-2002',
     customerName: 'Robert Johnson',
     amount: 45200.00,
     status: 'accepted',
@@ -30,11 +105,12 @@ const proposalData = [
     createdDate: '2025-09-10',
     description: 'Complete kitchen renovation with custom cabinetry and modern appliances',
     items: ['Design & Planning', 'Custom Cabinets', 'Countertops Installation', 'Appliances', 'Labor'],
-    statusColor: '#10B981'
+    statusColor: '#10B981',
+    isBusiness: false
   },
   {
-    id: 2,
-    proposalNumber: 'PROP-2002',
+    id: 3,
+    proposalNumber: 'PROP-2003',
     customerName: 'Sherry Williams',
     amount: 28500.00,
     status: 'sent',
@@ -42,11 +118,12 @@ const proposalData = [
     createdDate: '2025-09-22',
     description: 'Master bathroom remodel with walk-in shower and double vanity',
     items: ['Bathroom Demo', 'Plumbing', 'Tile Work', 'Fixtures', 'Labor'],
-    statusColor: '#3B82F6'
+    statusColor: '#3B82F6',
+    isBusiness: false
   },
   {
-    id: 3,
-    proposalNumber: 'PROP-2003',
+    id: 4,
+    proposalNumber: 'PROP-2004',
     customerName: 'Billy Thompson',
     amount: 125000.00,
     status: 'sent',
@@ -54,11 +131,12 @@ const proposalData = [
     createdDate: '2025-09-18',
     description: 'Commercial office space renovation - 5,000 sq ft',
     items: ['Demo & Prep', 'Electrical', 'HVAC', 'Flooring', 'Paint & Finish', 'Labor'],
-    statusColor: '#3B82F6'
+    statusColor: '#3B82F6',
+    isBusiness: false
   },
   {
-    id: 4,
-    proposalNumber: 'PROP-2004',
+    id: 5,
+    proposalNumber: 'PROP-2005',
     customerName: 'Sarah Martinez',
     amount: 18200.00,
     status: 'rejected',
@@ -66,11 +144,12 @@ const proposalData = [
     createdDate: '2025-09-15',
     description: 'Deck construction with pergola and lighting',
     items: ['Materials', 'Deck Construction', 'Pergola', 'Lighting Installation', 'Labor'],
-    statusColor: '#EF4444'
+    statusColor: '#EF4444',
+    isBusiness: false
   },
   {
-    id: 5,
-    proposalNumber: 'PROP-2005',
+    id: 6,
+    proposalNumber: 'PROP-2006',
     customerName: 'Michael Davis',
     amount: 67500.00,
     status: 'accepted',
@@ -78,11 +157,12 @@ const proposalData = [
     createdDate: '2025-09-25',
     description: 'Basement finishing with home theater and wet bar',
     items: ['Framing', 'Electrical & Audio/Visual', 'Drywall', 'Bar Installation', 'Flooring', 'Labor'],
-    statusColor: '#10B981'
+    statusColor: '#10B981',
+    isBusiness: false
   },
   {
-    id: 6,
-    proposalNumber: 'PROP-2006',
+    id: 7,
+    proposalNumber: 'PROP-2007',
     customerName: 'Jennifer Lee',
     amount: 12800.00,
     status: 'draft',
@@ -90,11 +170,12 @@ const proposalData = [
     createdDate: '2025-10-01',
     description: 'Garage door replacement and opener installation',
     items: ['Door Removal', 'New Door Installation', 'Opener Installation', 'Labor'],
-    statusColor: '#6B7280'
+    statusColor: '#6B7280',
+    isBusiness: false
   },
   {
-    id: 7,
-    proposalNumber: 'PROP-2007',
+    id: 8,
+    proposalNumber: 'PROP-2008',
     customerName: 'David Wilson',
     amount: 156000.00,
     status: 'sent',
@@ -102,11 +183,12 @@ const proposalData = [
     createdDate: '2025-09-27',
     description: 'Whole home remodel - Phase 1 (Kitchen & Living Areas)',
     items: ['Design Consultation', 'Demo', 'Structural Work', 'Kitchen', 'Living Room', 'Labor'],
-    statusColor: '#3B82F6'
+    statusColor: '#3B82F6',
+    isBusiness: false
   },
   {
-    id: 8,
-    proposalNumber: 'PROP-2008',
+    id: 9,
+    proposalNumber: 'PROP-2009',
     customerName: 'Lisa Anderson',
     amount: 22400.00,
     status: 'rejected',
@@ -114,11 +196,12 @@ const proposalData = [
     createdDate: '2025-09-19',
     description: 'HVAC system replacement with smart thermostat',
     items: ['Old System Removal', 'New HVAC Unit', 'Ductwork', 'Smart Thermostat', 'Labor'],
-    statusColor: '#EF4444'
+    statusColor: '#EF4444',
+    isBusiness: false
   },
   {
-    id: 9,
-    proposalNumber: 'PROP-2009',
+    id: 10,
+    proposalNumber: 'PROP-2010',
     customerName: 'James Brown',
     amount: 34500.00,
     status: 'sent',
@@ -126,11 +209,12 @@ const proposalData = [
     createdDate: '2025-09-29',
     description: 'Roof replacement with architectural shingles',
     items: ['Roof Tear-off', 'New Shingles', 'Underlayment', 'Ventilation', 'Labor'],
-    statusColor: '#3B82F6'
+    statusColor: '#3B82F6',
+    isBusiness: false
   },
   {
-    id: 10,
-    proposalNumber: 'PROP-2010',
+    id: 11,
+    proposalNumber: 'PROP-2011',
     customerName: 'Maria Garcia',
     amount: 29800.00,
     status: 'accepted',
@@ -138,11 +222,12 @@ const proposalData = [
     createdDate: '2025-09-23',
     description: 'Hardwood flooring installation throughout main floor',
     items: ['Floor Prep', 'Hardwood Materials', 'Installation', 'Finishing', 'Labor'],
-    statusColor: '#10B981'
+    statusColor: '#10B981',
+    isBusiness: false
   },
   {
-    id: 11,
-    proposalNumber: 'PROP-2011',
+    id: 12,
+    proposalNumber: 'PROP-2012',
     customerName: 'Thomas Anderson',
     amount: 8900.00,
     status: 'draft',
@@ -150,11 +235,12 @@ const proposalData = [
     createdDate: '2025-10-03',
     description: 'Fence installation - backyard perimeter',
     items: ['Materials', 'Post Installation', 'Panel Installation', 'Gate', 'Labor'],
-    statusColor: '#6B7280'
+    statusColor: '#6B7280',
+    isBusiness: false
   },
   {
-    id: 12,
-    proposalNumber: 'PROP-2012',
+    id: 13,
+    proposalNumber: 'PROP-2013',
     customerName: 'Patricia Moore',
     amount: 15600.00,
     status: 'draft',
@@ -162,7 +248,8 @@ const proposalData = [
     createdDate: '2025-10-04',
     description: 'Window replacement - 8 windows',
     items: ['Window Removal', 'New Windows', 'Installation', 'Trim Work', 'Labor'],
-    statusColor: '#6B7280'
+    statusColor: '#6B7280',
+    isBusiness: false
   }
 ];
 
@@ -184,7 +271,8 @@ export default function ProposalsPage() {
     { value: 'draft', label: 'Draft', color: '#6B7280' },
     { value: 'sent', label: 'Sent', color: '#3B82F6' },
     { value: 'accepted', label: 'Accepted', color: '#10B981' },
-    { value: 'rejected', label: 'Rejected', color: '#EF4444' }
+    { value: 'rejected', label: 'Rejected', color: '#EF4444' },
+    { value: 'business', label: 'Business', color: '#8B5CF6' }
   ];
 
   const getStatusIcon = (status: string) => {
@@ -197,6 +285,8 @@ export default function ProposalsPage() {
         return <XCircle size={20} color="#EF4444" />;
       case 'draft':
         return <Edit size={20} color="#6B7280" />;
+      case 'business':
+        return <Building2 size={20} color="#8B5CF6" />;
       default:
         return <FileText size={20} color="#6B7280" />;
     }
@@ -210,7 +300,8 @@ export default function ProposalsPage() {
   const filteredProposals = proposalData.filter(proposal => {
     const matchesSearch = proposal.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          proposal.proposalNumber.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = !selectedStatus || selectedStatus === 'all' || proposal.status === selectedStatus;
+    const matchesStatus = !selectedStatus || selectedStatus === 'all' || 
+                         (selectedStatus === 'business' ? proposal.isBusiness : proposal.status === selectedStatus);
     
     // Date range filter (using createdDate for proposals)
     let matchesDateRange = true;
@@ -233,7 +324,8 @@ export default function ProposalsPage() {
   const handleOpenProposal = () => {
     if (selectedProposal) {
       setShowDetailModal(false);
-      router.push(`/proposal-builder?id=${selectedProposal.proposalNumber}`);
+      const businessParam = selectedProposal.isBusiness ? '&isBusiness=true' : '';
+      router.push(`/proposal-builder?id=${selectedProposal.proposalNumber}${businessParam}`);
     }
   };
 
@@ -326,14 +418,21 @@ export default function ProposalsPage() {
             filteredProposals.map((proposal) => (
               <TouchableOpacity
                 key={proposal.id}
-                style={styles.proposalCard}
+                style={[styles.proposalCard, proposal.isBusiness && styles.proposalCardBusiness]}
                 onPress={() => handleProposalPress(proposal)}
               >
                 <View style={styles.proposalContent}>
                   <View style={styles.proposalLeft}>
                     <View style={[styles.statusIndicator, { backgroundColor: proposal.statusColor }]} />
                     <View style={styles.proposalInfo}>
-                      <Text style={styles.customerName}>{proposal.customerName}</Text>
+                      <View style={styles.customerNameRow}>
+                        {proposal.isBusiness && (
+                          <Building2 size={18} color="#8B5CF6" style={{ marginRight: 6 }} />
+                        )}
+                        <Text style={styles.customerName}>
+                          {proposal.businessName || proposal.customerName}
+                        </Text>
+                      </View>
                       <Text style={styles.proposalNumber}>{proposal.proposalNumber}</Text>
                     </View>
                   </View>
@@ -350,8 +449,8 @@ export default function ProposalsPage() {
                   style={styles.openButton}
                   onPress={() => handleProposalPress(proposal)}
                 >
+                  <FileText size={14} color="#6366F1" />
                   <Text style={styles.openButtonText}>Open</Text>
-                  <ChevronRight size={14} color="#6366F1" />
                 </TouchableOpacity>
               </TouchableOpacity>
             ))
@@ -712,6 +811,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#F1F5F9',
   },
+  proposalCardBusiness: {
+    backgroundColor: '#F5F3FF',
+    borderLeftWidth: 4,
+    borderLeftColor: '#8B5CF6',
+  },
   proposalContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -732,11 +836,15 @@ const styles = StyleSheet.create({
   proposalInfo: {
     flex: 1,
   },
+  customerNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   customerName: {
     fontSize: 16,
     fontWeight: '700',
     color: '#111827',
-    marginBottom: 4,
   },
   proposalNumber: {
     fontSize: 13,

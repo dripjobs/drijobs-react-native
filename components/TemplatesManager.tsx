@@ -1,34 +1,33 @@
 import templateService from '@/services/TemplateService';
 import {
-  Template,
-  TEMPLATE_CATEGORY_LABELS,
-  TemplateCategory,
-  TermsAndConditions,
+    Template,
+    TEMPLATE_CATEGORY_LABELS,
+    TemplateCategory,
+    TermsAndConditions,
 } from '@/types/templates';
 import { getDefaultTemplate } from '@/utils/defaultTemplates';
 import {
-  AlertCircle,
-  Badge,
-  CheckCircle,
-  ChevronDown,
-  ChevronUp,
-  Edit,
-  FileText,
-  Plus,
-  Search,
-  Shield,
-  Trash2,
+    AlertCircle,
+    Badge,
+    CheckCircle,
+    ChevronDown,
+    ChevronUp,
+    Edit,
+    FileText,
+    Plus,
+    Search,
+    Shield,
+    Trash2,
 } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import {
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import TemplateEditorModal from './TemplateEditorModal';
 
@@ -93,7 +92,7 @@ export default function TemplatesManager() {
     setShowEditor(true);
   };
 
-  const handleSaveTemplate = (content: string) => {
+  const handleSaveTemplate = (content: string, subject?: string) => {
     if (!editingTemplate) return;
 
     if ('variationName' in editingTemplate) {
@@ -101,7 +100,7 @@ export default function TemplatesManager() {
       templateService.updateTermsAndConditions(editingTemplate.id, { content });
     } else {
       // It's a regular template
-      templateService.updateTemplate(editingTemplate.id, { content });
+      templateService.updateTemplate(editingTemplate.id, { content, subject });
     }
 
     loadTemplates();
@@ -147,11 +146,6 @@ export default function TemplatesManager() {
         },
       ]
     );
-  };
-
-  const handleToggleTemplateActive = (template: Template) => {
-    templateService.updateTemplate(template.id, { isActive: !template.isActive });
-    loadTemplates();
   };
 
   const handleResetToDefault = (template: Template) => {
@@ -319,33 +313,18 @@ export default function TemplatesManager() {
                     {categoryTemplates.map((template) => (
                       <View key={template.id} style={styles.templateItem}>
                         <View style={styles.templateItemLeft}>
-                          <View style={styles.templateItemHeader}>
-                            <Text style={styles.templateName}>{template.name}</Text>
-                            {!template.isActive && (
-                              <View style={styles.inactiveBadge}>
-                                <Text style={styles.inactiveBadgeText}>Inactive</Text>
-                              </View>
-                            )}
-                          </View>
+                          <Text style={styles.templateName}>{template.name}</Text>
                           <Text style={styles.templateDate}>
                             Last updated: {new Date(template.updatedAt).toLocaleDateString()}
                           </Text>
                         </View>
 
-                        <View style={styles.templateItemRight}>
-                          <Switch
-                            value={template.isActive}
-                            onValueChange={() => handleToggleTemplateActive(template)}
-                            trackColor={{ false: '#D1D5DB', true: '#A5B4FC' }}
-                            thumbColor={template.isActive ? '#6366F1' : '#F3F4F6'}
-                          />
-                          <TouchableOpacity
-                            style={styles.editButton}
-                            onPress={() => handleEditTemplate(template)}
-                          >
-                            <Edit size={18} color="#6366F1" />
-                          </TouchableOpacity>
-                        </View>
+                        <TouchableOpacity
+                          style={styles.editButton}
+                          onPress={() => handleEditTemplate(template)}
+                        >
+                          <Edit size={18} color="#6366F1" />
+                        </TouchableOpacity>
                       </View>
                     ))}
                   </View>
@@ -581,36 +560,15 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 12,
   },
-  templateItemHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-    gap: 8,
-  },
   templateName: {
     fontSize: 15,
     fontWeight: '500',
     color: '#111827',
-  },
-  inactiveBadge: {
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  inactiveBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#D97706',
+    marginBottom: 4,
   },
   templateDate: {
     fontSize: 12,
     color: '#9CA3AF',
-  },
-  templateItemRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
   },
   editButton: {
     padding: 8,

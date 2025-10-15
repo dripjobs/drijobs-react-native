@@ -1,5 +1,5 @@
-import { Template, TemplateType, TermsAndConditions, TEMPLATE_TYPE_LABELS } from '@/types/templates';
-import { getDefaultTemplate } from '@/utils/defaultTemplates';
+import { Template, TEMPLATE_TYPE_LABELS, TemplateType, TermsAndConditions } from '@/types/templates';
+import { getDefaultSubject, getDefaultTemplate, isEmailTemplate } from '@/utils/defaultTemplates';
 import { getKeywordsForTemplate } from '@/utils/templateKeywords';
 
 class TemplateService {
@@ -108,19 +108,20 @@ class TemplateService {
     type: TemplateType,
     category: string,
     content: string,
-    isActive: boolean = true
+    subject?: string
   ): Template {
     const id = this.generateId();
     const keywords = getKeywordsForTemplate(type);
+    const defaultSubject = getDefaultSubject(type);
 
     const template: Template = {
       id,
       name: TEMPLATE_TYPE_LABELS[type],
       type,
       category: category as any,
+      subject: isEmailTemplate(type) ? (subject || defaultSubject) : undefined,
       content,
       availableKeywords: keywords.map((k) => k.key),
-      isActive,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -222,7 +223,6 @@ class TemplateService {
       variationName,
       isDefault,
       availableKeywords: keywords.map((k) => k.key),
-      isActive: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

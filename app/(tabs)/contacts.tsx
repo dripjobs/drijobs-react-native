@@ -1,8 +1,10 @@
 import ActiveCallModal from '@/components/ActiveCallModal';
+import CreateBusinessModal from '@/components/CreateBusinessModal';
 import CreateContactModal from '@/components/CreateContactModal';
 import CreateJobModal from '@/components/CreateJobModal';
 import CreateLeadModal from '@/components/CreateLeadModal';
 import DrawerMenu from '@/components/DrawerMenu';
+import DripRefreshControl from '@/components/DripRefreshControl';
 import FloatingActionMenu from '@/components/FloatingActionMenu';
 import NewAppointmentModal from '@/components/NewAppointmentModal';
 import NewProposalModal from '@/components/NewProposalModal';
@@ -78,6 +80,7 @@ export default function Contacts() {
   const [showCreateLead, setShowCreateLead] = useState(false);
   const [showCreateJob, setShowCreateJob] = useState(false);
   const [showCreateContact, setShowCreateContact] = useState(false);
+  const [showCreateBusiness, setShowCreateBusiness] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showCallModal, setShowCallModal] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
@@ -88,6 +91,15 @@ export default function Contacts() {
   const [filterType, setFilterType] = useState<string>('all');
   const [filterSource, setFilterSource] = useState<string>('all');
   const [showQuickActionsSlider, setShowQuickActionsSlider] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    // Simulate API refresh - in production, fetch latest contacts
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1500);
+  };
 
   // Filter contacts based on search query
   const getFilteredContacts = () => {
@@ -127,7 +139,8 @@ export default function Contacts() {
         { id: 1, label: 'Preferred Contact Method', value: 'Email' },
         { id: 2, label: 'Industry', value: 'Technology' },
         { id: 3, label: 'Company Size', value: '50-100 employees' }
-      ]
+      ],
+      appointmentRequests: [1]
     },
     { 
       id: 2, 
@@ -142,7 +155,8 @@ export default function Contacts() {
       addresses: [
         { id: 1, address: '456 Innovation St, San Francisco, CA 94105', isPrimary: true, type: 'Office' }
       ],
-      createdAt: '2024-01-15T14:20:00Z'
+      createdAt: '2024-01-15T14:20:00Z',
+      appointmentRequests: [2]
     },
     { 
       id: 3, 
@@ -157,6 +171,7 @@ export default function Contacts() {
       addresses: [
         { id: 1, address: '789 Tech Blvd, Austin, TX 78701', isPrimary: true, type: 'Office' }
       ],
+      appointmentRequests: [3],
       createdAt: '2024-01-16T09:15:00Z'
     },
     { 
@@ -365,15 +380,13 @@ export default function Contacts() {
   };
 
   const handleText = (contact: any) => {
-    // Navigate to chat screen with compose mode
+    // Navigate directly to chat thread
     router.push({
       pathname: '/(tabs)/chat',
       params: { 
-        contactId: contact.id,
-        customerId: contact.id,
-        customerName: contact.name,
-        customerPhone: contact.phone,
-        composeMode: 'true' // Flag to indicate we want to compose a new message
+        contactId: contact.id.toString(),
+        contactName: contact.name,
+        contactPhone: contact.phone || ''
       }
     });
   };
@@ -862,6 +875,12 @@ export default function Contacts() {
         style={styles.content} 
         showsVerticalScrollIndicator={false} 
         contentContainerStyle={styles.contentContainer}
+        refreshControl={
+          <DripRefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+          />
+        }
         onScroll={(event) => {
           const currentScrollY = event.nativeEvent.contentOffset.y;
           if (currentScrollY > 50) {
@@ -1003,6 +1022,15 @@ export default function Contacts() {
         onContactCreated={(contact) => {
           setSelectedContact(contact);
           setShowContactCard(true);
+        }}
+        onNavigateToBusiness={() => setShowCreateBusiness(true)}
+      />
+
+      <CreateBusinessModal 
+        visible={showCreateBusiness}
+        onClose={() => setShowCreateBusiness(false)}
+        onBusinessCreated={(business) => {
+          // Optionally handle business creation completion
         }}
       />
 

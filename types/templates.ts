@@ -73,9 +73,9 @@ export interface Template {
   name: string;
   type: TemplateType;
   category: TemplateCategory;
+  subject?: string; // Email subject line (only for email templates)
   content: string; // HTML content
   availableKeywords: string[]; // Array of keyword keys available for this template
-  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }

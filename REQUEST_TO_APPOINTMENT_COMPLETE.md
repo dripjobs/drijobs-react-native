@@ -113,3 +113,4 @@ Successfully implemented the ability to convert booking form requests into sched
 - Toast notifications use existing Toast component already imported in appointments page
 - Customer type detection: Business if `request.company` exists, otherwise Individual
 
+

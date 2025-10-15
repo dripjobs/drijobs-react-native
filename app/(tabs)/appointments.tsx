@@ -325,6 +325,12 @@ export default function Appointments() {
   const [showRequestQueue, setShowRequestQueue] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [selectedRequestIndex, setSelectedRequestIndex] = useState<number>(0);
+  const [requestTab, setRequestTab] = useState<'new' | 'active' | 'archived'>('new');
+  const [showDateFilter, setShowDateFilter] = useState(false);
+  const [filterStartDate, setFilterStartDate] = useState<Date | null>(null);
+  const [filterEndDate, setFilterEndDate] = useState<Date | null>(null);
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
   const [showMeetingDetails, setShowMeetingDetails] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState(null);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
@@ -495,6 +501,41 @@ export default function Appointments() {
       setSelectedRequestIndex(prevIndex);
       setSelectedRequest(appointmentRequests[prevIndex]);
     }
+  };
+
+  // Get filtered requests based on current tab
+  const getFilteredRequests = () => {
+    const counts = appointmentRequestService.getCounts();
+    let requests = [];
+    
+    if (requestTab === 'new') {
+      requests = appointmentRequestService.getNewRequests();
+    } else if (requestTab === 'active') {
+      requests = appointmentRequestService.getActiveRequests(filterStartDate, filterEndDate);
+    } else if (requestTab === 'archived') {
+      requests = appointmentRequestService.getArchivedRequests(filterStartDate, filterEndDate);
+    }
+    
+    return { requests, counts };
+  };
+
+  // Handle archiving a request
+  const handleArchiveRequest = () => {
+    if (!selectedRequest) return;
+    
+    appointmentRequestService.archiveRequest(selectedRequest.id);
+    
+    // Close the request details and refresh
+    setSelectedRequest(null);
+    setSelectedRequestIndex(0);
+    
+    Toast.show({
+      type: 'success',
+      text1: 'Request Archived',
+      text2: 'The appointment request has been archived.',
+      position: 'top',
+      topOffset: 60
+    });
   };
 
   const handleScheduleFromRequest = () => {
@@ -1261,7 +1302,7 @@ export default function Appointments() {
               <View style={styles.modalHeader}>
                 <View style={styles.modalHeaderLeft}>
                   <Text style={styles.modalTitle}>Request Queue</Text>
-                  <Text style={styles.modalSubtitle}>{appointmentRequests.length} pending</Text>
+                  <Text style={styles.modalSubtitle}>{getFilteredRequests().requests.length} {requestTab === 'new' ? 'new' : requestTab === 'active' ? 'active' : 'archived'}</Text>
                 </View>
                 <View style={styles.modalHeaderRight}>
                   {selectedRequest && (
@@ -1277,16 +1318,16 @@ export default function Appointments() {
                         />
                       </TouchableOpacity>
                       <Text style={styles.navCounter}>
-                        {selectedRequestIndex + 1} of {appointmentRequests.length}
+                        {selectedRequestIndex + 1} of {getFilteredRequests().requests.length}
                       </Text>
                       <TouchableOpacity 
                         style={styles.navButton}
                         onPress={handleNextRequest}
-                        disabled={selectedRequestIndex === appointmentRequests.length - 1}
+                        disabled={selectedRequestIndex === getFilteredRequests().requests.length - 1}
                       >
                         <ChevronRight 
                           size={20} 
-                          color={selectedRequestIndex === appointmentRequests.length - 1 ? "#D1D5DB" : "#6B7280"} 
+                          color={selectedRequestIndex === getFilteredRequests().requests.length - 1 ? "#D1D5DB" : "#6B7280"} 
                         />
                       </TouchableOpacity>
                     </View>
@@ -1299,6 +1340,51 @@ export default function Appointments() {
                   </TouchableOpacity>
                 </View>
               </View>
+
+              {/* Filter Tabs */}
+              {!selectedRequest && (
+                <View style={styles.requestTabsContainer}>
+                  <View style={styles.requestTabs}>
+                    <TouchableOpacity 
+                      style={[styles.requestTab, requestTab === 'new' && styles.requestTabActive]}
+                      onPress={() => setRequestTab('new')}
+                    >
+                      <Text style={[styles.requestTabText, requestTab === 'new' && styles.requestTabTextActive]}>
+                        New (24hr) ({getFilteredRequests().counts.new})
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.requestTab, requestTab === 'active' && styles.requestTabActive]}
+                      onPress={() => setRequestTab('active')}
+                    >
+                      <Text style={[styles.requestTabText, requestTab === 'active' && styles.requestTabTextActive]}>
+                        Active ({getFilteredRequests().counts.active})
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.requestTab, requestTab === 'archived' && styles.requestTabActive]}
+                      onPress={() => setRequestTab('archived')}
+                    >
+                      <Text style={[styles.requestTabText, requestTab === 'archived' && styles.requestTabTextActive]}>
+                        Archived ({getFilteredRequests().counts.archived})
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  
+                  {/* Date Filter Button for Active and Archived tabs */}
+                  {(requestTab === 'active' || requestTab === 'archived') && (
+                    <TouchableOpacity 
+                      style={styles.dateFilterButton}
+                      onPress={() => setShowDateFilter(true)}
+                    >
+                      <Filter size={16} color="#6366F1" />
+                      <Text style={styles.dateFilterButtonText}>
+                        {filterStartDate || filterEndDate ? 'Custom' : 'Last 30 Days'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
 
               {selectedRequest ? (
                 // Request Details View
@@ -1458,7 +1544,10 @@ export default function Appointments() {
 
                   {/* Archive and Delete Buttons */}
                   <View style={styles.archiveDeleteButtons}>
-                    <TouchableOpacity style={styles.archiveButton}>
+                    <TouchableOpacity 
+                      style={styles.archiveButton}
+                      onPress={handleArchiveRequest}
+                    >
                       <Archive size={16} color="#6B7280" />
                       <Text style={styles.archiveButtonText}>Archive</Text>
                     </TouchableOpacity>
@@ -1492,7 +1581,7 @@ export default function Appointments() {
                   style={styles.requestListContainer}
                   contentContainerStyle={styles.requestListContent}
                 >
-                  {appointmentRequests.map((request, index) => (
+                  {getFilteredRequests().requests.map((request, index) => (
                     <TouchableOpacity
                       key={request.id}
                       style={styles.requestItem}
@@ -2163,6 +2252,102 @@ export default function Appointments() {
           </View>
         </View>
       </Modal>
+
+      {/* Date Filter Modal */}
+      <Modal
+        visible={showDateFilter}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDateFilter(false)}
+      >
+        <View style={styles.dateFilterModalOverlay}>
+          <View style={styles.dateFilterModal}>
+            <View style={styles.dateFilterHeader}>
+              <Text style={styles.dateFilterTitle}>Filter by Date</Text>
+              <TouchableOpacity onPress={() => setShowDateFilter(false)}>
+                <X size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.dateFilterContent}>
+              <TouchableOpacity 
+                style={styles.datePickerRow}
+                onPress={() => setShowStartPicker(true)}
+              >
+                <Text style={styles.datePickerLabel}>Start Date</Text>
+                <View style={styles.datePickerValue}>
+                  <Calendar size={16} color="#6366F1" />
+                  <Text style={styles.datePickerText}>
+                    {filterStartDate ? filterStartDate.toLocaleDateString() : 'Select date'}
+                  </Text>
+                  <ChevronDown size={16} color="#9CA3AF" />
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.datePickerRow}
+                onPress={() => setShowEndPicker(true)}
+              >
+                <Text style={styles.datePickerLabel}>End Date</Text>
+                <View style={styles.datePickerValue}>
+                  <Calendar size={16} color="#6366F1" />
+                  <Text style={styles.datePickerText}>
+                    {filterEndDate ? filterEndDate.toLocaleDateString() : 'Select date'}
+                  </Text>
+                  <ChevronDown size={16} color="#9CA3AF" />
+                </View>
+              </TouchableOpacity>
+
+              {(filterStartDate || filterEndDate) && (
+                <TouchableOpacity 
+                  style={styles.clearDatesButton}
+                  onPress={() => {
+                    setFilterStartDate(null);
+                    setFilterEndDate(null);
+                  }}
+                >
+                  <Text style={styles.clearDatesText}>Clear Dates</Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity 
+                style={styles.applyFilterButton}
+                onPress={() => setShowDateFilter(false)}
+              >
+                <Text style={styles.applyFilterText}>Apply Filter</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Date Pickers */}
+      {showStartPicker && (
+        <DateTimePicker
+          value={filterStartDate || new Date()}
+          mode="date"
+          display="default"
+          onChange={(event, selectedDate) => {
+            setShowStartPicker(false);
+            if (selectedDate) {
+              setFilterStartDate(selectedDate);
+            }
+          }}
+        />
+      )}
+      {showEndPicker && (
+        <DateTimePicker
+          value={filterEndDate || new Date()}
+          mode="date"
+          display="default"
+          onChange={(event, selectedDate) => {
+            setShowEndPicker(false);
+            if (selectedDate) {
+              setFilterEndDate(selectedDate);
+            }
+          }}
+        />
+      )}
 
       {/* New Appointment Modal */}
       <NewAppointmentModal 
@@ -4081,5 +4266,133 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#6B7280',
     marginLeft: 8,
+  },
+  // Request Queue Tab Styles
+  requestTabsContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+  },
+  requestTabs: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  requestTab: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+  },
+  requestTabActive: {
+    backgroundColor: '#6366F1',
+  },
+  requestTabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  requestTabTextActive: {
+    color: '#FFFFFF',
+  },
+  dateFilterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#EEF2FF',
+    borderRadius: 8,
+    gap: 6,
+  },
+  dateFilterButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  // Date Filter Modal Styles
+  dateFilterModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dateFilterModal: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    width: '85%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  dateFilterHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  dateFilterTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  dateFilterContent: {
+    padding: 20,
+  },
+  datePickerRow: {
+    marginBottom: 16,
+  },
+  datePickerLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  datePickerValue: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    gap: 8,
+  },
+  datePickerText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#374151',
+  },
+  clearDatesButton: {
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  clearDatesText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#EF4444',
+  },
+  applyFilterButton: {
+    backgroundColor: '#6366F1',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  applyFilterText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });

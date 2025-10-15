@@ -1,10 +1,12 @@
 import { AddAreaWizard } from '@/components/AddAreaWizard';
+import DealCommandCenter from '@/components/DealCommandCenter';
 import { getSchedulingPresets } from '@/utils/schedulingPresets';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
+    AlertCircle,
     Building2,
     Calendar,
     Check,
@@ -22,6 +24,7 @@ import {
     MapPin,
     MessageSquare,
     Monitor,
+    MoreHorizontal,
     Package,
     Paperclip,
     Percent,
@@ -38,7 +41,8 @@ import {
     TrendingUp,
     User,
     UserCircle,
-    Users
+    Users,
+    X
 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
@@ -104,7 +108,7 @@ export default function ProposalBuilder() {
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   
   // Active tab state
-  const [activeTab, setActiveTab] = useState<'overview' | 'stakeholders' | 'info' | 'settings' | 'notes' | 'comments' | 'activity' | 'video' | 'presentation'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'stakeholders' | 'info' | 'settings' | 'notes' | 'comments' | 'feedback' | 'activity' | 'presentation'>('overview');
   
   // Public URL state
   const [showUrlModal, setShowUrlModal] = useState(false);
@@ -177,6 +181,77 @@ export default function ProposalBuilder() {
   
   // Contact Modal state
   const [showContactModal, setShowContactModal] = useState(false);
+  const [expandedActionItem, setExpandedActionItem] = useState<string | null>(null);
+  
+  // Proposal Number
+  const [proposalNumber, setProposalNumber] = useState('PROP-2025-001');
+  
+  // Acorn Financing Integration
+  const [acornFinancingEnabled, setAcornFinancingEnabled] = useState(false);
+  
+  // Related Deal
+  const [relatedDeal, setRelatedDeal] = useState<any | null>({ 
+    id: '123', 
+    name: 'Kitchen Renovation', 
+    contact: 'Mike Stewart',
+    status: 'Proposal Sent', 
+    value: 15000,
+    tags: ['Needs HOA'],
+    email: 'mike@example.com',
+    phone: '(555) 123-4567'
+  });
+  const [showCommandCenter, setShowCommandCenter] = useState(false);
+  
+  // Note Templates
+  const [noteTemplates] = useState<{crew: string[], company: string[], client: string[]}>({
+    crew: ['Standard crew instructions', 'Safety requirements template', 'Equipment checklist'],
+    company: ['Project notes template', 'Internal coordination notes'],
+    client: ['Welcome message', 'Project timeline overview', 'Maintenance instructions']
+  });
+  const [selectedCrewTemplate, setSelectedCrewTemplate] = useState<string | null>(null);
+  const [selectedCompanyTemplate, setSelectedCompanyTemplate] = useState<string | null>(null);
+  const [selectedClientTemplate, setSelectedClientTemplate] = useState<string | null>(null);
+  const [showCrewTemplates, setShowCrewTemplates] = useState(false);
+  const [showCompanyTemplates, setShowCompanyTemplates] = useState(false);
+  const [showClientTemplates, setShowClientTemplates] = useState(false);
+  
+  // Comments (Internal Team)
+  interface Comment {
+    id: string;
+    author: string;
+    avatar: string;
+    text: string;
+    timestamp: Date;
+    mentions?: string[];
+  }
+  const [comments, setComments] = useState<Comment[]>([
+    { id: '1', author: 'Tanner Mullen', avatar: 'TM', text: 'Updated the pricing based on client feedback', timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000) },
+    { id: '2', author: 'Chris Palmer', avatar: 'CP', text: 'Client wants to see financing options included', timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000) }
+  ]);
+  const [newCommentText, setNewCommentText] = useState('');
+  
+  // Feedback (Customer Comments)
+  interface Feedback {
+    id: string;
+    customerName: string;
+    comment: string;
+    lineItemId?: string;
+    timestamp: Date;
+    status: 'pending' | 'resolved';
+  }
+  const [feedbackItems, setFeedbackItems] = useState<Feedback[]>([
+    { id: '1', customerName: 'Robert Johnson', comment: 'Can we add an option for solar panel maintenance?', timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000), status: 'pending' },
+    { id: '2', customerName: 'Robert Johnson', comment: 'The timeline seems too long, can we expedite?', timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000), status: 'pending' }
+  ]);
+  
+  // Terms & Conditions Templates
+  const [termsTemplates] = useState<{name: string, content: string}[]>([
+    { name: 'Standard Terms', content: 'These are the standard terms and conditions for all projects...' },
+    { name: 'Commercial Terms', content: 'Commercial project terms including liability and insurance requirements...' },
+    { name: 'Residential Terms', content: 'Residential project terms including homeowner responsibilities...' }
+  ]);
+  const [selectedTermsTemplate, setSelectedTermsTemplate] = useState<string | null>('Standard Terms');
+  const [showTermsModal, setShowTermsModal] = useState(false);
   
   // Job Info editing modal state
   const [showJobInfoModal, setShowJobInfoModal] = useState(false);
@@ -501,8 +576,8 @@ export default function ProposalBuilder() {
       { id: 'settings', label: 'Settings', icon: Settings },
       { id: 'notes', label: 'Notes', icon: FileText },
       { id: 'comments', label: 'Comments', icon: MessageSquare },
+      { id: 'feedback', label: 'Feedback', icon: AlertCircle },
       { id: 'activity', label: 'Activity', icon: Clock },
-      { id: 'video', label: 'Video', icon: Paperclip },
       { id: 'presentation', label: 'Present', icon: Presentation },
     ];
 
@@ -852,32 +927,42 @@ export default function ProposalBuilder() {
 
       {/* Terms and Conditions */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Terms and Conditions</Text>
-        <TextInput
-          style={styles.textArea}
-          placeholder="Enter your terms and conditions..."
-          placeholderTextColor="#9CA3AF"
-          multiline
-          numberOfLines={6}
-          value={terms}
-          onChangeText={setTerms}
-          textAlignVertical="top"
-        />
-      </View>
-
-      {/* Notes */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Notes</Text>
-        <TextInput
-          style={styles.textArea}
-          placeholder="Add any additional notes or special instructions..."
-          placeholderTextColor="#9CA3AF"
-          multiline
-          numberOfLines={4}
-          value={notes}
-          onChangeText={setNotes}
-          textAlignVertical="top"
-        />
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Terms and Conditions</Text>
+          <TouchableOpacity 
+            style={styles.editIconButton}
+            onPress={() => setShowTermsModal(true)}
+          >
+            <Edit2 size={20} color="#6366F1" />
+          </TouchableOpacity>
+        </View>
+        
+        {selectedTermsTemplate ? (
+          <TouchableOpacity 
+            style={styles.termsCard}
+            onPress={() => setShowTermsModal(true)}
+          >
+            <View style={styles.termsCardHeader}>
+              <Shield size={20} color="#6366F1" />
+              <Text style={styles.termsCardTitle}>{selectedTermsTemplate}</Text>
+            </View>
+            <Text style={styles.termsCardPreview} numberOfLines={3}>
+              {termsTemplates.find(t => t.name === selectedTermsTemplate)?.content}
+            </Text>
+            <View style={styles.termsCardFooter}>
+              <Text style={styles.termsCardViewText}>Tap to view full text</Text>
+              <Eye size={16} color="#6366F1" />
+            </View>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity 
+            style={styles.addTermsButton}
+            onPress={() => setShowTermsModal(true)}
+          >
+            <Plus size={20} color="#6366F1" />
+            <Text style={styles.addTermsText}>Select Terms & Conditions</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -990,70 +1075,201 @@ export default function ProposalBuilder() {
           </View>
         </View>
       </View>
-    </View>
-  );
 
-  const renderNotesTab = () => (
-    <View style={styles.tabContent}>
+      {/* Acorn Financing Integration */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Notes</Text>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Crew Notes (Shows on Work Order)</Text>
-          <TextInput
-            style={styles.textArea}
-            placeholder="Notes for the crew that will appear on the work order..."
-            placeholderTextColor="#9CA3AF"
-            multiline
-            numberOfLines={4}
-            value={crewNotes}
-            onChangeText={setCrewNotes}
-            textAlignVertical="top"
-          />
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Company Notes (Internal)</Text>
-          <TextInput
-            style={styles.textArea}
-            placeholder="Internal notes for your team..."
-            placeholderTextColor="#9CA3AF"
-            multiline
-            numberOfLines={4}
-            value={companyNotes}
-            onChangeText={setCompanyNotes}
-            textAlignVertical="top"
-          />
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Client Notes (Shows on Proposal)</Text>
-          <TextInput
-            style={styles.textArea}
-            placeholder="Notes that will be visible to the client on the proposal..."
-            placeholderTextColor="#9CA3AF"
-            multiline
-            numberOfLines={4}
-            value={clientNotes}
-            onChangeText={setClientNotes}
-            textAlignVertical="top"
-          />
+        <Text style={styles.sectionTitle}>Financing Integration</Text>
+        <View style={styles.settingsCard}>
+          <View style={styles.paymentOptionRow}>
+            <View style={styles.paymentOptionLeft}>
+              <CreditCard size={20} color="#F59E0B" />
+              <View>
+                <Text style={styles.paymentOptionLabel}>Acorn Financing</Text>
+                <Text style={styles.paymentOptionFee}>Offer financing options to customers</Text>
+              </View>
+            </View>
+            <Switch
+              value={acornFinancingEnabled}
+              onValueChange={setAcornFinancingEnabled}
+            />
+          </View>
+          
+          {acornFinancingEnabled && (
+            <View style={styles.financingInfoBox}>
+              <Text style={styles.financingInfoText}>
+                When enabled, customers will see financing options in the proposal.
+                Acorn Financing offers flexible payment plans with competitive rates.
+              </Text>
+            </View>
+          )}
         </View>
       </View>
     </View>
   );
 
+  const renderNotesTab = () => (
+    <ScrollView style={styles.tabContent}>
+      {/* Crew Notes */}
+      <View style={styles.section}>
+        <View style={styles.noteHeader}>
+          <View>
+            <Text style={styles.noteTitle}>Crew Notes</Text>
+            <Text style={styles.noteSubtitle}>Shows on work order</Text>
+          </View>
+          <TouchableOpacity 
+            style={styles.templateButton}
+            onPress={() => setShowCrewTemplates(!showCrewTemplates)}
+          >
+            <FileText size={16} color="#6366F1" />
+            <Text style={styles.templateButtonText}>Templates</Text>
+          </TouchableOpacity>
+        </View>
+
+        {showCrewTemplates && (
+          <View style={styles.templateDropdown}>
+            {noteTemplates.crew.map((template, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.templateItem}
+                onPress={() => {
+                  setCrewNotes(template);
+                  setShowCrewTemplates(false);
+                }}
+              >
+                <Text style={styles.templateItemText}>{template}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        <View style={styles.noteCard}>
+          <TextInput
+            style={styles.richTextArea}
+            placeholder="Add instructions for the crew..."
+            placeholderTextColor="#9CA3AF"
+            multiline
+            value={crewNotes}
+            onChangeText={setCrewNotes}
+            textAlignVertical="top"
+          />
+          <View style={styles.noteFooter}>
+            <Text style={styles.characterCount}>{crewNotes.length} characters</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Company Notes */}
+      <View style={styles.section}>
+        <View style={styles.noteHeader}>
+          <View>
+            <Text style={styles.noteTitle}>Company Notes</Text>
+            <Text style={styles.noteSubtitle}>Internal only</Text>
+          </View>
+          <TouchableOpacity 
+            style={styles.templateButton}
+            onPress={() => setShowCompanyTemplates(!showCompanyTemplates)}
+          >
+            <FileText size={16} color="#6366F1" />
+            <Text style={styles.templateButtonText}>Templates</Text>
+          </TouchableOpacity>
+        </View>
+
+        {showCompanyTemplates && (
+          <View style={styles.templateDropdown}>
+            {noteTemplates.company.map((template, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.templateItem}
+                onPress={() => {
+                  setCompanyNotes(template);
+                  setShowCompanyTemplates(false);
+                }}
+              >
+                <Text style={styles.templateItemText}>{template}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        <View style={styles.noteCard}>
+          <TextInput
+            style={styles.richTextArea}
+            placeholder="Internal notes for your team..."
+            placeholderTextColor="#9CA3AF"
+            multiline
+            value={companyNotes}
+            onChangeText={setCompanyNotes}
+            textAlignVertical="top"
+          />
+          <View style={styles.noteFooter}>
+            <Text style={styles.characterCount}>{companyNotes.length} characters</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Client Notes */}
+      <View style={styles.section}>
+        <View style={styles.noteHeader}>
+          <View>
+            <Text style={styles.noteTitle}>Client Notes</Text>
+            <Text style={styles.noteSubtitle}>Visible on proposal</Text>
+          </View>
+          <TouchableOpacity 
+            style={styles.templateButton}
+            onPress={() => setShowClientTemplates(!showClientTemplates)}
+          >
+            <FileText size={16} color="#6366F1" />
+            <Text style={styles.templateButtonText}>Templates</Text>
+          </TouchableOpacity>
+        </View>
+
+        {showClientTemplates && (
+          <View style={styles.templateDropdown}>
+            {noteTemplates.client.map((template, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.templateItem}
+                onPress={() => {
+                  setClientNotes(template);
+                  setShowClientTemplates(false);
+                }}
+              >
+                <Text style={styles.templateItemText}>{template}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        <View style={styles.noteCard}>
+          <TextInput
+            style={styles.richTextArea}
+            placeholder="Notes that will be visible to the client..."
+            placeholderTextColor="#9CA3AF"
+            multiline
+            value={clientNotes}
+            onChangeText={setClientNotes}
+            textAlignVertical="top"
+          />
+          <View style={styles.noteFooter}>
+            <Text style={styles.characterCount}>{clientNotes.length} characters</Text>
+          </View>
+        </View>
+      </View>
+    </ScrollView>
+  );
+
   const renderStakeholdersTab = () => (
-    <View style={styles.tabContent}>
+    <View style={styles.tabContentContainer}>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Stakeholders</Text>
+        <View style={{ height: 16 }} />
         <View style={styles.stakeholdersList}>
           {stakeholders.map((stakeholder) => (
             <View key={stakeholder.id} style={styles.stakeholderCard}>
               <View style={styles.stakeholderHeader}>
                 <View style={styles.stakeholderAvatar}>
                   <Text style={styles.stakeholderAvatarText}>
-                    {stakeholder.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                    {stakeholder.name.split(' ').map(n => n[0]).join('')}
                   </Text>
                 </View>
                 <View style={styles.stakeholderInfo}>
@@ -1061,7 +1277,6 @@ export default function ProposalBuilder() {
                     <Text style={styles.stakeholderName}>{stakeholder.name}</Text>
                     {stakeholder.isPrimary && (
                       <View style={styles.primaryBadge}>
-                        <Star size={10} color="#F59E0B" fill="#F59E0B" />
                         <Text style={styles.primaryBadgeText}>PRIMARY</Text>
                       </View>
                     )}
@@ -1075,29 +1290,66 @@ export default function ProposalBuilder() {
                   <Text style={styles.stakeholderPhone}>{stakeholder.phone}</Text>
                 )}
               </View>
-              {stakeholder.receiveProposals && (
-                <View style={styles.receivesProposalsBadge}>
-                  <Text style={styles.receivesProposalsText}>Usually receives proposals</Text>
+              <TouchableOpacity 
+                style={styles.stakeholderActionButton}
+                onPress={() => {
+                  if (expandedActionItem === stakeholder.id) {
+                    setExpandedActionItem(null);
+                  } else {
+                    setExpandedActionItem(stakeholder.id);
+                  }
+                }}
+              >
+                <MoreHorizontal size={20} color="#6366F1" />
+                <Text style={styles.stakeholderActionText}>Actions</Text>
+              </TouchableOpacity>
+              
+              {/* Action Menu */}
+              {expandedActionItem === stakeholder.id && (
+                <View style={styles.stakeholderActionMenu}>
+                  <TouchableOpacity 
+                    style={styles.stakeholderMenuItem}
+                    onPress={() => {
+                      setShowContactModal(true);
+                      setExpandedActionItem(null);
+                    }}
+                  >
+                    <User size={18} color="#374151" />
+                    <Text style={styles.stakeholderMenuText}>View Contact</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.stakeholderMenuItem}
+                    onPress={() => {
+                      setSelectedStakeholderIds([stakeholder.id]);
+                      setShowSendModal(true);
+                      setExpandedActionItem(null);
+                    }}
+                  >
+                    <FileText size={18} color="#374151" />
+                    <Text style={styles.stakeholderMenuText}>Send Proposal</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.stakeholderMenuItem}
+                    onPress={() => {
+                      Alert.alert('Email', `Send email to ${stakeholder.email}`);
+                      setExpandedActionItem(null);
+                    }}
+                  >
+                    <Mail size={18} color="#374151" />
+                    <Text style={styles.stakeholderMenuText}>Send Email</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.stakeholderMenuItem}
+                    onPress={() => {
+                      Alert.alert('Text', `Send text to ${stakeholder.phone}`);
+                      setExpandedActionItem(null);
+                    }}
+                  >
+                    <MessageSquare size={18} color="#374151" />
+                    <Text style={styles.stakeholderMenuText}>Send Text</Text>
+                  </TouchableOpacity>
                 </View>
               )}
-              <View style={styles.stakeholderActions}>
-                <TouchableOpacity style={styles.stakeholderActionButton}>
-                  <Eye size={16} color="#6366F1" />
-                  <Text style={styles.stakeholderActionText}>View</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.stakeholderActionButton}>
-                  <Send size={16} color="#6366F1" />
-                  <Text style={styles.stakeholderActionText}>Send Proposal</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.stakeholderActionButton}>
-                  <Mail size={16} color="#6366F1" />
-                  <Text style={styles.stakeholderActionText}>Email</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.stakeholderActionButton}>
-                  <MessageSquare size={16} color="#6366F1" />
-                  <Text style={styles.stakeholderActionText}>Text</Text>
-                </TouchableOpacity>
-              </View>
             </View>
           ))}
         </View>
@@ -1107,6 +1359,36 @@ export default function ProposalBuilder() {
 
   const renderInfoTab = () => (
     <View style={styles.tabContent}>
+      {/* Related Deal */}
+      {relatedDeal && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Related Deal</Text>
+          <TouchableOpacity 
+            style={styles.relatedDealCard}
+            onPress={() => setShowCommandCenter(true)}
+          >
+            <LinearGradient
+              colors={['#6366F1', '#8B5CF6']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.relatedDealGradient}
+            >
+              <View style={styles.relatedDealHeader}>
+                <View>
+                  <Text style={styles.relatedDealName}>{relatedDeal.name}</Text>
+                  <Text style={styles.relatedDealStatus}>{relatedDeal.status}</Text>
+                </View>
+                <ChevronRight size={20} color="#FFFFFF" />
+              </View>
+              <View style={styles.relatedDealValue}>
+                <DollarSign size={18} color="#FFFFFF" />
+                <Text style={styles.relatedDealAmount}>${relatedDeal.value.toLocaleString()}</Text>
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Customer Information */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Customer Information</Text>
@@ -1156,6 +1438,17 @@ export default function ProposalBuilder() {
         </View>
         
         <View style={styles.jobInfoCard}>
+          {/* Proposal Number */}
+          <View style={styles.jobInfoRow}>
+            <View style={styles.jobInfoIcon}>
+              <FileText size={18} color="#6366F1" />
+            </View>
+            <View style={styles.jobInfoContent}>
+              <Text style={styles.jobInfoLabel}>Proposal Number</Text>
+              <Text style={[styles.jobInfoValue, { color: '#6366F1', fontWeight: '600' }]}>{proposalNumber}</Text>
+            </View>
+          </View>
+
           {/* Job Address */}
           <View style={styles.jobInfoRow}>
             <View style={styles.jobInfoIcon}>
@@ -1209,14 +1502,86 @@ export default function ProposalBuilder() {
     </View>
   );
 
+  const formatTimeAgo = (timestamp: Date) => {
+    const now = new Date();
+    const diff = now.getTime() - timestamp.getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    return timestamp.toLocaleDateString();
+  };
+
+  const addComment = () => {
+    if (!newCommentText.trim()) return;
+    
+    const newComment: Comment = {
+      id: Date.now().toString(),
+      author: 'Tanner Mullen', // Current user
+      avatar: 'TM',
+      text: newCommentText,
+      timestamp: new Date()
+    };
+    
+    setComments([...comments, newComment]);
+    setNewCommentText('');
+  };
+
+  const deleteComment = (id: string) => {
+    Alert.alert('Delete Comment', 'Are you sure you want to delete this comment?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => setComments(comments.filter(c => c.id !== id)) }
+    ]);
+  };
+
   const renderCommentsTab = () => (
     <View style={styles.tabContent}>
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Comments</Text>
-        <View style={styles.emptyState}>
-          <MessageSquare size={40} color="#9CA3AF" />
-          <Text style={styles.emptyStateText}>No comments yet</Text>
-        </View>
+      <ScrollView style={styles.commentsContainer}>
+        {comments.map((comment) => (
+          <View key={comment.id} style={styles.commentCard}>
+            <View style={styles.commentHeader}>
+              <View style={styles.commentAvatar}>
+                <Text style={styles.commentAvatarText}>{comment.avatar}</Text>
+              </View>
+              <View style={styles.commentInfo}>
+                <Text style={styles.commentAuthor}>{comment.author}</Text>
+                <Text style={styles.commentTime}>{formatTimeAgo(comment.timestamp)}</Text>
+              </View>
+              <TouchableOpacity onPress={() => deleteComment(comment.id)}>
+                <Trash2 size={16} color="#EF4444" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.commentText}>{comment.text}</Text>
+          </View>
+        ))}
+        
+        {comments.length === 0 && (
+          <View style={styles.emptyState}>
+            <MessageSquare size={40} color="#9CA3AF" />
+            <Text style={styles.emptyStateText}>No comments yet</Text>
+            <Text style={styles.emptyStateSubtext}>Start a conversation with your team</Text>
+          </View>
+        )}
+      </ScrollView>
+
+      <View style={styles.commentInputContainer}>
+        <TextInput
+          style={styles.commentInput}
+          placeholder="Add a comment..."
+          placeholderTextColor="#9CA3AF"
+          value={newCommentText}
+          onChangeText={setNewCommentText}
+          multiline
+        />
+        <TouchableOpacity 
+          style={[styles.sendCommentButton, !newCommentText.trim() && styles.sendCommentButtonDisabled]}
+          onPress={addComment}
+          disabled={!newCommentText.trim()}
+        >
+          <Send size={20} color={newCommentText.trim() ? "#FFFFFF" : "#9CA3AF"} />
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -1232,6 +1597,79 @@ export default function ProposalBuilder() {
       </View>
     </View>
   );
+
+  const markFeedbackAsResolved = (id: string) => {
+    setFeedbackItems(feedbackItems.map(item => 
+      item.id === id ? { ...item, status: 'resolved' } : item
+    ));
+  };
+
+  const renderFeedbackTab = () => {
+    const pendingFeedback = feedbackItems.filter(f => f.status === 'pending');
+    const resolvedFeedback = feedbackItems.filter(f => f.status === 'resolved');
+
+    return (
+      <ScrollView style={styles.tabContent}>
+        {/* Pending Feedback */}
+        {pendingFeedback.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Pending Feedback</Text>
+            {pendingFeedback.map((feedback) => (
+              <View key={feedback.id} style={styles.feedbackCard}>
+                <View style={styles.feedbackHeader}>
+                  <View>
+                    <Text style={styles.feedbackAuthor}>{feedback.customerName}</Text>
+                    <Text style={styles.feedbackTime}>{formatTimeAgo(feedback.timestamp)}</Text>
+                  </View>
+                  <View style={styles.feedbackPendingBadge}>
+                    <Text style={styles.feedbackPendingText}>PENDING</Text>
+                  </View>
+                </View>
+                <Text style={styles.feedbackText}>{feedback.comment}</Text>
+                <TouchableOpacity 
+                  style={styles.resolveButton}
+                  onPress={() => markFeedbackAsResolved(feedback.id)}
+                >
+                  <Check size={16} color="#FFFFFF" />
+                  <Text style={styles.resolveButtonText}>Mark as Resolved</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Resolved Feedback */}
+        {resolvedFeedback.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Resolved Feedback</Text>
+            {resolvedFeedback.map((feedback) => (
+              <View key={feedback.id} style={[styles.feedbackCard, styles.feedbackCardResolved]}>
+                <View style={styles.feedbackHeader}>
+                  <View>
+                    <Text style={styles.feedbackAuthor}>{feedback.customerName}</Text>
+                    <Text style={styles.feedbackTime}>{formatTimeAgo(feedback.timestamp)}</Text>
+                  </View>
+                  <View style={styles.feedbackResolvedBadge}>
+                    <Check size={12} color="#10B981" />
+                    <Text style={styles.feedbackResolvedText}>RESOLVED</Text>
+                  </View>
+                </View>
+                <Text style={[styles.feedbackText, { color: '#9CA3AF' }]}>{feedback.comment}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {feedbackItems.length === 0 && (
+          <View style={styles.emptyState}>
+            <MessageSquare size={40} color="#9CA3AF" />
+            <Text style={styles.emptyStateText}>No customer feedback yet</Text>
+            <Text style={styles.emptyStateSubtext}>Customer comments will appear here</Text>
+          </View>
+        )}
+      </ScrollView>
+    );
+  };
 
   const renderVideoTab = () => (
     <View style={styles.tabContent}>
@@ -1274,10 +1712,10 @@ export default function ProposalBuilder() {
         return renderNotesTab();
       case 'comments':
         return renderCommentsTab();
+      case 'feedback':
+        return renderFeedbackTab();
       case 'activity':
         return renderActivityTab();
-      case 'video':
-        return renderVideoTab();
       case 'presentation':
         return renderPresentationTab();
       default:
@@ -2526,19 +2964,59 @@ export default function ProposalBuilder() {
               <Text style={styles.modalSectionTitle}>Salesperson</Text>
               <View style={[
                 styles.inputContainer,
-                focusedInput === 'salesperson' && styles.inputContainerFocused
+                (focusedInput === 'salesperson' || showSalespersonDropdown) && styles.inputContainerFocused
               ]}>
                 <User size={20} color="#6B7280" />
                 <TextInput
                   style={styles.input}
-                  value={editSalesperson}
-                  onChangeText={setEditSalesperson}
-                  placeholder="Enter salesperson name"
+                  value={salespersonSearch}
+                  onChangeText={(text) => {
+                    setSalespersonSearch(text);
+                    setShowSalespersonDropdown(true);
+                  }}
+                  placeholder="Search or select salesperson"
                   placeholderTextColor="#9CA3AF"
-                  onFocus={() => setFocusedInput('salesperson')}
-                  onBlur={() => setFocusedInput(null)}
+                  onFocus={() => {
+                    setFocusedInput('salesperson');
+                    setShowSalespersonDropdown(true);
+                  }}
+                  onBlur={() => {
+                    setFocusedInput(null);
+                    // Delay to allow dropdown selection
+                    setTimeout(() => setShowSalespersonDropdown(false), 200);
+                  }}
                 />
               </View>
+              
+              {/* Salesperson Dropdown */}
+              {showSalespersonDropdown && filteredSalespeople.length > 0 && (
+                <ScrollView 
+                  style={styles.salespersonDropdown}
+                  nestedScrollEnabled={true}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  {filteredSalespeople.map((person, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={[
+                        styles.salespersonDropdownItem,
+                        index === filteredSalespeople.length - 1 && { borderBottomWidth: 0 }
+                      ]}
+                      onPress={() => {
+                        setEditSalesperson(person);
+                        setSalespersonSearch(person);
+                        setShowSalespersonDropdown(false);
+                      }}
+                    >
+                      <User size={16} color="#6B7280" />
+                      <Text style={styles.salespersonDropdownText}>{person}</Text>
+                      {editSalesperson === person && (
+                        <Check size={16} color="#6366F1" />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
             </View>
 
             {/* Job Type */}
@@ -2646,39 +3124,118 @@ export default function ProposalBuilder() {
         </SafeAreaView>
       </Modal>
 
-      {/* Date Picker for Send Scheduling */}
-      {showDatePicker && Platform.OS === 'ios' && (
-        <Modal
-          transparent
-          animationType="slide"
-          visible={showDatePicker}
-          onRequestClose={() => setShowDatePicker(false)}
-        >
-          <View style={styles.datePickerModalOverlay}>
-            <View style={styles.datePickerModal}>
-              <View style={styles.datePickerHeader}>
-                <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                  <Text style={styles.datePickerCancel}>Cancel</Text>
+      {/* Terms & Conditions Selection Modal */}
+      <Modal
+        visible={showTermsModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowTermsModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.termsModal}>
+            <View style={styles.termsModalHeader}>
+              <Text style={styles.termsModalTitle}>Select Terms & Conditions</Text>
+              <TouchableOpacity onPress={() => setShowTermsModal(false)}>
+                <X size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.termsModalContent}>
+              {termsTemplates.map((template) => (
+                <TouchableOpacity
+                  key={template.name}
+                  style={[
+                    styles.termsTemplateOption,
+                    selectedTermsTemplate === template.name && styles.termsTemplateOptionSelected
+                  ]}
+                  onPress={() => {
+                    setSelectedTermsTemplate(template.name);
+                    setTerms(template.content);
+                    setShowTermsModal(false);
+                  }}
+                >
+                  <View style={styles.termsTemplateHeader}>
+                    <Shield size={20} color={selectedTermsTemplate === template.name ? "#6366F1" : "#6B7280"} />
+                    <Text style={[
+                      styles.termsTemplateName,
+                      selectedTermsTemplate === template.name && styles.termsTemplateNameSelected
+                    ]}>{template.name}</Text>
+                    {selectedTermsTemplate === template.name && (
+                      <Check size={20} color="#6366F1" />
+                    )}
+                  </View>
+                  <Text style={styles.termsTemplatePreview} numberOfLines={2}>{template.content}</Text>
                 </TouchableOpacity>
-                <Text style={styles.datePickerTitle}>Select Date & Time</Text>
-                <TouchableOpacity onPress={() => {
-                  setShowDatePicker(false);
-                  setSelectedPreset(null);
-                }}>
-                  <Text style={styles.datePickerDone}>Done</Text>
-                </TouchableOpacity>
-              </View>
-              <DateTimePicker
-                value={scheduledSendDate || new Date()}
-                mode="datetime"
-                display="spinner"
-                onChange={(event, date) => {
-                  if (date) setScheduledSendDate(date);
-                }}
-              />
+              ))}
+            </ScrollView>
+            
+            <View style={styles.termsModalFooter}>
+              <TouchableOpacity 
+                style={styles.termsModalButton}
+                onPress={() => setShowTermsModal(false)}
+              >
+                <Text style={styles.termsModalButtonText}>Done</Text>
+              </TouchableOpacity>
             </View>
           </View>
-        </Modal>
+        </View>
+      </Modal>
+
+      {/* Deal Command Center */}
+      <DealCommandCenter
+        visible={showCommandCenter}
+        onClose={() => setShowCommandCenter(false)}
+        dealData={relatedDeal}
+      />
+
+      {/* Date Picker for Send Scheduling */}
+      {showDatePicker && (
+        Platform.OS === 'ios' ? (
+          <Modal
+            transparent
+            animationType="slide"
+            visible={showDatePicker}
+            onRequestClose={() => setShowDatePicker(false)}
+          >
+            <View style={styles.datePickerModalOverlay}>
+              <View style={styles.datePickerModal}>
+                <View style={styles.datePickerHeader}>
+                  <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                    <Text style={styles.datePickerCancel}>Cancel</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.datePickerTitle}>Select Date & Time</Text>
+                  <TouchableOpacity onPress={() => {
+                    setShowDatePicker(false);
+                    setSelectedPreset(null);
+                  }}>
+                    <Text style={styles.datePickerDone}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={scheduledSendDate || new Date()}
+                  mode="datetime"
+                  display="spinner"
+                  onChange={(event, date) => {
+                    if (date) setScheduledSendDate(date);
+                  }}
+                />
+              </View>
+            </View>
+          </Modal>
+        ) : (
+          <DateTimePicker
+            value={scheduledSendDate || new Date()}
+            mode="datetime"
+            display="default"
+            onChange={(event, date) => {
+              setShowDatePicker(false);
+              if (date) {
+                setScheduledSendDate(date);
+                setSelectedPreset(null);
+              }
+            }}
+          />
+        )
       )}
     </SafeAreaView>
   );
@@ -3487,14 +4044,14 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#6366F1',
+    backgroundColor: '#EEF2FF',
     alignItems: 'center',
     justifyContent: 'center',
   },
   stakeholderAvatarText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#6366F1',
   },
   stakeholderInitials: {
     fontSize: 14,
@@ -3517,7 +4074,7 @@ const styles = StyleSheet.create({
   },
   stakeholderName: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#111827',
   },
   stakeholderRole: {
@@ -3527,30 +4084,26 @@ const styles = StyleSheet.create({
   },
   stakeholderEmail: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#374151',
   },
   stakeholderPhone: {
     fontSize: 14,
-    color: '#6B7280',
-    marginTop: 2,
+    color: '#374151',
   },
   stakeholderContactInfo: {
+    gap: 4,
     marginBottom: 12,
   },
   primaryBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#6366F1',
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
   },
   primaryBadgeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#F59E0B',
-    letterSpacing: 0.5,
+    color: '#FFFFFF',
   },
   primaryBadgeSmall: {
     flexDirection: 'row',
@@ -3599,16 +4152,39 @@ const styles = StyleSheet.create({
   stakeholderActionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: '#EEF2FF',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    marginTop: 8,
   },
   stakeholderActionText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     color: '#6366F1',
+  },
+  stakeholderActionMenu: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    overflow: 'hidden',
+  },
+  stakeholderMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  stakeholderMenuText: {
+    fontSize: 15,
+    color: '#374151',
+    fontWeight: '500',
   },
   // Info Tab Styles - Contact Info
   contactInfoRow: {
@@ -4516,6 +5092,445 @@ const styles = StyleSheet.create({
   addressInput: {
     fontSize: 15,
     color: '#111827',
+  },
+  salespersonDropdown: {
+    marginTop: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    maxHeight: 250,
+  },
+  salespersonDropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  salespersonDropdownText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#111827',
+  },
+  // Related Deal Card Styles
+  relatedDealCard: {
+    marginTop: 12,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  relatedDealGradient: {
+    padding: 20,
+  },
+  relatedDealHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  relatedDealName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  relatedDealStatus: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  relatedDealValue: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  relatedDealAmount: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  // Financing Info Box
+  financingInfoBox: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: '#FEF3C7',
+    borderRadius: 8,
+  },
+  financingInfoText: {
+    fontSize: 13,
+    color: '#92400E',
+    lineHeight: 18,
+  },
+  // Notes Tab Enhanced Styles
+  noteHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  noteTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  noteSubtitle: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  templateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#EEF2FF',
+    borderRadius: 8,
+  },
+  templateButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  templateDropdown: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  templateItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  templateItemText: {
+    fontSize: 14,
+    color: '#374151',
+  },
+  noteCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    overflow: 'hidden',
+  },
+  richTextArea: {
+    minHeight: 120,
+    fontSize: 15,
+    color: '#111827',
+    padding: 16,
+    textAlignVertical: 'top',
+  },
+  noteFooter: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+    backgroundColor: '#F9FAFB',
+  },
+  characterCount: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    textAlign: 'right',
+  },
+  // Comments Styles
+  commentsContainer: {
+    flex: 1,
+    padding: 16,
+  },
+  commentCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  commentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  commentAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#6366F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  commentAvatarText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  commentInfo: {
+    flex: 1,
+  },
+  commentAuthor: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  commentTime: {
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
+  commentText: {
+    fontSize: 14,
+    color: '#374151',
+    lineHeight: 20,
+  },
+  commentInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+    gap: 12,
+  },
+  commentInput: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#111827',
+    maxHeight: 100,
+  },
+  sendCommentButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#6366F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sendCommentButtonDisabled: {
+    backgroundColor: '#F3F4F6',
+  },
+  // Feedback Styles
+  feedbackCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderLeftWidth: 4,
+    borderLeftColor: '#F59E0B',
+  },
+  feedbackCardResolved: {
+    borderLeftColor: '#10B981',
+    opacity: 0.7,
+  },
+  feedbackHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  feedbackAuthor: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  feedbackTime: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 2,
+  },
+  feedbackPendingBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: '#FEF3C7',
+    borderRadius: 4,
+  },
+  feedbackPendingText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#92400E',
+  },
+  feedbackResolvedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: '#D1FAE5',
+    borderRadius: 4,
+  },
+  feedbackResolvedText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#065F46',
+  },
+  feedbackText: {
+    fontSize: 14,
+    color: '#374151',
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  resolveButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    backgroundColor: '#10B981',
+    borderRadius: 8,
+  },
+  resolveButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  // Terms Card Styles
+  termsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginTop: 12,
+  },
+  termsCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  termsCardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  termsCardPreview: {
+    fontSize: 14,
+    color: '#6B7280',
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  termsCardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  termsCardViewText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  addTermsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderStyle: 'dashed',
+    marginTop: 12,
+  },
+  addTermsText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  // Terms Modal Styles
+  termsModal: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
+    marginTop: 'auto',
+  },
+  termsModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  termsModalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  termsModalContent: {
+    padding: 20,
+  },
+  termsTemplateOption: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    marginBottom: 12,
+  },
+  termsTemplateOptionSelected: {
+    borderColor: '#6366F1',
+    backgroundColor: '#F5F3FF',
+  },
+  termsTemplateHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  termsTemplateName: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  termsTemplateNameSelected: {
+    color: '#6366F1',
+  },
+  termsTemplatePreview: {
+    fontSize: 13,
+    color: '#6B7280',
+    lineHeight: 18,
+  },
+  termsModalFooter: {
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  termsModalButton: {
+    backgroundColor: '#6366F1',
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  termsModalButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });
 

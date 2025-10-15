@@ -1,6 +1,7 @@
 import CallInitiationModal from '@/components/CallInitiationModal';
 import CreateJobModal from '@/components/CreateJobModal';
 import CreateLeadModal from '@/components/CreateLeadModal';
+import DripRefreshControl from '@/components/DripRefreshControl';
 import DrawerMenu from '@/components/DrawerMenu';
 import FloatingActionMenu from '@/components/FloatingActionMenu';
 import NewAppointmentModal from '@/components/NewAppointmentModal';
@@ -214,6 +215,15 @@ export default function TeamChat() {
   const [showAddMember, setShowAddMember] = useState(false);
   const [addMemberSearchQuery, setAddMemberSearchQuery] = useState('');
   const [channelMembers, setChannelMembers] = useState<string[]>(['1', '2', '3']); // Member IDs in channel
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    // Simulate API refresh - in production, fetch latest messages
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1500);
+  };
   
   // Typing indicator states
   const [typingUsers, setTypingUsers] = useState<{[key: string]: string[]}>({}); // threadId -> array of user names
@@ -1131,6 +1141,12 @@ export default function TeamChat() {
 
           <ScrollView 
             style={styles.content}
+            refreshControl={
+              <DripRefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+              />
+            }
             onScroll={(e) => {
               const currentScrollY = e.nativeEvent.contentOffset.y;
               setShowFAB(currentScrollY <= lastScrollY || currentScrollY < 10);

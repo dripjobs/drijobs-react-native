@@ -2,6 +2,7 @@ import CallInitiationModal from '@/components/CallInitiationModal';
 import CreateJobModal from '@/components/CreateJobModal';
 import CreateLeadModal from '@/components/CreateLeadModal';
 import DrawerMenu from '@/components/DrawerMenu';
+import DripRefreshControl, { RefreshLogo } from '@/components/DripRefreshControl';
 import FloatingActionMenu from '@/components/FloatingActionMenu';
 import JobTasksModal from '@/components/JobTasksModal';
 import NewAppointmentModal from '@/components/NewAppointmentModal';
@@ -60,6 +61,15 @@ export default function Pipeline() {
   const [showCallInitiation, setShowCallInitiation] = useState(false);
   const [callContact, setCallContact] = useState({ name: '', phone: '' });
   const [showJobTasksModal, setShowJobTasksModal] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    // Simulate API refresh - in production, fetch latest pipeline data
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1500);
+  };
 
   const pipelines = [
     {
@@ -376,9 +386,12 @@ export default function Pipeline() {
   const handleOpenCommandCenter = (card: any) => {
     setSelectedCard(card);
     setShowCommandCenter(true);
-    Animated.timing(commandCenterTranslateY, {
+    // Use spring animation for snappier, more natural feel
+    Animated.spring(commandCenterTranslateY, {
       toValue: 0,
-      duration: 300,
+      damping: 20,
+      stiffness: 300,
+      mass: 0.5,
       useNativeDriver: true,
     }).start();
   };
@@ -455,9 +468,12 @@ export default function Pipeline() {
 
 
   const handleCloseCommandCenter = () => {
-    Animated.timing(commandCenterTranslateY, {
+    // Use faster spring animation for closing
+    Animated.spring(commandCenterTranslateY, {
       toValue: Dimensions.get('window').height,
-      duration: 300,
+      damping: 25,
+      stiffness: 350,
+      mass: 0.5,
       useNativeDriver: true,
     }).start(() => {
       setShowCommandCenter(false);
@@ -1599,8 +1615,21 @@ export default function Pipeline() {
         pendingRequestsCount={appointmentRequestService.getPendingRequestsCount()}
       />
       
-      {/* Header */}
-      <View style={styles.header}>
+      {/* Logo appears during refresh */}
+      <RefreshLogo visible={refreshing} />
+      
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <DripRefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+          />
+        }
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Header */}
+        <View style={styles.header}>
         <TouchableOpacity onPress={() => setDrawerOpen(true)} style={styles.pullOutMenu}>
           <View style={styles.pullOutIndicator}>
             <View style={styles.pullOutDot} />
@@ -1710,24 +1739,19 @@ export default function Pipeline() {
 
       {/* Pipeline Cards */}
       <ScrollView 
-        style={styles.content} 
+        style={styles.cardsContainer}
+        contentContainerStyle={styles.cardsContent}
         showsVerticalScrollIndicator={false}
-        onScroll={(event) => {
-          const currentScrollY = event.nativeEvent.contentOffset.y;
-          if (currentScrollY > 50) {
-            setShowFAB(false);
-          } else {
-            setShowFAB(true);
-          }
-          setLastScrollY(currentScrollY);
-        }}
+        bounces={true}
+        alwaysBounceVertical={true}
         scrollEventThrottle={16}
-        onScrollBeginDrag={() => setIsTransparent(true)}
-        onScrollEndDrag={() => setIsTransparent(false)}
-        onMomentumScrollBegin={() => setIsTransparent(true)}
-        onMomentumScrollEnd={() => setIsTransparent(false)}
+        refreshControl={
+          <DripRefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+          />
+        }
       >
-        <View style={styles.cardsContainer}>
           {getCurrentStageData().length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateText}>No cards in this stage</Text>
@@ -1903,7 +1927,8 @@ export default function Pipeline() {
               );
             })
           )}
-        </View>
+      </ScrollView>
+      
       </ScrollView>
 
       <FloatingActionMenu
@@ -2241,6 +2266,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F9FAFB',
   },
+  scrollContent: {
+    flexGrow: 1,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2389,6 +2417,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   cardsContainer: {
+    flex: 1,
+  },
+  cardsContent: {
+    flexGrow: 1,
     paddingTop: 16,
     paddingBottom: 100,
   },

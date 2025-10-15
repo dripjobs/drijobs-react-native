@@ -3,6 +3,7 @@ import ContactPickerModal from '@/components/ContactPickerModal';
 import CreateJobModal from '@/components/CreateJobModal';
 import CreateLeadModal from '@/components/CreateLeadModal';
 import DrawerMenu from '@/components/DrawerMenu';
+import DripRefreshControl, { RefreshLogo } from '@/components/DripRefreshControl';
 import FloatingActionMenu from '@/components/FloatingActionMenu';
 import NewAppointmentModal from '@/components/NewAppointmentModal';
 import NewProposalModal from '@/components/NewProposalModal';
@@ -66,6 +67,7 @@ export default function Dashboard() {
   const [showContactPicker, setShowContactPicker] = useState(false);
   const [showCallInitiation, setShowCallInitiation] = useState(false);
   const [callContact, setCallContact] = useState({ name: '', phone: '' });
+  const [refreshing, setRefreshing] = useState(false);
   const [appointments, setAppointments] = useState([
     { 
       id: 1, 
@@ -696,6 +698,14 @@ export default function Dashboard() {
     }).start();
   };
 
+  const handleRefresh = () => {
+    setRefreshing(true);
+    // Simulate data refresh
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1500);
+  };
+
   const handleCloseJobDetails = () => {
     Animated.timing(jobDetailsTranslateY, {
       toValue: screenHeight,
@@ -783,6 +793,9 @@ export default function Dashboard() {
         pendingRequestsCount={appointmentRequestService.getPendingRequestsCount()}
       />
       
+      {/* Logo appears during refresh */}
+      <RefreshLogo visible={refreshing} />
+      
       <LinearGradient
         colors={['#6366F1', '#8B5CF6', '#A855F7']}
         start={{ x: 0, y: 0 }}
@@ -863,6 +876,12 @@ export default function Dashboard() {
       <ScrollView 
         style={styles.content} 
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <DripRefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+          />
+        }
         onScroll={(event) => {
           const currentScrollY = event.nativeEvent.contentOffset.y;
           if (currentScrollY > 50) {
