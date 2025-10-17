@@ -1,64 +1,75 @@
 import { AddAreaWizard } from '@/components/AddAreaWizard';
 import DealCommandCenter from '@/components/DealCommandCenter';
+import { PackagedPricingSection } from '@/components/PackagedPricingSection';
+import { ProposalPackage, ProposalPackageAddOn } from '@/types/proposals';
 import { getSchedulingPresets } from '@/utils/schedulingPresets';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
-    AlertCircle,
-    Building2,
-    Calendar,
-    Check,
-    ChevronLeft,
-    ChevronRight,
-    Clock,
-    Copy,
-    CreditCard,
-    DollarSign,
-    Edit2,
-    Edit3,
-    Eye,
-    FileText,
-    Mail,
-    MapPin,
-    MessageSquare,
-    Monitor,
-    MoreHorizontal,
-    Package,
-    Paperclip,
-    Percent,
-    Phone,
-    PhoneCall,
-    Plus,
-    Presentation,
-    Send,
-    Settings,
-    Shield,
-    Star,
-    Target,
-    Trash2,
-    TrendingUp,
-    User,
-    UserCircle,
-    Users,
-    X
+  AlertCircle,
+  Building2,
+  Calendar,
+  Check,
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Copy,
+  CreditCard,
+  DollarSign,
+  Edit,
+  Edit2,
+  Edit3,
+  Eye,
+  FileText,
+  Mail,
+  MapPin,
+  MessageSquare,
+  Minus,
+  Monitor,
+  MoreHorizontal,
+  Package,
+  Paperclip,
+  Percent,
+  Phone,
+  PhoneCall,
+  Plus,
+  Presentation,
+  RefreshCw,
+  Search,
+  Send,
+  Settings,
+  Shield,
+  Star,
+  Target,
+  Trash2,
+  TrendingUp,
+  User,
+  UserCircle,
+  Users,
+  X,
+  XCircle
 } from 'lucide-react-native';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
-    Alert,
-    Modal,
-    Platform,
-    Linking as RNLinking,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Linking as RNLinking,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { actions, RichEditor, RichToolbar } from 'react-native-pell-rich-editor';
+import { WebView } from 'react-native-webview';
 
 interface ProposalLineItem {
   id: string;
@@ -92,6 +103,20 @@ interface Stakeholder {
   receiveProposals?: boolean;
 }
 
+interface CouponCode {
+  id: string;
+  code: string;
+  type: 'percentage' | 'fixed';
+  value: number;
+  description?: string;
+  expiresAt?: Date;
+  isActive: boolean;
+  usageLimit?: number;
+  usageCount: number;
+  createdAt: Date;
+  minPurchaseAmount?: number;
+}
+
 export default function ProposalBuilder() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -108,7 +133,7 @@ export default function ProposalBuilder() {
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   
   // Active tab state
-  const [activeTab, setActiveTab] = useState<'overview' | 'stakeholders' | 'info' | 'settings' | 'notes' | 'comments' | 'feedback' | 'activity' | 'presentation'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'packages' | 'stakeholders' | 'info' | 'settings' | 'notes' | 'comments' | 'feedback' | 'activity' | 'presentation'>('overview');
   
   // Public URL state
   const [showUrlModal, setShowUrlModal] = useState(false);
@@ -143,6 +168,15 @@ export default function ProposalBuilder() {
     { id: '3', name: 'Michael Chen', role: 'Project Manager', email: 'michael@greenenergy.co', phone: '(555) 456-7892', receiveProposals: false }
   ] : []);
   const [primaryContactId, setPrimaryContactId] = useState('1');
+  
+  // Packaged Pricing state
+  const [packages, setPackages] = useState<ProposalPackage[]>([]);
+  const [addOns, setAddOns] = useState<ProposalPackageAddOn[]>([]);
+  const [selectedTierPackageId, setSelectedTierPackageId] = useState<string | undefined>();
+  const [selectedAddOnPackageIds, setSelectedAddOnPackageIds] = useState<string[]>([]);
+  
+  // NEW: Package mode - determines if packages are the foundation or in addition to base items
+  const [packageMode, setPackageMode] = useState<'foundation' | 'addition'>('addition');
   
   // Deposit payment settings state
   const [depositPaymentSettings, setDepositPaymentSettings] = useState({
@@ -219,14 +253,15 @@ export default function ProposalBuilder() {
   interface Comment {
     id: string;
     author: string;
+    authorId?: string;
     avatar: string;
     text: string;
     timestamp: Date;
     mentions?: string[];
   }
   const [comments, setComments] = useState<Comment[]>([
-    { id: '1', author: 'Tanner Mullen', avatar: 'TM', text: 'Updated the pricing based on client feedback', timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000) },
-    { id: '2', author: 'Chris Palmer', avatar: 'CP', text: 'Client wants to see financing options included', timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000) }
+    { id: '1', author: 'Tanner Mullen', authorId: 'user-1', avatar: 'TM', text: 'Updated the pricing based on client feedback', timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000) },
+    { id: '2', author: 'Chris Palmer', authorId: 'user-2', avatar: 'CP', text: 'Client wants to see financing options included', timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000) }
   ]);
   const [newCommentText, setNewCommentText] = useState('');
   
@@ -237,11 +272,13 @@ export default function ProposalBuilder() {
     comment: string;
     lineItemId?: string;
     timestamp: Date;
-    status: 'pending' | 'resolved';
+    status: 'pending' | 'resolved' | 'acknowledged';
+    type: 'comment' | 'change-request';
   }
   const [feedbackItems, setFeedbackItems] = useState<Feedback[]>([
-    { id: '1', customerName: 'Robert Johnson', comment: 'Can we add an option for solar panel maintenance?', timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000), status: 'pending' },
-    { id: '2', customerName: 'Robert Johnson', comment: 'The timeline seems too long, can we expedite?', timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000), status: 'pending' }
+    { id: '1', customerName: 'Robert Johnson', comment: 'Can we add an option for solar panel maintenance?', timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000), status: 'pending', type: 'change-request' },
+    { id: '2', customerName: 'Robert Johnson', comment: 'The timeline seems too long, can we expedite?', timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000), status: 'pending', type: 'change-request' },
+    { id: '3', customerName: 'Robert Johnson', comment: 'This looks great, thank you!', timestamp: new Date(Date.now() - 30 * 60 * 1000), status: 'pending', type: 'comment' }
   ]);
   
   // Terms & Conditions Templates
@@ -281,6 +318,7 @@ export default function ProposalBuilder() {
   const [newItemUnitPrice, setNewItemUnitPrice] = useState('');
   const [newItemTax, setNewItemTax] = useState('');
   const [showItemNameDropdown, setShowItemNameDropdown] = useState(false);
+  const richText = useRef<RichEditor>(null);
 
   // Initialize with line item from job creation if provided
   React.useEffect(() => {
@@ -322,6 +360,267 @@ export default function ProposalBuilder() {
   // Milestone payments
   const [milestonePayments, setMilestonePayments] = useState<ProposalMilestone[]>([]);
   const [showMilestoneModal, setShowMilestoneModal] = useState(false);
+  
+  // NEW: Customer field actions state
+  const [expandedCustomerField, setExpandedCustomerField] = useState<string | null>(null);
+  
+  // NEW: Expiration settings state
+  const [expirationAction, setExpirationAction] = useState<'leave-open' | 'disable'>('leave-open');
+  
+  // NEW: Timed auto-discounts state
+  const [timedDiscountsEnabled, setTimedDiscountsEnabled] = useState(false);
+  const [timedDiscounts, setTimedDiscounts] = useState([
+    { id: '1', days: 5, type: 'percentage' as 'percentage' | 'fixed', value: 0, enabled: false },
+    { id: '2', days: 10, type: 'percentage' as 'percentage' | 'fixed', value: 0, enabled: false },
+    { id: '3', days: 30, type: 'percentage' as 'percentage' | 'fixed', value: 0, enabled: false },
+  ]);
+  
+  // NEW: Coupon codes state
+  const [allowCouponCodes, setAllowCouponCodes] = useState(false);
+  const [showCouponManagementModal, setShowCouponManagementModal] = useState(false);
+  const [couponCodes, setCouponCodes] = useState<CouponCode[]>([
+    // Sample coupon codes for testing
+    {
+      id: '1',
+      code: 'SUMMER25',
+      type: 'percentage',
+      value: 25,
+      description: 'Summer sale - 25% off',
+      expiresAt: new Date('2025-08-31'),
+      isActive: true,
+      usageLimit: 100,
+      usageCount: 23,
+      createdAt: new Date('2025-06-01'),
+      minPurchaseAmount: 1000,
+    },
+    {
+      id: '2',
+      code: 'FIRST500',
+      type: 'fixed',
+      value: 500,
+      description: 'First time customer discount',
+      isActive: true,
+      usageCount: 0,
+      createdAt: new Date('2025-01-01'),
+    },
+    {
+      id: '3',
+      code: 'EXPIRED10',
+      type: 'percentage',
+      value: 10,
+      description: 'Expired promotional code',
+      expiresAt: new Date('2025-01-31'),
+      isActive: false,
+      usageCount: 45,
+      createdAt: new Date('2024-12-01'),
+    },
+  ]);
+  const [showAddCouponModal, setShowAddCouponModal] = useState(false);
+  const [editingCoupon, setEditingCoupon] = useState<CouponCode | null>(null);
+  
+  // Coupon form states
+  const [couponFormCode, setCouponFormCode] = useState('');
+  const [couponFormType, setCouponFormType] = useState<'percentage' | 'fixed'>('percentage');
+  const [couponFormValue, setCouponFormValue] = useState('');
+  const [couponFormDescription, setCouponFormDescription] = useState('');
+  const [couponFormExpires, setCouponFormExpires] = useState(false);
+  const [couponFormExpiresAt, setCouponFormExpiresAt] = useState(new Date());
+  const [couponFormUsageLimit, setCouponFormUsageLimit] = useState(false);
+  const [couponFormUsageLimitValue, setCouponFormUsageLimitValue] = useState('');
+  const [couponFormMinPurchase, setCouponFormMinPurchase] = useState(false);
+  const [couponFormMinPurchaseValue, setCouponFormMinPurchaseValue] = useState('');
+  const [showCouponDatePicker, setShowCouponDatePicker] = useState(false);
+  
+  // NEW: Enhanced add item modal states
+  const [itemSelectionMode, setItemSelectionMode] = useState<'search' | 'custom'>('search');
+  const [productSearchQuery, setProductSearchQuery] = useState('');
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [showSaveAsTemplate, setShowSaveAsTemplate] = useState(false);
+  const [showProductUpdateModal, setShowProductUpdateModal] = useState(false);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [itemPackageAssignments, setItemPackageAssignments] = useState<Record<string, string[]>>({});
+  
+  // NEW: Products/services list with HTML descriptions
+  const [products] = useState([
+    { 
+      id: '1', 
+      name: 'Solar Panel Installation', 
+      category: 'Solar', 
+      price: 5000, 
+      description: '<p><strong>Complete solar panel installation package including:</strong></p><ul><li>High-efficiency solar panels</li><li>Professional installation and mounting</li><li>Inverter system setup</li><li>Full electrical integration</li><li>System monitoring setup</li><li>25-year warranty included</li></ul>'
+    },
+    { 
+      id: '2', 
+      name: 'Electrical Work', 
+      category: 'Electrical', 
+      price: 2500, 
+      description: '<p><strong>General electrical services:</strong></p><ul><li>Circuit breaker installation</li><li>Outlet and switch replacement</li><li>Lighting fixture installation</li><li>Code compliance inspection</li><li>Safety testing</li></ul>'
+    },
+    { 
+      id: '3', 
+      name: 'HVAC Installation', 
+      category: 'HVAC', 
+      price: 4500, 
+      description: '<p><strong>Complete HVAC system installation:</strong></p><ul><li>New central AC unit</li><li>Furnace installation</li><li>Ductwork inspection and repair</li><li>Thermostat installation</li><li>System testing and calibration</li><li>10-year parts warranty</li></ul>'
+    },
+    { 
+      id: '4', 
+      name: 'Roofing - Shingle Replacement', 
+      category: 'Roofing', 
+      price: 8000, 
+      description: '<p><strong>Complete roof shingle replacement including:</strong></p><ul><li>Removal of old shingles</li><li>Premium architectural shingles</li><li>Underlayment installation</li><li>Flashing replacement</li><li>Ventilation system check</li><li>Gutter inspection</li><li>30-year material warranty</li></ul>'
+    },
+    { 
+      id: '5', 
+      name: 'Kitchen Remodel', 
+      category: 'Remodeling', 
+      price: 15000, 
+      description: '<p><strong>Full kitchen renovation package:</strong></p><ul><li>Custom cabinetry installation</li><li>Granite or quartz countertops</li><li>Appliance installation</li><li>Tile backsplash</li><li>Plumbing and electrical updates</li><li>Lighting upgrades</li><li>Paint and finishing</li></ul>'
+    },
+    { 
+      id: '6', 
+      name: 'Bathroom Remodel', 
+      category: 'Remodeling', 
+      price: 10000, 
+      description: '<p><strong>Full bathroom renovation:</strong></p><ul><li>New vanity and fixtures</li><li>Tile flooring and shower</li><li>Modern plumbing fixtures</li><li>Lighting upgrades</li><li>Ventilation fan</li><li>Paint and finishing work</li></ul>'
+    },
+    { 
+      id: '7', 
+      name: 'Flooring Installation', 
+      category: 'Flooring', 
+      price: 3500, 
+      description: '<p><strong>Hardwood flooring installation:</strong></p><ul><li>Premium hardwood materials</li><li>Subfloor preparation</li><li>Professional installation</li><li>Sanding and finishing</li><li>Baseboards and trim</li><li>15-year warranty</li></ul>'
+    },
+    { 
+      id: '8', 
+      name: 'Painting - Interior', 
+      category: 'Painting', 
+      price: 2000, 
+      description: '<p><strong>Interior painting services include:</strong></p><ul><li>Surface preparation</li><li>Premium paint (2 coats)</li><li>Trim and ceiling painting</li><li>Wall repair and patching</li><li>Furniture protection</li><li>Cleanup and disposal</li></ul>'
+    },
+    { 
+      id: '9', 
+      name: 'Plumbing Services', 
+      category: 'Plumbing', 
+      price: 1500, 
+      description: '<p><strong>General plumbing work:</strong></p><ul><li>Fixture installation</li><li>Pipe repair and replacement</li><li>Drain cleaning</li><li>Water heater service</li><li>Leak detection and repair</li><li>Emergency service available</li></ul>'
+    },
+    { 
+      id: '10', 
+      name: 'Window Replacement', 
+      category: 'Windows', 
+      price: 5500, 
+      description: '<p><strong>Complete window replacement:</strong></p><ul><li>Energy-efficient vinyl windows</li><li>Professional installation</li><li>Trim and caulking</li><li>Old window removal and disposal</li><li>Insulation upgrade</li><li>Lifetime warranty</li></ul>'
+    },
+  ]);
+  
+  // NEW: Notes modal states
+  const [showCrewNotesModal, setShowCrewNotesModal] = useState(false);
+  const [showCompanyNotesModal, setShowCompanyNotesModal] = useState(false);
+  const [showClientNotesModal, setShowClientNotesModal] = useState(false);
+  const [showCreateTemplateModal, setShowCreateTemplateModal] = useState(false);
+  const [templateType, setTemplateType] = useState<'crew' | 'company' | 'client'>('crew');
+  const [newTemplateName, setNewTemplateName] = useState('');
+  const [newTemplateContent, setNewTemplateContent] = useState('');
+  
+  // NEW: Current user ID (for comment deletion permission)
+  const currentUserId = 'user-1'; // In production, get from auth context
+  
+  // NEW: Feedback workflow states
+  const [showResolutionModal, setShowResolutionModal] = useState(false);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [selectedFeedback, setSelectedFeedback] = useState<Feedback | null>(null);
+  const [resolutionMessage, setResolutionMessage] = useState('Great news! We\'ve updated your proposal with the changes you requested. Please review the updated proposal at your convenience.');
+  const [receiptMessage, setReceiptMessage] = useState('Thank you for your feedback. We\'ve received your change request and will update your proposal shortly. We\'ll notify you once the changes are made.');
+  const [sendResolutionSMS, setSendResolutionSMS] = useState(true);
+  const [sendResolutionEmail, setSendResolutionEmail] = useState(true);
+  const [sendReceiptSMS, setSendReceiptSMS] = useState(true);
+  const [sendReceiptEmail, setSendReceiptEmail] = useState(true);
+  
+  // NEW: Activity tracking
+  interface ProposalActivity {
+    id: string;
+    type: 'created' | 'sent' | 'viewed' | 'edited' | 'line_item_added' | 'line_item_removed' | 
+          'feedback_received' | 'status_changed' | 'payment_received' | 'scheduled' | 'accepted' | 'rejected';
+    user: string;
+    userId?: string;
+    description: string;
+    timestamp: Date;
+    metadata?: any;
+  }
+  
+  const [activities] = useState<ProposalActivity[]>([
+    {
+      id: '1',
+      type: 'created',
+      user: 'Tanner Mullen',
+      description: 'Proposal created',
+      timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+    },
+    {
+      id: '2',
+      type: 'line_item_added',
+      user: 'Tanner Mullen',
+      description: 'Added line item: Solar Panel Installation',
+      timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000 + 30 * 60 * 1000),
+    },
+    {
+      id: '3',
+      type: 'line_item_added',
+      user: 'Tanner Mullen',
+      description: 'Added line item: Electrical Work',
+      timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000 + 45 * 60 * 1000),
+    },
+    {
+      id: '4',
+      type: 'edited',
+      user: 'Chris Palmer',
+      description: 'Updated proposal pricing',
+      timestamp: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000),
+    },
+    {
+      id: '5',
+      type: 'sent',
+      user: 'Steve Johnson',
+      description: 'Proposal sent to customer at 4:45 PM',
+      timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000 + 4 * 60 * 60 * 1000 + 45 * 60 * 1000),
+    },
+    {
+      id: '6',
+      type: 'viewed',
+      user: 'Robert Chen',
+      description: 'Customer viewed proposal',
+      timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000 + 6 * 60 * 60 * 1000),
+    },
+    {
+      id: '7',
+      type: 'feedback_received',
+      user: 'Robert Chen',
+      description: 'Customer requested changes to line item pricing',
+      timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+    },
+    {
+      id: '8',
+      type: 'line_item_removed',
+      user: 'Tanner Mullen',
+      description: 'Removed optional item: Maintenance Package',
+      timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+    },
+    {
+      id: '9',
+      type: 'status_changed',
+      user: 'System',
+      description: 'Status changed from Sent to Under Review',
+      timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000),
+    },
+    {
+      id: '10',
+      type: 'scheduled',
+      user: 'Chris Palmer',
+      description: 'Follow-up scheduled for tomorrow',
+      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
+    },
+  ]);
   
   // Calculations
   const standardItems = lineItems.filter(item => !item.isOptional);
@@ -448,6 +747,32 @@ export default function ProposalBuilder() {
     person.toLowerCase().includes(salespersonSearch.toLowerCase())
   );
 
+  // NEW: Sync package items to overview line items
+  React.useEffect(() => {
+    packages.forEach(pkg => {
+      pkg.items.forEach(pkgItem => {
+        const existsInLineItems = lineItems.some(li => li.id === pkgItem.id);
+        if (!existsInLineItems) {
+          setLineItems(prev => [...prev, pkgItem]);
+        }
+      });
+    });
+  }, [packages]);
+
+  // NEW: Initialize package assignments from existing packages
+  React.useEffect(() => {
+    const assignments: Record<string, string[]> = {};
+    packages.forEach(pkg => {
+      pkg.items.forEach(item => {
+        if (!assignments[item.id]) {
+          assignments[item.id] = [];
+        }
+        assignments[item.id].push(pkg.id);
+      });
+    });
+    setItemPackageAssignments(assignments);
+  }, [packages]);
+
   const handleEditJobInfo = () => {
     // Initialize edit state with current values
     // Parse existing job address if available
@@ -507,6 +832,13 @@ export default function ProposalBuilder() {
   };
   
   const handleAddLineItem = () => {
+    // Check for product changes before adding
+    if (selectedProduct && itemSelectionMode === 'search') {
+      handleAddItemClick();
+      return;
+    }
+    
+    // Original add logic for custom items
     const quantity = parseFloat(newItemQuantity) || 0;
     const unitPrice = parseFloat(newItemUnitPrice) || 0;
     const taxRate = parseFloat(newItemTax) || 0;
@@ -527,7 +859,18 @@ export default function ProposalBuilder() {
     };
     
     setLineItems([...lineItems, newItem]);
+    
+    // Handle saving as template if checked
+    if (showSaveAsTemplate && itemSelectionMode === 'custom') {
+      handleSaveAsTemplate();
+    }
+    
+    // Reset all modal states
     setShowAddItemModal(false);
+    setItemSelectionMode('search');
+    setSelectedProduct(null);
+    setProductSearchQuery('');
+    setShowSaveAsTemplate(false);
   };
   
   const removeLineItem = (id: string) => {
@@ -569,16 +912,46 @@ export default function ProposalBuilder() {
   };
 
   const renderTabBar = () => {
-    const tabs = [
-      { id: 'overview', label: 'Overview', icon: FileText },
-      ...(isBusiness ? [{ id: 'stakeholders', label: 'Stakeholders', icon: Users }] : []),
-      { id: 'info', label: 'Info', icon: FileText },
-      { id: 'settings', label: 'Settings', icon: Settings },
-      { id: 'notes', label: 'Notes', icon: FileText },
-      { id: 'comments', label: 'Comments', icon: MessageSquare },
-      { id: 'feedback', label: 'Feedback', icon: AlertCircle },
-      { id: 'activity', label: 'Activity', icon: Clock },
-      { id: 'presentation', label: 'Present', icon: Presentation },
+    // Organize tabs into sections with distinct colors
+    const tabSections = [
+      {
+        name: 'Core',
+        color: '#6366F1', // Indigo
+        bgColor: '#EEF2FF',
+        tabs: [
+          { id: 'overview', label: 'Overview', icon: FileText },
+          { id: 'packages', label: 'Packages', icon: Package },
+          ...(isBusiness ? [{ id: 'stakeholders', label: 'Stakeholders', icon: Users }] : []),
+        ]
+      },
+      {
+        name: 'Details',
+        color: '#0891B2', // Cyan
+        bgColor: '#ECFEFF',
+        tabs: [
+          { id: 'info', label: 'Info', icon: FileText },
+          { id: 'settings', label: 'Settings', icon: Settings },
+        ]
+      },
+      {
+        name: 'Communication',
+        color: '#059669', // Emerald
+        bgColor: '#ECFDF5',
+        tabs: [
+          { id: 'notes', label: 'Notes', icon: FileText },
+          { id: 'comments', label: 'Comments', icon: MessageSquare },
+          { id: 'feedback', label: 'Feedback', icon: AlertCircle },
+        ]
+      },
+      {
+        name: 'Actions',
+        color: '#EA580C', // Orange
+        bgColor: '#FFF7ED',
+        tabs: [
+          { id: 'activity', label: 'Activity', icon: Clock },
+          { id: 'presentation', label: 'Present', icon: Presentation },
+        ]
+      }
     ];
 
     return (
@@ -588,28 +961,37 @@ export default function ProposalBuilder() {
         style={styles.tabBar}
         contentContainerStyle={styles.tabBarContent}
       >
-        {tabs.map((tab) => (
-          <TouchableOpacity
-            key={tab.id}
-            style={[
-              styles.tab,
-              activeTab === tab.id && styles.tabActive,
-            ]}
-            onPress={() => setActiveTab(tab.id as any)}
-          >
-            <tab.icon
-              size={16}
-              color={activeTab === tab.id ? '#6366F1' : '#6B7280'}
-            />
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === tab.id && styles.tabTextActive,
-              ]}
-            >
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
+        {tabSections.map((section, sectionIndex) => (
+          <View key={section.name} style={styles.tabSection}>
+            {section.tabs.map((tab, tabIndex) => (
+              <TouchableOpacity
+                key={tab.id}
+                style={[
+                  styles.tab,
+                  { backgroundColor: activeTab === tab.id ? section.bgColor : 'transparent' },
+                  activeTab === tab.id && { borderBottomColor: section.color },
+                ]}
+                onPress={() => setActiveTab(tab.id as any)}
+              >
+                <tab.icon
+                  size={16}
+                  color={activeTab === tab.id ? section.color : '#6B7280'}
+                />
+                <Text
+                  style={[
+                    styles.tabText,
+                    activeTab === tab.id && { color: section.color, fontWeight: '600' },
+                  ]}
+                >
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+            {/* Section divider */}
+            {sectionIndex < tabSections.length - 1 && (
+              <View style={styles.tabSectionDivider} />
+            )}
+          </View>
         ))}
       </ScrollView>
     );
@@ -638,7 +1020,37 @@ export default function ProposalBuilder() {
                 <Text style={styles.lineItemName}>{item.name}</Text>
                 <Text style={styles.lineItemTotal}>{formatCurrency(item.totalPrice)}</Text>
               </View>
-              <Text style={styles.lineItemDescription}>{item.description}</Text>
+              {item.description && (
+                <WebView
+                  originWhitelist={['*']}
+                  source={{ html: `
+                    <!DOCTYPE html>
+                    <html>
+                      <head>
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+                        <style>
+                          body { 
+                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                            font-size: 14px; 
+                            color: #6B7280; 
+                            margin: 0; 
+                            padding: 4px 0;
+                            line-height: 1.4;
+                          }
+                          p { margin: 0 0 4px 0; }
+                          ul, ol { margin: 4px 0; padding-left: 20px; }
+                          li { margin: 2px 0; }
+                          strong { color: #111827; }
+                        </style>
+                      </head>
+                      <body>${item.description}</body>
+                    </html>
+                  ` }}
+                  style={{ height: 60, backgroundColor: 'transparent' }}
+                  scrollEnabled={false}
+                  showsVerticalScrollIndicator={false}
+                />
+              )}
               <Text style={styles.lineItemText}>
                 Quantity: {item.quantity} × {formatCurrency(item.unitPrice)}
               </Text>
@@ -660,7 +1072,37 @@ export default function ProposalBuilder() {
                 <Text style={styles.lineItemName}>{item.name}</Text>
                 <Text style={styles.lineItemTotal}>{formatCurrency(item.totalPrice)}</Text>
               </View>
-              <Text style={styles.lineItemDescription}>{item.description}</Text>
+              {item.description && (
+                <WebView
+                  originWhitelist={['*']}
+                  source={{ html: `
+                    <!DOCTYPE html>
+                    <html>
+                      <head>
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+                        <style>
+                          body { 
+                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                            font-size: 14px; 
+                            color: #6B7280; 
+                            margin: 0; 
+                            padding: 4px 0;
+                            line-height: 1.4;
+                          }
+                          p { margin: 0 0 4px 0; }
+                          ul, ol { margin: 4px 0; padding-left: 20px; }
+                          li { margin: 2px 0; }
+                          strong { color: #111827; }
+                        </style>
+                      </head>
+                      <body>${item.description}</body>
+                    </html>
+                  ` }}
+                  style={{ height: 60, backgroundColor: 'transparent' }}
+                  scrollEnabled={false}
+                  showsVerticalScrollIndicator={false}
+                />
+              )}
               <Text style={styles.lineItemText}>
                 Quantity: {item.quantity} × {formatCurrency(item.unitPrice)}
               </Text>
@@ -737,6 +1179,17 @@ export default function ProposalBuilder() {
     </View>
   );
 
+  // NEW: Helper function to get tier badges for items that appear in multiple packages
+  const getItemTierBadges = (itemName: string): number[] => {
+    const tiers: number[] = [];
+    packages.forEach((pkg, index) => {
+      if (pkg.items.some(item => item.name === itemName)) {
+        tiers.push(index + 1);
+      }
+    });
+    return tiers;
+  };
+
   const renderOverviewTab = () => (
     <View style={styles.tabContent}>
       {/* Line Items Section */}
@@ -755,23 +1208,165 @@ export default function ProposalBuilder() {
           </View>
         </View>
 
-        {lineItems.filter(item => !item.isOptional).map((item) => (
-          <View key={item.id} style={styles.lineItem}>
-            <View style={styles.lineItemHeader}>
-              <Text style={styles.lineItemName}>{item.name}</Text>
-              <TouchableOpacity onPress={() => removeLineItem(item.id)}>
-                <Trash2 size={18} color="#EF4444" />
-              </TouchableOpacity>
+        {/* NEW: Package Detection Indicator */}
+        {packages.length > 0 && (
+          <View style={[
+            styles.packageDetectionBanner,
+            packageMode === 'foundation' && styles.packageDetectionBannerFoundation
+          ]}>
+            <View style={styles.packageDetectionContent}>
+              <Package size={20} color={packageMode === 'foundation' ? '#DC2626' : '#F59E0B'} />
+              <View style={styles.packageDetectionText}>
+                <Text style={[
+                  styles.packageDetectionTitle,
+                  packageMode === 'foundation' && styles.packageDetectionTitleFoundation
+                ]}>
+                  📦 {packages.length} Package{packages.length > 1 ? 's' : ''} Detected
+                </Text>
+                <Text style={styles.packageDetectionSubtext}>
+                  {packageMode === 'foundation' 
+                    ? 'Customers choose a package, line items do not get approved separately'
+                    : 'Packages are additions - customers approve items, then choose a package'}
+                </Text>
+              </View>
             </View>
-            <Text style={styles.lineItemDescription}>{item.description}</Text>
+            <TouchableOpacity 
+              style={[
+                styles.packageModeToggle,
+                packageMode === 'foundation' && styles.packageModeToggleFoundation
+              ]}
+              onPress={() => setPackageMode(packageMode === 'foundation' ? 'addition' : 'foundation')}
+            >
+              <Text style={styles.packageModeToggleText}>
+                {packageMode === 'foundation' ? 'Switch to Addition' : 'Switch to Foundation'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {lineItems.filter(item => !item.isOptional).map((item) => {
+          const tierBadges = getItemTierBadges(item.name);
+          const isUnassigned = packageMode === 'foundation' && tierBadges.length === 0;
+          const isExpanded = editingItemId === item.id;
+          
+          return (
+          <View key={item.id}>
+            <TouchableOpacity 
+              onPress={() => packages.length > 0 ? setEditingItemId(isExpanded ? null : item.id) : null}
+              activeOpacity={packages.length > 0 ? 0.7 : 1}
+            >
+              <View style={[
+                styles.lineItem,
+                isUnassigned && styles.lineItemUnassigned
+              ]}>
+                <View style={styles.lineItemHeader}>
+                  <View style={styles.lineItemNameRow}>
+                    {isUnassigned && (
+                      <AlertCircle size={16} color="#DC2626" />
+                    )}
+                    <Text style={styles.lineItemName}>{item.name}</Text>
+                    {isUnassigned && (
+                      <View style={styles.unassignedBadge}>
+                        <Text style={styles.unassignedBadgeText}>Unassigned</Text>
+                      </View>
+                    )}
+                    {tierBadges.length > 0 && (
+                      <View style={styles.tierBadgesContainer}>
+                        {tierBadges.map((tier) => (
+                          <View key={tier} style={styles.tierBadge}>
+                            <Text style={styles.tierBadgeText}>Tier {tier}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                  <TouchableOpacity onPress={() => removeLineItem(item.id)}>
+                    <Trash2 size={18} color="#EF4444" />
+                  </TouchableOpacity>
+                </View>
+            {item.description && (
+              <View style={styles.lineItemDescriptionContainer}>
+                <WebView
+                  originWhitelist={['*']}
+                  source={{ html: `
+                    <!DOCTYPE html>
+                    <html>
+                      <head>
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+                        <style>
+                          body { 
+                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                            font-size: 14px; 
+                            color: #6B7280; 
+                            margin: 0; 
+                            padding: 4px 0;
+                            line-height: 1.4;
+                          }
+                          p { margin: 0 0 4px 0; }
+                          ul, ol { margin: 4px 0; padding-left: 20px; }
+                          li { margin: 2px 0; }
+                          strong { color: #111827; }
+                        </style>
+                      </head>
+                      <body>${item.description}</body>
+                    </html>
+                  ` }}
+                  style={{ height: 60, backgroundColor: 'transparent' }}
+                  scrollEnabled={false}
+                  showsVerticalScrollIndicator={false}
+                />
+              </View>
+            )}
             <View style={styles.lineItemDetails}>
               <Text style={styles.lineItemText}>
                 Qty: {item.quantity} × {formatCurrency(item.unitPrice)}
               </Text>
               <Text style={styles.lineItemTotal}>{formatCurrency(item.totalPrice)}</Text>
             </View>
+              </View>
+            </TouchableOpacity>
+
+            {/* Package Assignment Section */}
+            {isExpanded && packages.length > 0 && (
+              <View style={styles.packageAssignmentSection}>
+                <Text style={styles.packageAssignmentTitle}>
+                  Assign to Packages
+                  {packageMode === 'foundation' && (
+                    <Text style={styles.requiredIndicator}> (Required)</Text>
+                  )}
+                </Text>
+                <Text style={styles.packageAssignmentHelper}>
+                  Select which package(s) should include this item
+                </Text>
+                
+                {packages.map((pkg) => (
+                  <TouchableOpacity
+                    key={pkg.id}
+                    style={styles.packageCheckboxRow}
+                    onPress={() => togglePackageAssignment(item.id, pkg.id)}
+                  >
+                    <View style={[
+                      styles.checkbox,
+                      itemPackageAssignments[item.id]?.includes(pkg.id) && styles.checkboxActive
+                    ]}>
+                      {itemPackageAssignments[item.id]?.includes(pkg.id) && (
+                        <Check size={14} color="#FFFFFF" />
+                      )}
+                    </View>
+                    <View style={[styles.colorDot, { backgroundColor: pkg.color || '#6B7280' }]} />
+                    <Text style={styles.packageCheckboxLabel}>{pkg.name}</Text>
+                    <View style={styles.packageTypeBadge}>
+                      <Text style={styles.packageTypeBadgeText}>
+                        {pkg.packageType === 'tier' ? 'Tier' : 'Add-On'}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
           </View>
-        ))}
+          );
+        })}
 
         {lineItems.filter(item => !item.isOptional).length === 0 && (
           <View style={styles.emptyState}>
@@ -796,7 +1391,37 @@ export default function ProposalBuilder() {
                   <Trash2 size={18} color="#EF4444" />
                 </TouchableOpacity>
               </View>
-              <Text style={styles.lineItemDescription}>{item.description}</Text>
+              {item.description && (
+                <WebView
+                  originWhitelist={['*']}
+                  source={{ html: `
+                    <!DOCTYPE html>
+                    <html>
+                      <head>
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+                        <style>
+                          body { 
+                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                            font-size: 14px; 
+                            color: #6B7280; 
+                            margin: 0; 
+                            padding: 4px 0;
+                            line-height: 1.4;
+                          }
+                          p { margin: 0 0 4px 0; }
+                          ul, ol { margin: 4px 0; padding-left: 20px; }
+                          li { margin: 2px 0; }
+                          strong { color: #111827; }
+                        </style>
+                      </head>
+                      <body>${item.description}</body>
+                    </html>
+                  ` }}
+                  style={{ height: 60, backgroundColor: 'transparent' }}
+                  scrollEnabled={false}
+                  showsVerticalScrollIndicator={false}
+                />
+              )}
               <View style={styles.lineItemDetails}>
                 <Text style={styles.lineItemText}>
                   Qty: {item.quantity} × {formatCurrency(item.unitPrice)}
@@ -994,6 +1619,161 @@ export default function ProposalBuilder() {
           />
         </View>
         </View>
+
+      {/* NEW: Expiration Behavior */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Expiration Behavior</Text>
+        <Text style={styles.sectionSubtitle}>What happens when proposal expires?</Text>
+        
+        <TouchableOpacity 
+          style={[styles.optionCard, expirationAction === 'leave-open' && styles.optionCardActive]}
+          onPress={() => setExpirationAction('leave-open')}
+        >
+          <View style={styles.optionLeft}>
+            <Clock size={20} color="#10B981" />
+            <View style={styles.optionContent}>
+              <Text style={styles.optionTitle}>Leave Open (Default)</Text>
+              <Text style={styles.optionDescription}>Customer can still accept after expiration</Text>
+            </View>
+          </View>
+          {expirationAction === 'leave-open' && <CheckCircle size={20} color="#6366F1" />}
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[styles.optionCard, expirationAction === 'disable' && styles.optionCardActive]}
+          onPress={() => setExpirationAction('disable')}
+        >
+          <View style={styles.optionLeft}>
+            <XCircle size={20} color="#EF4444" />
+            <View style={styles.optionContent}>
+              <Text style={styles.optionTitle}>Disable Proposal</Text>
+              <Text style={styles.optionDescription}>Proposal becomes inactive after expiration</Text>
+            </View>
+          </View>
+          {expirationAction === 'disable' && <CheckCircle size={20} color="#6366F1" />}
+        </TouchableOpacity>
+      </View>
+
+      {/* NEW: Timed Auto-Discounts */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <View>
+            <Text style={styles.sectionTitle}>Timed Auto-Discounts</Text>
+            <Text style={styles.sectionSubtitle}>Automatically apply discounts after proposal is sent</Text>
+          </View>
+          <Switch
+            value={timedDiscountsEnabled}
+            onValueChange={setTimedDiscountsEnabled}
+          />
+        </View>
+
+        {timedDiscountsEnabled && (
+          <View style={styles.timedDiscountsContainer}>
+            {timedDiscounts.map((discount, index) => (
+              <View key={discount.id} style={styles.timedDiscountCard}>
+                <View style={styles.timedDiscountHeader}>
+                  <Text style={styles.timedDiscountLabel}>
+                    {discount.days} days after proposal sent
+                  </Text>
+                  <Switch
+                    value={discount.enabled}
+                    onValueChange={(val) => updateTimedDiscount(index, 'enabled', val)}
+                  />
+                </View>
+                
+                {discount.enabled && (
+                  <View style={styles.timedDiscountSettings}>
+                    {/* Type Toggle */}
+                    <View style={styles.discountTypeRow}>
+                      <TouchableOpacity 
+                        style={[styles.discountTypeButton, discount.type === 'percentage' && styles.discountTypeButtonActive]}
+                        onPress={() => updateTimedDiscount(index, 'type', 'percentage')}
+                      >
+                        <Percent size={16} color={discount.type === 'percentage' ? '#FFFFFF' : '#6366F1'} />
+                        <Text style={[styles.discountTypeText, discount.type === 'percentage' && styles.discountTypeTextActive]}>
+                          Percentage
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={[styles.discountTypeButton, discount.type === 'fixed' && styles.discountTypeButtonActive]}
+                        onPress={() => updateTimedDiscount(index, 'type', 'fixed')}
+                      >
+                        <DollarSign size={16} color={discount.type === 'fixed' ? '#FFFFFF' : '#6366F1'} />
+                        <Text style={[styles.discountTypeText, discount.type === 'fixed' && styles.discountTypeTextActive]}>
+                          Fixed Amount
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                    
+                    {/* Value Input */}
+                    <View style={styles.discountValueRow}>
+                      <Text style={styles.discountValueLabel}>
+                        {discount.type === 'percentage' ? 'Discount %:' : 'Discount Amount:'}
+                      </Text>
+                      <TextInput
+                        style={styles.discountValueInput}
+                        placeholder={discount.type === 'percentage' ? '10' : '500'}
+                        placeholderTextColor="#9CA3AF"
+                        keyboardType="numeric"
+                        value={discount.value > 0 ? discount.value.toString() : ''}
+                        onChangeText={(val) => updateTimedDiscount(index, 'value', parseFloat(val) || 0)}
+                      />
+                      {discount.type === 'percentage' && <Text style={styles.discountValueSuffix}>%</Text>}
+                      {discount.type === 'fixed' && <Text style={styles.discountValueSuffix}>$</Text>}
+                    </View>
+                  </View>
+                )}
+              </View>
+            ))}
+            
+            <View style={styles.timedDiscountNote}>
+              <Text style={styles.timedDiscountNoteText}>
+                💡 Discounts will be automatically applied when the specified time period is reached.
+                Customer will receive a notification about the new discount.
+              </Text>
+            </View>
+          </View>
+        )}
+      </View>
+
+      {/* NEW: Coupon Code Toggle */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Coupon Codes</Text>
+        <View style={styles.settingsCard}>
+          <View style={styles.paymentOptionRow}>
+            <View style={styles.paymentOptionLeft}>
+              <Star size={20} color="#F59E0B" />
+              <View>
+                <Text style={styles.paymentOptionLabel}>Allow Coupon Codes</Text>
+                <Text style={styles.paymentOptionFee}>Show coupon code field in proposal viewer</Text>
+              </View>
+            </View>
+            <Switch
+              value={allowCouponCodes}
+              onValueChange={setAllowCouponCodes}
+            />
+          </View>
+          
+          {allowCouponCodes && (
+            <>
+              <View style={styles.financingInfoBox}>
+                <Text style={styles.financingInfoText}>
+                  When enabled, customers will see an "Add Coupon Code" field near the total in the proposal viewer.
+                </Text>
+              </View>
+              
+              <TouchableOpacity 
+                style={styles.manageCouponButton}
+                onPress={() => setShowCouponManagementModal(true)}
+              >
+                <Settings size={18} color="#6366F1" />
+                <Text style={styles.manageCouponButtonText}>Manage Coupon Codes</Text>
+                <ChevronRight size={18} color="#6366F1" />
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      </View>
 
       {/* Deposit Payment Methods */}
       <View style={styles.section}>
@@ -1259,7 +2039,7 @@ export default function ProposalBuilder() {
   );
 
   const renderStakeholdersTab = () => (
-    <View style={styles.tabContentContainer}>
+    <View style={styles.contentContainer}>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Stakeholders</Text>
         <View style={{ height: 16 }} />
@@ -1393,34 +2173,185 @@ export default function ProposalBuilder() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Customer Information</Text>
         
+        {/* Business Name */}
         {businessName && (
-          <View style={styles.contactInfoRow}>
+          <View>
+            <View style={styles.contactItem}>
             <Building2 size={18} color="#6B7280" />
-            <Text style={styles.contactInfoText}>{businessName}</Text>
+              <Text style={styles.contactItemText}>{businessName}</Text>
+              <TouchableOpacity 
+                style={styles.contactMenuButton}
+                onPress={() => handleToggleCustomerField('businessName')}
+              >
+                <MoreHorizontal size={16} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+            {expandedCustomerField === 'businessName' && (
+              <View style={styles.inlineActionMenu}>
+                <Text style={styles.quickActionsTitle}>Quick Actions</Text>
+                <TouchableOpacity 
+                  style={styles.inlineActionItem}
+                  onPress={() => {
+                    Alert.alert('View Business Record', 'Navigate to business detail page');
+                    setExpandedCustomerField(null);
+                  }}
+                >
+                  <Building2 size={16} color="#6366F1" />
+                  <Text style={styles.inlineActionText}>View Business Record</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         )}
         
-        <View style={styles.contactInfoRow}>
+        {/* Contact Name */}
+        <View>
+          <View style={styles.contactItem}>
           <User size={18} color="#6B7280" />
-          <Text style={styles.contactInfoText}>{contactName}</Text>
+            <Text style={styles.contactItemText}>{contactName}</Text>
+            <TouchableOpacity 
+              style={styles.contactMenuButton}
+              onPress={() => handleToggleCustomerField('contactName')}
+            >
+              <MoreHorizontal size={16} color="#6B7280" />
+            </TouchableOpacity>
+          </View>
+          {expandedCustomerField === 'contactName' && (
+            <View style={styles.inlineActionMenu}>
+              <Text style={styles.quickActionsTitle}>Quick Actions</Text>
+              <TouchableOpacity 
+                style={styles.inlineActionItem}
+                onPress={() => {
+                  Alert.alert('View Contact Record', 'Navigate to contact detail page');
+                  setExpandedCustomerField(null);
+                }}
+              >
+                <User size={16} color="#6366F1" />
+                <Text style={styles.inlineActionText}>View Contact Record</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
         
-        <View style={styles.contactInfoRow}>
+        {/* Email */}
+        <View>
+          <View style={styles.contactItem}>
           <Mail size={18} color="#6B7280" />
-          <Text style={styles.contactInfoText}>{contactEmail}</Text>
+            <Text style={styles.contactItemText}>{contactEmail}</Text>
+            <TouchableOpacity 
+              style={styles.contactMenuButton}
+              onPress={() => handleToggleCustomerField('email')}
+            >
+              <MoreHorizontal size={16} color="#6B7280" />
+            </TouchableOpacity>
+          </View>
+          {expandedCustomerField === 'email' && (
+            <View style={styles.inlineActionMenu}>
+              <Text style={styles.quickActionsTitle}>Quick Actions</Text>
+              <TouchableOpacity 
+                style={styles.inlineActionItem}
+                onPress={() => handleEmailAction(contactEmail)}
+              >
+                <Mail size={16} color="#6366F1" />
+                <Text style={styles.inlineActionText}>Send Email</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.inlineActionItem}
+                onPress={() => handleCopyToClipboard(contactEmail, 'Email')}
+              >
+                <FileText size={16} color="#6B7280" />
+                <Text style={styles.inlineActionText}>Copy Email</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.inlineActionItem}>
+                <Edit size={16} color="#6B7280" />
+                <Text style={styles.inlineActionText}>Edit Email</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
         
+        {/* Phone */}
         {contactPhone && (
-          <View style={styles.contactInfoRow}>
+          <View>
+            <View style={styles.contactItem}>
             <Phone size={18} color="#6B7280" />
-            <Text style={styles.contactInfoText}>{contactPhone}</Text>
+              <Text style={styles.contactItemText}>{contactPhone}</Text>
+              <TouchableOpacity 
+                style={styles.contactMenuButton}
+                onPress={() => handleToggleCustomerField('phone')}
+              >
+                <MoreHorizontal size={16} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+            {expandedCustomerField === 'phone' && (
+              <View style={styles.inlineActionMenu}>
+                <Text style={styles.quickActionsTitle}>Quick Actions</Text>
+                <TouchableOpacity 
+                  style={styles.inlineActionItem}
+                  onPress={() => handleCallAction(contactPhone)}
+                >
+                  <Phone size={16} color="#10B981" />
+                  <Text style={styles.inlineActionText}>Call</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.inlineActionItem}
+                  onPress={() => handleTextAction(contactPhone)}
+                >
+                  <MessageSquare size={16} color="#3B82F6" />
+                  <Text style={styles.inlineActionText}>Send Text</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.inlineActionItem}
+                  onPress={() => handleCopyToClipboard(contactPhone, 'Phone number')}
+                >
+                  <FileText size={16} color="#6B7280" />
+                  <Text style={styles.inlineActionText}>Copy Number</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.inlineActionItem}>
+                  <Edit size={16} color="#6B7280" />
+                  <Text style={styles.inlineActionText}>Edit Phone</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         )}
         
+        {/* Job Address */}
         {jobAddress && (
-          <View style={styles.contactInfoRow}>
+          <View>
+            <View style={styles.contactItem}>
             <MapPin size={18} color="#6B7280" />
-            <Text style={styles.contactInfoText}>{jobAddress}</Text>
+              <Text style={styles.contactItemText}>{jobAddress}</Text>
+              <TouchableOpacity 
+                style={styles.contactMenuButton}
+                onPress={() => handleToggleCustomerField('address')}
+              >
+                <MoreHorizontal size={16} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+            {expandedCustomerField === 'address' && (
+              <View style={styles.inlineActionMenu}>
+                <Text style={styles.quickActionsTitle}>Quick Actions</Text>
+                <TouchableOpacity 
+                  style={styles.inlineActionItem}
+                  onPress={() => handleNavigateAction(jobAddress)}
+                >
+                  <MapPin size={16} color="#007AFF" />
+                  <Text style={styles.inlineActionText}>Navigate</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.inlineActionItem}
+                  onPress={() => handleCopyToClipboard(jobAddress, 'Address')}
+                >
+                  <FileText size={16} color="#6B7280" />
+                  <Text style={styles.inlineActionText}>Copy Address</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.inlineActionItem}>
+                  <Edit size={16} color="#6B7280" />
+                  <Text style={styles.inlineActionText}>Edit Address</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         )}
       </View>
@@ -1514,12 +2445,388 @@ export default function ProposalBuilder() {
     return timestamp.toLocaleDateString();
   };
 
+  // NEW: Format activity timestamp for activity tab
+  const formatActivityTime = (timestamp: Date) => {
+    const now = new Date();
+    const diff = now.getTime() - timestamp.getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+    if (hours < 24) return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+    if (days === 1) return 'Yesterday';
+    if (days < 7) return `${days} days ago`;
+    return timestamp.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  // NEW: Get icon for activity type
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'created': return <FileText size={16} color="#6366F1" />;
+      case 'sent': return <Send size={16} color="#10B981" />;
+      case 'viewed': return <Eye size={16} color="#3B82F6" />;
+      case 'edited': return <Edit size={16} color="#F59E0B" />;
+      case 'line_item_added': return <Plus size={16} color="#10B981" />;
+      case 'line_item_removed': return <Minus size={16} color="#EF4444" />;
+      case 'feedback_received': return <MessageSquare size={16} color="#8B5CF6" />;
+      case 'status_changed': return <RefreshCw size={16} color="#6366F1" />;
+      case 'accepted': return <CheckCircle size={16} color="#10B981" />;
+      case 'rejected': return <XCircle size={16} color="#EF4444" />;
+      case 'scheduled': return <Calendar size={16} color="#8B5CF6" />;
+      default: return <Clock size={16} color="#6B7280" />;
+    }
+  };
+
+  // NEW: Handle customer field action menu toggle
+  const handleToggleCustomerField = (field: string) => {
+    setExpandedCustomerField(expandedCustomerField === field ? null : field);
+  };
+
+  // NEW: Handle clipboard copy
+  const handleCopyToClipboard = async (text: string, label: string) => {
+    await Clipboard.setStringAsync(text);
+    Alert.alert('Copied', `${label} copied to clipboard`);
+    setExpandedCustomerField(null);
+  };
+
+  // NEW: Handle call action
+  const handleCallAction = (phoneNumber: string) => {
+    RNLinking.openURL(`tel:${phoneNumber}`);
+    setExpandedCustomerField(null);
+  };
+
+  // NEW: Handle text/SMS action
+  const handleTextAction = (phoneNumber: string) => {
+    RNLinking.openURL(`sms:${phoneNumber}`);
+    setExpandedCustomerField(null);
+  };
+
+  // NEW: Handle email action
+  const handleEmailAction = (email: string) => {
+    RNLinking.openURL(`mailto:${email}`);
+    setExpandedCustomerField(null);
+  };
+
+  // NEW: Handle navigate/map action
+  const handleNavigateAction = (address: string) => {
+    const encodedAddress = encodeURIComponent(address);
+    RNLinking.openURL(`maps://maps.apple.com/?q=${encodedAddress}`);
+    setExpandedCustomerField(null);
+  };
+
+  // NEW: Handle feedback resolution
+  const handleSendResolution = () => {
+    if (!selectedFeedback) return;
+    
+    // In production, send actual SMS/Email here
+    Alert.alert(
+      'Resolution Sent',
+      `Notification sent to customer${sendResolutionSMS ? ' via SMS' : ''}${sendResolutionSMS && sendResolutionEmail ? ' and' : ''}${sendResolutionEmail ? ' via Email' : ''}.`
+    );
+    
+    // Mark feedback as resolved
+    setFeedbackItems(feedbackItems.map(f => 
+      f.id === selectedFeedback.id ? { ...f, status: 'resolved' as const } : f
+    ));
+    
+    setShowResolutionModal(false);
+    setSelectedFeedback(null);
+  };
+
+  // NEW: Toggle package assignment for line items
+  const togglePackageAssignment = (itemId: string, packageId: string) => {
+    setItemPackageAssignments(prev => {
+      const current = prev[itemId] || [];
+      const newAssignments = current.includes(packageId)
+        ? current.filter(id => id !== packageId)
+        : [...current, packageId];
+      
+      return { ...prev, [itemId]: newAssignments };
+    });
+    
+    // Sync with packages state - add/remove item from package
+    setPackages(prevPackages => {
+      return prevPackages.map(pkg => {
+        if (pkg.id === packageId) {
+          const item = lineItems.find(li => li.id === itemId);
+          if (!item) return pkg;
+          
+          const itemExists = pkg.items.some(i => i.id === itemId);
+          if (itemExists) {
+            // Remove item
+            return { ...pkg, items: pkg.items.filter(i => i.id !== itemId) };
+          } else {
+            // Add item - convert to ProposalPackageItem format
+            const packageItem = {
+              ...item,
+              category: 'General', // Default category for line items
+            };
+            return { ...pkg, items: [...pkg.items, packageItem] };
+          }
+        }
+        return pkg;
+      });
+    });
+  };
+
+  // NEW: Handle add item with product update detection
+  const handleAddItemClick = () => {
+    if (selectedProduct) {
+      const nameChanged = newItemName !== selectedProduct.name;
+      const descChanged = newItemDescription !== selectedProduct.description;
+      
+      if (nameChanged || descChanged) {
+        setShowProductUpdateModal(true);
+        return;
+      }
+    }
+    
+    // Proceed with normal add
+    confirmAddItem('create_new');
+  };
+
+  const confirmAddItem = (action: 'update_product' | 'create_new') => {
+    if (action === 'update_product') {
+      // In production, update the product in database
+      Alert.alert('Success', 'Product template updated successfully');
+    }
+    
+    // Add item to line items (existing logic)
+    const quantity = parseFloat(newItemQuantity) || 1;
+    const unitPrice = parseFloat(newItemUnitPrice) || 0;
+    const tax = parseFloat(newItemTax) || 0;
+    const total = quantity * unitPrice * (1 + tax / 100);
+
+    const newItem = {
+      id: Date.now().toString(),
+      name: newItemName,
+      description: newItemDescription,
+      quantity: quantity,
+      unitPrice: unitPrice,
+      totalPrice: total,
+      tax: tax,
+      isOptional: isAddingOptionalItem,
+      category: selectedProduct?.category || 'General',
+    };
+
+    setLineItems([...lineItems, newItem]);
+    
+    // Reset states
+    setShowProductUpdateModal(false);
+    setShowAddItemModal(false);
+    setNewItemName('');
+    setNewItemDescription('');
+    setNewItemQuantity('1');
+    setNewItemUnitPrice('');
+    setNewItemTax('');
+    setSelectedProduct(null);
+    setItemSelectionMode('search');
+  };
+
+  // NEW: Handle feedback receipt confirmation
+  const handleSendReceipt = () => {
+    if (!selectedFeedback) return;
+    
+    // In production, send actual SMS/Email here
+    Alert.alert(
+      'Receipt Confirmed',
+      `Confirmation sent to customer${sendReceiptSMS ? ' via SMS' : ''}${sendReceiptSMS && sendReceiptEmail ? ' and' : ''}${sendReceiptEmail ? ' via Email' : ''}.`
+    );
+    
+    // Mark feedback as acknowledged
+    setFeedbackItems(feedbackItems.map(f => 
+      f.id === selectedFeedback.id ? { ...f, status: 'acknowledged' as const } : f
+    ));
+    
+    setShowReceiptModal(false);
+    setSelectedFeedback(null);
+  };
+
+  // NEW: Update timed discount helper
+  const updateTimedDiscount = (index: number, field: string, value: any) => {
+    const updated = [...timedDiscounts];
+    updated[index] = { ...updated[index], [field]: value };
+    setTimedDiscounts(updated);
+  };
+
+  // NEW: Product search filter
+  const filteredProducts = products.filter(p => 
+    p.name.toLowerCase().includes(productSearchQuery.toLowerCase()) ||
+    p.category.toLowerCase().includes(productSearchQuery.toLowerCase()) ||
+    p.description.toLowerCase().includes(productSearchQuery.toLowerCase())
+  );
+
+  // NEW: Handle product selection
+  const handleSelectProduct = (product: any) => {
+    setSelectedProduct(product);
+    setNewItemName(product.name);
+    setNewItemDescription(product.description);
+    setNewItemUnitPrice(product.price.toString());
+    // Set HTML content in rich editor
+    richText.current?.setContentHTML(product.description);
+  };
+
+  // NEW: Handle save as template
+  const handleSaveAsTemplate = () => {
+    if (!newItemName || !newItemDescription || !newItemUnitPrice) {
+      Alert.alert('Missing Information', 'Please fill in all fields to save as template');
+      return;
+    }
+    
+    Alert.alert('Template Saved', `"${newItemName}" has been saved as a product template`);
+    // In production, save to products database
+  };
+
+  // NEW: Coupon helper functions
+  const isCouponExpired = (coupon: CouponCode): boolean => {
+    if (!coupon.expiresAt) return false;
+    return new Date() > new Date(coupon.expiresAt);
+  };
+
+  const isCouponUsageLimitReached = (coupon: CouponCode): boolean => {
+    if (!coupon.usageLimit) return false;
+    return coupon.usageCount >= coupon.usageLimit;
+  };
+
+  const getCouponStatus = (coupon: CouponCode): 'active' | 'expired' | 'inactive' | 'limit-reached' => {
+    if (!coupon.isActive) return 'inactive';
+    if (isCouponExpired(coupon)) return 'expired';
+    if (isCouponUsageLimitReached(coupon)) return 'limit-reached';
+    return 'active';
+  };
+
+  const formatCouponValue = (coupon: CouponCode): string => {
+    return coupon.type === 'percentage' 
+      ? `${coupon.value}% off` 
+      : `$${coupon.value.toFixed(2)} off`;
+  };
+
+  const resetCouponForm = () => {
+    setCouponFormCode('');
+    setCouponFormType('percentage');
+    setCouponFormValue('');
+    setCouponFormDescription('');
+    setCouponFormExpires(false);
+    setCouponFormExpiresAt(new Date());
+    setCouponFormUsageLimit(false);
+    setCouponFormUsageLimitValue('');
+    setCouponFormMinPurchase(false);
+    setCouponFormMinPurchaseValue('');
+  };
+
+  const handleEditCoupon = (coupon: CouponCode) => {
+    setEditingCoupon(coupon);
+    setCouponFormCode(coupon.code);
+    setCouponFormType(coupon.type);
+    setCouponFormValue(coupon.value.toString());
+    setCouponFormDescription(coupon.description || '');
+    setCouponFormExpires(!!coupon.expiresAt);
+    setCouponFormExpiresAt(coupon.expiresAt || new Date());
+    setCouponFormUsageLimit(!!coupon.usageLimit);
+    setCouponFormUsageLimitValue(coupon.usageLimit?.toString() || '');
+    setCouponFormMinPurchase(!!coupon.minPurchaseAmount);
+    setCouponFormMinPurchaseValue(coupon.minPurchaseAmount?.toString() || '');
+    setShowAddCouponModal(true);
+  };
+
+  const handleCreateCoupon = () => {
+    if (!couponFormCode.trim() || !couponFormValue) {
+      Alert.alert('Missing Information', 'Please enter a coupon code and discount value');
+      return;
+    }
+
+    // Check for duplicate code
+    if (couponCodes.some(c => c.code.toUpperCase() === couponFormCode.toUpperCase() && (!editingCoupon || c.id !== editingCoupon.id))) {
+      Alert.alert('Duplicate Code', 'A coupon with this code already exists');
+      return;
+    }
+
+    const newCoupon: CouponCode = {
+      id: Date.now().toString(),
+      code: couponFormCode.toUpperCase(),
+      type: couponFormType,
+      value: parseFloat(couponFormValue),
+      description: couponFormDescription,
+      expiresAt: couponFormExpires ? couponFormExpiresAt : undefined,
+      isActive: true,
+      usageLimit: couponFormUsageLimit ? parseInt(couponFormUsageLimitValue) : undefined,
+      usageCount: 0,
+      createdAt: new Date(),
+      minPurchaseAmount: couponFormMinPurchase ? parseFloat(couponFormMinPurchaseValue) : undefined,
+    };
+    
+    setCouponCodes([...couponCodes, newCoupon]);
+    resetCouponForm();
+    setShowAddCouponModal(false);
+    Alert.alert('Success', 'Coupon code created successfully');
+  };
+
+  const handleUpdateCoupon = () => {
+    if (!editingCoupon) return;
+
+    if (!couponFormCode.trim() || !couponFormValue) {
+      Alert.alert('Missing Information', 'Please enter a coupon code and discount value');
+      return;
+    }
+
+    // Check for duplicate code
+    if (couponCodes.some(c => c.code.toUpperCase() === couponFormCode.toUpperCase() && c.id !== editingCoupon.id)) {
+      Alert.alert('Duplicate Code', 'A coupon with this code already exists');
+      return;
+    }
+    
+    setCouponCodes(couponCodes.map(c => 
+      c.id === editingCoupon.id ? {
+        ...c,
+        code: couponFormCode.toUpperCase(),
+        type: couponFormType,
+        value: parseFloat(couponFormValue),
+        description: couponFormDescription,
+        expiresAt: couponFormExpires ? couponFormExpiresAt : undefined,
+        usageLimit: couponFormUsageLimit ? parseInt(couponFormUsageLimitValue) : undefined,
+        minPurchaseAmount: couponFormMinPurchase ? parseFloat(couponFormMinPurchaseValue) : undefined,
+      } : c
+    ));
+    
+    resetCouponForm();
+    setEditingCoupon(null);
+    setShowAddCouponModal(false);
+    Alert.alert('Success', 'Coupon code updated successfully');
+  };
+
+  const handleToggleCouponActive = (id: string) => {
+    setCouponCodes(couponCodes.map(c => 
+      c.id === id ? { ...c, isActive: !c.isActive } : c
+    ));
+  };
+
+  const handleDeleteCoupon = (id: string) => {
+    Alert.alert(
+      'Delete Coupon',
+      'Are you sure you want to delete this coupon code?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: () => {
+            setCouponCodes(couponCodes.filter(c => c.id !== id));
+            Alert.alert('Deleted', 'Coupon code has been deleted');
+          }
+        }
+      ]
+    );
+  };
+
   const addComment = () => {
     if (!newCommentText.trim()) return;
     
     const newComment: Comment = {
       id: Date.now().toString(),
       author: 'Tanner Mullen', // Current user
+      authorId: currentUserId,
       avatar: 'TM',
       text: newCommentText,
       timestamp: new Date()
@@ -1549,9 +2856,11 @@ export default function ProposalBuilder() {
                 <Text style={styles.commentAuthor}>{comment.author}</Text>
                 <Text style={styles.commentTime}>{formatTimeAgo(comment.timestamp)}</Text>
               </View>
+              {comment.authorId === currentUserId && (
               <TouchableOpacity onPress={() => deleteComment(comment.id)}>
                 <Trash2 size={16} color="#EF4444" />
               </TouchableOpacity>
+              )}
             </View>
             <Text style={styles.commentText}>{comment.text}</Text>
           </View>
@@ -1587,15 +2896,37 @@ export default function ProposalBuilder() {
   );
 
   const renderActivityTab = () => (
-    <View style={styles.tabContent}>
+    <ScrollView style={styles.tabContent}>
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Activity Log</Text>
-        <View style={styles.emptyState}>
-          <Clock size={40} color="#9CA3AF" />
-          <Text style={styles.emptyStateText}>No activity recorded yet</Text>
+        <Text style={styles.sectionTitle}>Proposal Activity</Text>
+        <Text style={styles.sectionSubtitle}>
+          Complete history of all changes and interactions
+        </Text>
         </View>
+      
+      <View style={styles.activityTimeline}>
+        {activities.map((activity, index) => (
+          <View key={activity.id} style={styles.activityItem}>
+            {/* Timeline connector */}
+            <View style={styles.activityLeftColumn}>
+              <View style={styles.activityDot}>
+                {getActivityIcon(activity.type)}
       </View>
+              {index < activities.length - 1 && <View style={styles.activityLine} />}
     </View>
+            
+            {/* Activity content */}
+            <View style={styles.activityContent}>
+              <Text style={styles.activityDescription}>{activity.description}</Text>
+              <View style={styles.activityMeta}>
+                <Text style={styles.activityUser}>{activity.user}</Text>
+                <Text style={styles.activityTime}> • {formatActivityTime(activity.timestamp)}</Text>
+              </View>
+            </View>
+          </View>
+        ))}
+      </View>
+    </ScrollView>
   );
 
   const markFeedbackAsResolved = (id: string) => {
@@ -1605,30 +2936,78 @@ export default function ProposalBuilder() {
   };
 
   const renderFeedbackTab = () => {
-    const pendingFeedback = feedbackItems.filter(f => f.status === 'pending');
-    const resolvedFeedback = feedbackItems.filter(f => f.status === 'resolved');
+    const pendingChangeRequests = feedbackItems.filter(f => f.type === 'change-request' && f.status === 'pending');
+    const acknowledgedChangeRequests = feedbackItems.filter(f => f.type === 'change-request' && f.status === 'acknowledged');
+    const resolvedChangeRequests = feedbackItems.filter(f => f.type === 'change-request' && f.status === 'resolved');
+    const comments = feedbackItems.filter(f => f.type === 'comment');
 
     return (
       <ScrollView style={styles.tabContent}>
-        {/* Pending Feedback */}
-        {pendingFeedback.length > 0 && (
+        {/* Pending Change Requests */}
+        {pendingChangeRequests.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Pending Feedback</Text>
-            {pendingFeedback.map((feedback) => (
+            <Text style={styles.sectionTitle}>Change Requests</Text>
+            {pendingChangeRequests.map((feedback) => (
               <View key={feedback.id} style={styles.feedbackCard}>
                 <View style={styles.feedbackHeader}>
                   <View>
                     <Text style={styles.feedbackAuthor}>{feedback.customerName}</Text>
                     <Text style={styles.feedbackTime}>{formatTimeAgo(feedback.timestamp)}</Text>
                   </View>
-                  <View style={styles.feedbackPendingBadge}>
-                    <Text style={styles.feedbackPendingText}>PENDING</Text>
+                  <View style={[styles.feedbackPendingBadge, { backgroundColor: '#FEF2F2' }]}>
+                    <Text style={[styles.feedbackPendingText, { color: '#EF4444' }]}>CHANGE REQUEST</Text>
+                  </View>
+                </View>
+                <Text style={styles.feedbackText}>{feedback.comment}</Text>
+                <View style={styles.feedbackActions}>
+                  <TouchableOpacity 
+                    style={styles.confirmReceiptButton}
+                    onPress={() => {
+                      setSelectedFeedback(feedback);
+                      setShowReceiptModal(true);
+                    }}
+                  >
+                    <Mail size={16} color="#6366F1" />
+                    <Text style={styles.confirmReceiptButtonText}>Confirm Receipt</Text>
+                  </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.resolveButton}
+                    onPress={() => {
+                      setSelectedFeedback(feedback);
+                      setShowResolutionModal(true);
+                    }}
+                >
+                  <Check size={16} color="#FFFFFF" />
+                  <Text style={styles.resolveButtonText}>Mark as Resolved</Text>
+                </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Acknowledged Change Requests */}
+        {acknowledgedChangeRequests.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Acknowledged Requests</Text>
+            {acknowledgedChangeRequests.map((feedback) => (
+              <View key={feedback.id} style={[styles.feedbackCard, { backgroundColor: '#FEF9C3' }]}>
+                <View style={styles.feedbackHeader}>
+                  <View>
+                    <Text style={styles.feedbackAuthor}>{feedback.customerName}</Text>
+                    <Text style={styles.feedbackTime}>{formatTimeAgo(feedback.timestamp)}</Text>
+                  </View>
+                  <View style={[styles.feedbackPendingBadge, { backgroundColor: '#FEF3C7' }]}>
+                    <Text style={[styles.feedbackPendingText, { color: '#F59E0B' }]}>ACKNOWLEDGED</Text>
                   </View>
                 </View>
                 <Text style={styles.feedbackText}>{feedback.comment}</Text>
                 <TouchableOpacity 
                   style={styles.resolveButton}
-                  onPress={() => markFeedbackAsResolved(feedback.id)}
+                  onPress={() => {
+                    setSelectedFeedback(feedback);
+                    setShowResolutionModal(true);
+                  }}
                 >
                   <Check size={16} color="#FFFFFF" />
                   <Text style={styles.resolveButtonText}>Mark as Resolved</Text>
@@ -1638,11 +3017,11 @@ export default function ProposalBuilder() {
           </View>
         )}
 
-        {/* Resolved Feedback */}
-        {resolvedFeedback.length > 0 && (
+        {/* Resolved Change Requests */}
+        {resolvedChangeRequests.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Resolved Feedback</Text>
-            {resolvedFeedback.map((feedback) => (
+            <Text style={styles.sectionTitle}>Resolved Requests</Text>
+            {resolvedChangeRequests.map((feedback) => (
               <View key={feedback.id} style={[styles.feedbackCard, styles.feedbackCardResolved]}>
                 <View style={styles.feedbackHeader}>
                   <View>
@@ -1655,6 +3034,27 @@ export default function ProposalBuilder() {
                   </View>
                 </View>
                 <Text style={[styles.feedbackText, { color: '#9CA3AF' }]}>{feedback.comment}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Customer Comments */}
+        {comments.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Customer Comments</Text>
+            {comments.map((feedback) => (
+              <View key={feedback.id} style={[styles.feedbackCard, { borderLeftWidth: 3, borderLeftColor: '#8B5CF6' }]}>
+                <View style={styles.feedbackHeader}>
+                  <View>
+                    <Text style={styles.feedbackAuthor}>{feedback.customerName}</Text>
+                    <Text style={styles.feedbackTime}>{formatTimeAgo(feedback.timestamp)}</Text>
+                  </View>
+                  <View style={[styles.feedbackPendingBadge, { backgroundColor: '#F3E8FF' }]}>
+                    <Text style={[styles.feedbackPendingText, { color: '#8B5CF6' }]}>COMMENT</Text>
+                  </View>
+                </View>
+                <Text style={styles.feedbackText}>{feedback.comment}</Text>
               </View>
             ))}
           </View>
@@ -1698,10 +3098,31 @@ export default function ProposalBuilder() {
     </View>
   );
 
+  const renderPackagesTab = () => (
+    <View style={styles.tabContent}>
+      <PackagedPricingSection
+        packages={packages}
+        addOns={addOns}
+        selectedTierPackageId={selectedTierPackageId}
+        selectedAddOnPackageIds={selectedAddOnPackageIds}
+        onUpdate={(updatedPackages, updatedAddOns, updatedSelectedTierPackageId, updatedSelectedAddOnPackageIds) => {
+          setPackages(updatedPackages);
+          setAddOns(updatedAddOns);
+          setSelectedTierPackageId(updatedSelectedTierPackageId);
+          setSelectedAddOnPackageIds(updatedSelectedAddOnPackageIds || []);
+        }}
+        lineItems={lineItems}
+        areas={[]}
+      />
+    </View>
+  );
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'overview':
         return renderOverviewTab();
+      case 'packages':
+        return renderPackagesTab();
       case 'stakeholders':
         return renderStakeholdersTab();
       case 'info':
@@ -1844,7 +3265,7 @@ export default function ProposalBuilder() {
       {/* Content */}
       <ScrollView
         style={styles.content}
-        showsVerticalScrollIndicator={false}
+        showsVerticalScrollIndicator={true}
         contentContainerStyle={styles.contentContainer}
       >
         {isPreviewMode ? renderPreviewMode() : renderTabContent()}
@@ -1854,21 +3275,233 @@ export default function ProposalBuilder() {
       <Modal
         visible={showAddItemModal}
         animationType="slide"
-        transparent={true}
+        presentationStyle="fullScreen"
         onRequestClose={() => setShowAddItemModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
+        <View style={styles.modalContainerFull}>
+          <SafeAreaView style={styles.modalSafeArea}>
+            <View style={styles.modalHeaderTight}>
+              <Text style={styles.modalTitleCompact}>
                 Add {isAddingOptionalItem ? 'Optional' : ''} Item
               </Text>
-              <TouchableOpacity onPress={() => setShowAddItemModal(false)}>
-                <Text style={styles.modalClose}>✕</Text>
+              <TouchableOpacity onPress={() => setShowAddItemModal(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <X size={24} color="#6B7280" />
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+            <KeyboardAvoidingView 
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={{ flex: 1 }}
+              keyboardVerticalOffset={100}
+            >
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={true} keyboardShouldPersistTaps="handled">
+              {/* Mode Toggle - Hidden when product selected */}
+              {!selectedProduct && (
+              <View style={styles.modeToggle}>
+                <TouchableOpacity 
+                  style={[styles.modeButton, itemSelectionMode === 'search' && styles.modeButtonActive]}
+                  onPress={() => setItemSelectionMode('search')}
+                >
+                  <Search size={18} color={itemSelectionMode === 'search' ? '#FFFFFF' : '#6366F1'} />
+                  <Text style={[styles.modeButtonText, itemSelectionMode === 'search' && styles.modeButtonTextActive]}>
+                    Search
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.modeButton, itemSelectionMode === 'custom' && styles.modeButtonActive]}
+                  onPress={() => setItemSelectionMode('custom')}
+                >
+                  <Edit3 size={18} color={itemSelectionMode === 'custom' ? '#FFFFFF' : '#6366F1'} />
+                  <Text style={[styles.modeButtonText, itemSelectionMode === 'custom' && styles.modeButtonTextActive]}>
+                    Custom Item
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              )}
+
+              {/* Search Products Mode */}
+              {itemSelectionMode === 'search' && (
+                <>
+                  {/* Search Input */}
+                  <View style={styles.productSearchInput}>
+                    <Search size={18} color="#6B7280" />
+                    <TextInput
+                      style={styles.productSearchTextInput}
+                      placeholder="Search products or services..."
+                      placeholderTextColor="#9CA3AF"
+                      value={productSearchQuery}
+                      onChangeText={setProductSearchQuery}
+                    />
+                  </View>
+
+                  {/* Product List */}
+                  {!selectedProduct && (
+                    <ScrollView style={styles.productsList} showsVerticalScrollIndicator={false}>
+                      {filteredProducts.map((product) => (
+                        <View key={product.id} style={styles.productCard}>
+                          <View style={styles.productCardHeader}>
+                            <Text style={styles.productName}>{product.name}</Text>
+                            <View style={styles.categoryBadge}>
+                              <Text style={styles.categoryText}>{product.category}</Text>
+                            </View>
+                          </View>
+                          <Text style={styles.productPrice}>{formatCurrency(product.price)}</Text>
+                          <View style={styles.productDescriptionContainer}>
+                            <WebView
+                              originWhitelist={['*']}
+                              source={{ html: `
+                                <!DOCTYPE html>
+                                <html>
+                                  <head>
+                                    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+                                    <style>
+                                      body { 
+                                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                                        font-size: 14px; 
+                                        color: #6B7280; 
+                                        margin: 0; 
+                                        padding: 8px;
+                                        line-height: 1.4;
+                                      }
+                                      p { margin: 0 0 8px 0; }
+                                      ul { margin: 4px 0; padding-left: 20px; }
+                                      li { margin: 2px 0; }
+                                      strong { color: #111827; }
+                                    </style>
+                                  </head>
+                                  <body>${product.description}</body>
+                                </html>
+                              ` }}
+                              style={styles.productDescriptionWebView}
+                              scrollEnabled={false}
+                              showsVerticalScrollIndicator={false}
+                            />
+                          </View>
+                          <TouchableOpacity 
+                            style={styles.productSelectButton}
+                            onPress={() => handleSelectProduct(product)}
+                          >
+                            <Text style={styles.productSelectButtonText}>Select Product</Text>
+                          </TouchableOpacity>
+                        </View>
+                      ))}
+                      {filteredProducts.length === 0 && (
+                        <Text style={{ textAlign: 'center', color: '#6B7280', marginTop: 20 }}>
+                          No products found
+                        </Text>
+                      )}
+                    </ScrollView>
+                  )}
+
+                  {/* Selected Product Details */}
+                  {selectedProduct && (
+                    <>
+                      <View style={[styles.productCard, styles.productCardSelected]}>
+                        <View style={styles.productCardHeader}>
+                          <Text style={styles.productName}>{selectedProduct.name}</Text>
+                          <TouchableOpacity onPress={() => setSelectedProduct(null)}>
+                            <XCircle size={20} color="#6366F1" />
+                          </TouchableOpacity>
+                        </View>
+                        <Text style={styles.productPrice}>{formatCurrency(selectedProduct.price)}</Text>
+                      </View>
+
+                      {/* Item Name Input - NEW */}
+                      <View style={styles.inputGroup}>
+                        <Text style={styles.inputLabel}>Item Name</Text>
+                        <View style={[styles.input, focusedInput === 'itemName' && styles.inputFocused]}>
+                          <TextInput
+                            style={styles.inputText}
+                            value={newItemName}
+                            onChangeText={setNewItemName}
+                            placeholder="Enter item name"
+                            onFocus={() => setFocusedInput('itemName')}
+                            onBlur={() => setFocusedInput(null)}
+                          />
+                        </View>
+                      </View>
+
+                      {/* Description Editor - NOW VISIBLE AFTER SELECTION */}
+                      <View style={styles.inputGroup}>
+                        <Text style={styles.inputLabel}>Description</Text>
+                        <View style={styles.richEditorContainer}>
+                          <RichToolbar
+                            editor={richText}
+                            actions={[
+                              actions.setBold,
+                              actions.setItalic,
+                              actions.insertBulletsList,
+                              actions.insertOrderedList,
+                            ]}
+                            style={styles.richToolbar}
+                          />
+                          <RichEditor
+                            ref={richText}
+                            initialContentHTML={selectedProduct.description}
+                            onChange={(text) => setNewItemDescription(text)}
+                            placeholder="Product description..."
+                            style={styles.richEditor}
+                          />
+                        </View>
+                      </View>
+
+                      {/* Unit Price Input */}
+                      <View style={styles.inputGroup}>
+                        <Text style={styles.inputLabel}>Unit Price</Text>
+                        <View style={[styles.input, focusedInput === 'itemUnitPrice' && styles.inputFocused]}>
+                          <Text style={styles.inputPrefix}>$</Text>
+                          <TextInput
+                            style={styles.inputText}
+                            value={newItemUnitPrice}
+                            onChangeText={setNewItemUnitPrice}
+                            placeholder="0.00"
+                            keyboardType="decimal-pad"
+                            onFocus={() => setFocusedInput('itemUnitPrice')}
+                            onBlur={() => setFocusedInput(null)}
+                          />
+                        </View>
+                      </View>
+
+                      {/* Quantity Input */}
+                      <View style={styles.inputGroup}>
+                        <Text style={styles.inputLabel}>Quantity</Text>
+                        <View style={[styles.input, focusedInput === 'itemQuantity' && styles.inputFocused]}>
+                          <TextInput
+                            style={styles.inputText}
+                            value={newItemQuantity}
+                            onChangeText={setNewItemQuantity}
+                            placeholder="1"
+                            keyboardType="decimal-pad"
+                            onFocus={() => setFocusedInput('itemQuantity')}
+                            onBlur={() => setFocusedInput(null)}
+                          />
+                        </View>
+                      </View>
+
+                      {/* Optional Tax */}
+                      <View style={styles.inputGroup}>
+                        <Text style={styles.inputLabel}>Tax Rate (Optional)</Text>
+                        <View style={[styles.input, focusedInput === 'itemTax' && styles.inputFocused]}>
+                          <TextInput
+                            style={styles.inputText}
+                            value={newItemTax}
+                            onChangeText={setNewItemTax}
+                            placeholder="0"
+                            keyboardType="decimal-pad"
+                            onFocus={() => setFocusedInput('itemTax')}
+                            onBlur={() => setFocusedInput(null)}
+                          />
+                          {newItemTax ? <Text style={styles.taxPercentDisplay}>{newItemTax}%</Text> : null}
+                        </View>
+                      </View>
+                    </>
+                  )}
+                </>
+              )}
+
+              {/* Custom Item Mode */}
+              {itemSelectionMode === 'custom' && (
+                <>
               {/* Item Name with Dropdown */}
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Item Name</Text>
@@ -1886,92 +3519,6 @@ export default function ProposalBuilder() {
                     onBlur={() => setFocusedInput(null)}
                 />
               </View>
-
-                {/* Products/Services Quick Select */}
-                <TouchableOpacity
-                  style={styles.quickSelectToggle}
-                  onPress={() => setShowItemNameDropdown(!showItemNameDropdown)}
-                >
-                  <Text style={styles.quickSelectText}>
-                    {showItemNameDropdown ? 'Hide' : 'Show'} Products/Services
-                  </Text>
-                  <ChevronRight 
-                    size={16} 
-                    color="#6366F1" 
-                    style={{ transform: [{ rotate: showItemNameDropdown ? '90deg' : '0deg' }] }}
-                  />
-                </TouchableOpacity>
-                
-                {showItemNameDropdown && (
-                  <View style={styles.dropdownMenu}>
-                    <TouchableOpacity
-                      style={styles.dropdownItem}
-                      onPress={() => {
-                        setNewItemName('Exterior Painting');
-                        setNewItemUnitPrice('2500');
-                        setShowItemNameDropdown(false);
-                      }}
-                    >
-                      <Text style={styles.dropdownItemText}>Exterior Painting</Text>
-                      <Text style={styles.dropdownItemPrice}>$2,500.00</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.dropdownItem}
-                      onPress={() => {
-                        setNewItemName('Interior Painting');
-                        setNewItemUnitPrice('1800');
-                        setShowItemNameDropdown(false);
-                      }}
-                    >
-                      <Text style={styles.dropdownItemText}>Interior Painting</Text>
-                      <Text style={styles.dropdownItemPrice}>$1,800.00</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.dropdownItem}
-                      onPress={() => {
-                        setNewItemName('Deck Staining');
-                        setNewItemUnitPrice('1200');
-                        setShowItemNameDropdown(false);
-                      }}
-                    >
-                      <Text style={styles.dropdownItemText}>Deck Staining</Text>
-                      <Text style={styles.dropdownItemPrice}>$1,200.00</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.dropdownItem}
-                      onPress={() => {
-                        setNewItemName('Pressure Washing');
-                        setNewItemUnitPrice('350');
-                        setShowItemNameDropdown(false);
-                      }}
-                    >
-                      <Text style={styles.dropdownItemText}>Pressure Washing</Text>
-                      <Text style={styles.dropdownItemPrice}>$350.00</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.dropdownItem}
-                      onPress={() => {
-                        setNewItemName('Trim Work');
-                        setNewItemUnitPrice('800');
-                        setShowItemNameDropdown(false);
-                      }}
-                    >
-                      <Text style={styles.dropdownItemText}>Trim Work</Text>
-                      <Text style={styles.dropdownItemPrice}>$800.00</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.dropdownItem}
-                      onPress={() => {
-                        setNewItemName('Cabinet Refinishing');
-                        setNewItemUnitPrice('1500');
-                        setShowItemNameDropdown(false);
-                      }}
-                    >
-                      <Text style={styles.dropdownItemText}>Cabinet Refinishing</Text>
-                      <Text style={styles.dropdownItemPrice}>$1,500.00</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
               </View>
 
               {/* Quantity and Price Row */}
@@ -2016,12 +3563,52 @@ export default function ProposalBuilder() {
                 </View>
               </View>
 
+              {/* Description - Rich Text Editor */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Description</Text>
+                <View style={styles.richEditorContainer}>
+                  <RichToolbar
+                    editor={richText}
+                    actions={[
+                      actions.setBold,
+                      actions.setItalic,
+                      actions.setUnderline,
+                      actions.insertBulletsList,
+                      actions.insertOrderedList,
+                      actions.heading1,
+                      actions.heading2,
+                      'highlight',
+                    ]}
+                    iconTint="#6366F1"
+                    selectedIconTint="#8B5CF6"
+                    disabledIconTint="#D1D5DB"
+                    style={styles.richToolbar}
+                    iconMap={{
+                      highlight: () => <Text style={{ color: '#6366F1', fontWeight: 'bold' }}>H</Text>,
+                    }}
+                  />
+                  <ScrollView style={styles.richEditorScroll} nestedScrollEnabled={true}>
+                    <RichEditor
+                      ref={richText}
+                      style={styles.richEditor}
+                      initialContentHTML={newItemDescription}
+                      onChange={(html) => setNewItemDescription(html)}
+                      placeholder="Provide a detailed description with formatting..."
+                      useContainer={false}
+                      editorStyle={{
+                        backgroundColor: '#FFFFFF',
+                        color: '#111827',
+                        placeholderColor: '#9CA3AF',
+                        contentCSSText: 'font-size: 16px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 12px; min-height: 200px;',
+                      }}
+                    />
+                  </ScrollView>
+                </View>
+                </View>
+
               {/* Tax Field */}
               <View style={styles.inputGroup}>
-                <View style={styles.taxHeaderRow}>
-                  <Text style={styles.inputLabel}>Tax Rate (Optional)</Text>
-                  <Text style={styles.taxHelpText}>e.g., 8.5 for 8.5%</Text>
-                </View>
+                <Text style={styles.inputLabel}>Tax Rate (%) - Optional</Text>
                 <View style={[
                   styles.input,
                   focusedInput === 'itemTax' && styles.inputFocused
@@ -2041,20 +3628,29 @@ export default function ProposalBuilder() {
                 </View>
               </View>
 
-              {/* Description */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Description</Text>
-                <TextInput
-                  style={styles.textArea}
-                  value={newItemDescription}
-                  onChangeText={setNewItemDescription}
-                  placeholder="Enter item description"
-                    placeholderTextColor="#9CA3AF"
-                  multiline
-                  numberOfLines={3}
-                  textAlignVertical="top"
-                  />
+                  {/* Save as Template Checkbox */}
+                  {newItemName && newItemDescription && newItemUnitPrice && (
+                    <TouchableOpacity 
+                      style={styles.saveTemplateCheckbox}
+                      onPress={() => setShowSaveAsTemplate(!showSaveAsTemplate)}
+                    >
+                      <View style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: 4,
+                        borderWidth: 2,
+                        borderColor: showSaveAsTemplate ? '#6366F1' : '#E5E7EB',
+                        backgroundColor: showSaveAsTemplate ? '#6366F1' : '#FFFFFF',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        {showSaveAsTemplate && <CheckCircle size={14} color="#FFFFFF" />}
                 </View>
+                      <Text style={styles.saveTemplateLabel}>Save as product template</Text>
+                    </TouchableOpacity>
+                  )}
+                </>
+              )}
 
               {/* Item Total Preview */}
               {newItemQuantity && newItemUnitPrice && (
@@ -2087,6 +3683,7 @@ export default function ProposalBuilder() {
                 </View>
               )}
             </ScrollView>
+            </KeyboardAvoidingView>
 
             <View style={styles.modalFooter}>
               <TouchableOpacity
@@ -2098,12 +3695,12 @@ export default function ProposalBuilder() {
               <TouchableOpacity
                 style={styles.modalButtonPrimary}
                 onPress={handleAddLineItem}
-                disabled={!newItemName || !newItemQuantity || !newItemUnitPrice}
+                disabled={!newItemName || !newItemQuantity || parseFloat(newItemQuantity) <= 0 || !newItemUnitPrice || parseFloat(newItemUnitPrice) <= 0}
               >
                 <Text style={styles.modalButtonPrimaryText}>Add Item</Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </SafeAreaView>
         </View>
       </Modal>
 
@@ -2330,6 +3927,158 @@ export default function ProposalBuilder() {
                 onPress={() => setShowUrlModal(false)}
               >
                 <Text style={styles.modalButtonSecondaryText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* NEW: Resolution Modal */}
+      <Modal
+        visible={showResolutionModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowResolutionModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Notify Customer of Changes</Text>
+              <TouchableOpacity onPress={() => setShowResolutionModal(false)}>
+                <X size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody}>
+              {selectedFeedback && (
+                <>
+                  <View style={styles.customerInfoBox}>
+                    <Text style={styles.customerInfoLabel}>Customer:</Text>
+                    <Text style={styles.customerInfoValue}>{selectedFeedback.customerName}</Text>
+                  </View>
+
+                  <Text style={styles.inputLabel}>Send Via:</Text>
+                  <View style={styles.toggleRow}>
+                    <TouchableOpacity 
+                      style={[styles.toggleOption, sendResolutionSMS && styles.toggleOptionActive]}
+                      onPress={() => setSendResolutionSMS(!sendResolutionSMS)}
+                    >
+                      <MessageSquare size={18} color={sendResolutionSMS ? '#FFFFFF' : '#6366F1'} />
+                      <Text style={[styles.toggleOptionText, sendResolutionSMS && styles.toggleOptionTextActive]}>SMS</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.toggleOption, sendResolutionEmail && styles.toggleOptionActive]}
+                      onPress={() => setSendResolutionEmail(!sendResolutionEmail)}
+                    >
+                      <Mail size={18} color={sendResolutionEmail ? '#FFFFFF' : '#6366F1'} />
+                      <Text style={[styles.toggleOptionText, sendResolutionEmail && styles.toggleOptionTextActive]}>Email</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <Text style={styles.inputLabel}>Message:</Text>
+                  <TextInput
+                    style={[styles.input, styles.textArea]}
+                    placeholder="Enter message..."
+                    placeholderTextColor="#9CA3AF"
+                    value={resolutionMessage}
+                    onChangeText={setResolutionMessage}
+                    multiline
+                    numberOfLines={4}
+                    textAlignVertical="top"
+                  />
+                </>
+              )}
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.modalButtonSecondary}
+                onPress={() => setShowResolutionModal(false)}
+              >
+                <Text style={styles.modalButtonSecondaryText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalButtonPrimary}
+                onPress={handleSendResolution}
+              >
+                <Send size={18} color="#FFFFFF" />
+                <Text style={styles.modalButtonPrimaryText}>Send Notification</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* NEW: Receipt Confirmation Modal */}
+      <Modal
+        visible={showReceiptModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowReceiptModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Confirm Receipt</Text>
+              <TouchableOpacity onPress={() => setShowReceiptModal(false)}>
+                <X size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody}>
+              {selectedFeedback && (
+                <>
+                  <View style={styles.customerInfoBox}>
+                    <Text style={styles.customerInfoLabel}>Customer:</Text>
+                    <Text style={styles.customerInfoValue}>{selectedFeedback.customerName}</Text>
+                  </View>
+
+                  <Text style={styles.inputLabel}>Send Via:</Text>
+                  <View style={styles.toggleRow}>
+                    <TouchableOpacity 
+                      style={[styles.toggleOption, sendReceiptSMS && styles.toggleOptionActive]}
+                      onPress={() => setSendReceiptSMS(!sendReceiptSMS)}
+                    >
+                      <MessageSquare size={18} color={sendReceiptSMS ? '#FFFFFF' : '#6366F1'} />
+                      <Text style={[styles.toggleOptionText, sendReceiptSMS && styles.toggleOptionTextActive]}>SMS</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.toggleOption, sendReceiptEmail && styles.toggleOptionActive]}
+                      onPress={() => setSendReceiptEmail(!sendReceiptEmail)}
+                    >
+                      <Mail size={18} color={sendReceiptEmail ? '#FFFFFF' : '#6366F1'} />
+                      <Text style={[styles.toggleOptionText, sendReceiptEmail && styles.toggleOptionTextActive]}>Email</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <Text style={styles.inputLabel}>Message:</Text>
+                  <TextInput
+                    style={[styles.input, styles.textArea]}
+                    placeholder="Enter message..."
+                    placeholderTextColor="#9CA3AF"
+                    value={receiptMessage}
+                    onChangeText={setReceiptMessage}
+                    multiline
+                    numberOfLines={4}
+                    textAlignVertical="top"
+                  />
+                </>
+              )}
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.modalButtonSecondary}
+                onPress={() => setShowReceiptModal(false)}
+              >
+                <Text style={styles.modalButtonSecondaryText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalButtonPrimary}
+                onPress={handleSendReceipt}
+              >
+                <Send size={18} color="#FFFFFF" />
+                <Text style={styles.modalButtonPrimaryText}>Send Confirmation</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -3048,7 +4797,7 @@ export default function ProposalBuilder() {
               >
                 <Calendar size={20} color="#6B7280" />
                 <Text style={styles.datePickerButtonText}>
-                  {editStartDate ? formatDate(editStartDate.toISOString()) : 'Select estimated start date'}
+                  {editStartDate ? formatDate(editStartDate) : 'Select estimated start date'}
                 </Text>
                 <ChevronRight size={20} color="#6B7280" />
               </TouchableOpacity>
@@ -3084,7 +4833,7 @@ export default function ProposalBuilder() {
               >
                 <Calendar size={20} color="#6B7280" />
                 <Text style={styles.datePickerButtonText}>
-                  {editCompletionDate ? formatDate(editCompletionDate.toISOString()) : 'Select estimated end date'}
+                  {editCompletionDate ? formatDate(editCompletionDate) : 'Select estimated end date'}
                 </Text>
                 <ChevronRight size={20} color="#6B7280" />
               </TouchableOpacity>
@@ -3237,6 +4986,380 @@ export default function ProposalBuilder() {
           />
         )
       )}
+
+      {/* NEW: Coupon Management Modal */}
+      <Modal
+        visible={showCouponManagementModal}
+        animationType="slide"
+        onRequestClose={() => setShowCouponManagementModal(false)}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.sendModalHeader}>
+            <TouchableOpacity onPress={() => setShowCouponManagementModal(false)}>
+              <ChevronLeft size={24} color="#111827" />
+            </TouchableOpacity>
+            <Text style={styles.sendModalTitle}>Coupon Codes</Text>
+            <View style={{ width: 24 }} />
+          </View>
+
+          <ScrollView style={styles.sendModalContent} showsVerticalScrollIndicator={false}>
+            {/* Add Coupon Button */}
+            <TouchableOpacity 
+              style={styles.addCouponButton}
+              onPress={() => {
+                resetCouponForm();
+                setEditingCoupon(null);
+                setShowAddCouponModal(true);
+              }}
+            >
+              <Plus size={20} color="#FFFFFF" />
+              <Text style={styles.addCouponButtonText}>Add Coupon Code</Text>
+            </TouchableOpacity>
+
+            {/* Coupon List */}
+            {couponCodes.length === 0 ? (
+              <View style={styles.emptyCouponState}>
+                <Star size={48} color="#E5E7EB" />
+                <Text style={styles.emptyCouponStateTitle}>No Coupon Codes</Text>
+                <Text style={styles.emptyCouponStateText}>
+                  Create your first coupon code to offer discounts to your customers
+                </Text>
+              </View>
+            ) : (
+              couponCodes.map((coupon) => {
+                const status = getCouponStatus(coupon);
+                const statusStyles = {
+                  active: { card: styles.couponCardActive, badge: styles.couponStatusBadgeActive },
+                  expired: { card: styles.couponCardExpired, badge: styles.couponStatusBadgeExpired },
+                  inactive: { card: styles.couponCardInactive, badge: styles.couponStatusBadgeInactive },
+                  'limit-reached': { card: styles.couponCardExpired, badge: styles.couponStatusBadgeExpired },
+                };
+
+                return (
+                  <View key={coupon.id} style={[styles.couponCard, statusStyles[status].card]}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.couponCodeText}>{coupon.code}</Text>
+                        <Text style={styles.couponValueText}>{formatCouponValue(coupon)}</Text>
+                      </View>
+                      <View style={[styles.couponStatusBadge, statusStyles[status].badge]}>
+                        <Text style={styles.couponStatusText}>
+                          {status === 'limit-reached' ? 'LIMIT REACHED' : status}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {coupon.description && (
+                      <Text style={styles.couponDescription}>{coupon.description}</Text>
+                    )}
+
+                    {/* Meta Info */}
+                    <View style={styles.couponMetaRow}>
+                      {coupon.expiresAt && (
+                        <View style={styles.couponMetaItem}>
+                          <Calendar size={12} color="#6B7280" />
+                          <Text style={styles.couponMetaText}>
+                            Expires {new Date(coupon.expiresAt).toLocaleDateString()}
+                          </Text>
+                        </View>
+                      )}
+                      {coupon.usageLimit && (
+                        <View style={styles.couponMetaItem}>
+                          <Users size={12} color="#6B7280" />
+                          <Text style={styles.couponMetaText}>
+                            {coupon.usageCount}/{coupon.usageLimit} used
+                          </Text>
+                        </View>
+                      )}
+                      {coupon.minPurchaseAmount && (
+                        <View style={styles.couponMetaItem}>
+                          <DollarSign size={12} color="#6B7280" />
+                          <Text style={styles.couponMetaText}>
+                            Min ${coupon.minPurchaseAmount}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Action Buttons */}
+                    <View style={styles.couponActions}>
+                      <TouchableOpacity 
+                        style={[styles.couponActionButton, styles.couponActionButtonEdit]}
+                        onPress={() => handleEditCoupon(coupon)}
+                      >
+                        <Edit size={14} color="#6366F1" />
+                        <Text style={[styles.couponActionText, styles.couponActionTextEdit]}>Edit</Text>
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity 
+                        style={[styles.couponActionButton, styles.couponActionButtonToggle]}
+                        onPress={() => handleToggleCouponActive(coupon.id)}
+                      >
+                        {coupon.isActive ? (
+                          <>
+                            <XCircle size={14} color="#F59E0B" />
+                            <Text style={[styles.couponActionText, styles.couponActionTextToggle]}>Deactivate</Text>
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle size={14} color="#F59E0B" />
+                            <Text style={[styles.couponActionText, styles.couponActionTextToggle]}>Activate</Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity 
+                        style={[styles.couponActionButton, styles.couponActionButtonDelete]}
+                        onPress={() => handleDeleteCoupon(coupon.id)}
+                      >
+                        <Trash2 size={14} color="#EF4444" />
+                        <Text style={[styles.couponActionText, styles.couponActionTextDelete]}>Delete</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              })
+            )}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* NEW: Add/Edit Coupon Modal */}
+      <Modal
+        visible={showAddCouponModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => {
+          setShowAddCouponModal(false);
+          setEditingCoupon(null);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { maxHeight: '90%' }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {editingCoupon ? 'Edit Coupon Code' : 'Add Coupon Code'}
+              </Text>
+              <TouchableOpacity onPress={() => {
+                setShowAddCouponModal(false);
+                setEditingCoupon(null);
+              }}>
+                <X size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+              {/* Coupon Code */}
+              <View style={styles.couponFormSection}>
+                <Text style={styles.couponFormLabel}>Coupon Code *</Text>
+                <TextInput
+                  style={[styles.couponFormInput, styles.couponFormCodeInput]}
+                  placeholder="SUMMER25"
+                  placeholderTextColor="#9CA3AF"
+                  value={couponFormCode}
+                  onChangeText={setCouponFormCode}
+                  autoCapitalize="characters"
+                />
+              </View>
+
+              {/* Discount Type */}
+              <View style={styles.couponFormSection}>
+                <Text style={styles.couponFormLabel}>Discount Type *</Text>
+                <View style={styles.discountTypeRow}>
+                  <TouchableOpacity 
+                    style={[styles.discountTypeButton, couponFormType === 'percentage' && styles.discountTypeButtonActive]}
+                    onPress={() => setCouponFormType('percentage')}
+                  >
+                    <Percent size={16} color={couponFormType === 'percentage' ? '#FFFFFF' : '#6366F1'} />
+                    <Text style={[styles.discountTypeText, couponFormType === 'percentage' && styles.discountTypeTextActive]}>
+                      Percentage
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.discountTypeButton, couponFormType === 'fixed' && styles.discountTypeButtonActive]}
+                    onPress={() => setCouponFormType('fixed')}
+                  >
+                    <DollarSign size={16} color={couponFormType === 'fixed' ? '#FFFFFF' : '#6366F1'} />
+                    <Text style={[styles.discountTypeText, couponFormType === 'fixed' && styles.discountTypeTextActive]}>
+                      Fixed Amount
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Discount Value */}
+              <View style={styles.couponFormSection}>
+                <Text style={styles.couponFormLabel}>
+                  {couponFormType === 'percentage' ? 'Discount Percentage *' : 'Discount Amount *'}
+                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <TextInput
+                    style={[styles.couponFormInput, { flex: 1 }]}
+                    placeholder={couponFormType === 'percentage' ? '25' : '500'}
+                    placeholderTextColor="#9CA3AF"
+                    keyboardType="decimal-pad"
+                    value={couponFormValue}
+                    onChangeText={setCouponFormValue}
+                  />
+                  <Text style={{ fontSize: 16, fontWeight: '600', color: '#6B7280' }}>
+                    {couponFormType === 'percentage' ? '%' : '$'}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Description */}
+              <View style={styles.couponFormSection}>
+                <Text style={styles.couponFormLabel}>Description (Optional)</Text>
+                <TextInput
+                  style={[styles.couponFormInput, { minHeight: 80, textAlignVertical: 'top' }]}
+                  placeholder="e.g., Summer sale discount"
+                  placeholderTextColor="#9CA3AF"
+                  value={couponFormDescription}
+                  onChangeText={setCouponFormDescription}
+                  multiline
+                  numberOfLines={3}
+                />
+              </View>
+
+              {/* Expiration Date Toggle */}
+              <View style={styles.couponFormSection}>
+                <View style={styles.couponFormToggleRow}>
+                  <Text style={styles.couponFormToggleLabel}>Set Expiration Date</Text>
+                  <Switch
+                    value={couponFormExpires}
+                    onValueChange={setCouponFormExpires}
+                  />
+                </View>
+                {couponFormExpires && (
+                  <TouchableOpacity 
+                    style={[styles.couponFormInput, { paddingVertical: 12 }]}
+                    onPress={() => setShowCouponDatePicker(true)}
+                  >
+                    <Text style={{ fontSize: 15, color: '#111827' }}>
+                      {couponFormExpiresAt.toLocaleDateString('en-US', { 
+                        weekday: 'short', 
+                        year: 'numeric', 
+                        month: 'short', 
+                        day: 'numeric' 
+                      })}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* Usage Limit Toggle */}
+              <View style={styles.couponFormSection}>
+                <View style={styles.couponFormToggleRow}>
+                  <Text style={styles.couponFormToggleLabel}>Set Usage Limit</Text>
+                  <Switch
+                    value={couponFormUsageLimit}
+                    onValueChange={setCouponFormUsageLimit}
+                  />
+                </View>
+                {couponFormUsageLimit && (
+                  <TextInput
+                    style={styles.couponFormInput}
+                    placeholder="e.g., 100"
+                    placeholderTextColor="#9CA3AF"
+                    keyboardType="number-pad"
+                    value={couponFormUsageLimitValue}
+                    onChangeText={setCouponFormUsageLimitValue}
+                  />
+                )}
+              </View>
+
+              {/* Minimum Purchase Toggle */}
+              <View style={styles.couponFormSection}>
+                <View style={styles.couponFormToggleRow}>
+                  <Text style={styles.couponFormToggleLabel}>Set Minimum Purchase Amount</Text>
+                  <Switch
+                    value={couponFormMinPurchase}
+                    onValueChange={setCouponFormMinPurchase}
+                  />
+                </View>
+                {couponFormMinPurchase && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={{ fontSize: 16, fontWeight: '600', color: '#6B7280' }}>$</Text>
+                    <TextInput
+                      style={[styles.couponFormInput, { flex: 1 }]}
+                      placeholder="e.g., 1000"
+                      placeholderTextColor="#9CA3AF"
+                      keyboardType="decimal-pad"
+                      value={couponFormMinPurchaseValue}
+                      onChangeText={setCouponFormMinPurchaseValue}
+                    />
+                  </View>
+                )}
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.modalButtonSecondary}
+                onPress={() => {
+                  setShowAddCouponModal(false);
+                  setEditingCoupon(null);
+                }}
+              >
+                <Text style={styles.modalButtonSecondaryText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalButtonPrimary}
+                onPress={editingCoupon ? handleUpdateCoupon : handleCreateCoupon}
+              >
+                <Text style={styles.modalButtonPrimaryText}>
+                  {editingCoupon ? 'Update' : 'Create'} Coupon
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Product Update Modal */}
+      <Modal visible={showProductUpdateModal} transparent animationType="fade">
+        <View style={styles.confirmModalOverlay}>
+          <View style={styles.confirmModalContent}>
+            <Text style={styles.confirmModalTitle}>Save Changes?</Text>
+            <Text style={styles.confirmModalText}>
+              You've modified this product. Would you like to update the product template or use as a new item?
+            </Text>
+            
+            <TouchableOpacity 
+              style={styles.confirmButton}
+              onPress={() => confirmAddItem('update_product')}
+            >
+              <Text style={styles.confirmButtonText}>Update Product Template</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.confirmButton, styles.confirmButtonSecondary]}
+              onPress={() => confirmAddItem('create_new')}
+            >
+              <Text style={styles.confirmButtonTextSecondary}>Use as New Item</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity onPress={() => setShowProductUpdateModal(false)}>
+              <Text style={styles.cancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Coupon Date Picker */}
+      {showCouponDatePicker && (
+        <DateTimePicker
+          value={couponFormExpiresAt}
+          mode="date"
+          display="default"
+          onChange={(event, date) => {
+            setShowCouponDatePicker(false);
+            if (date) {
+              setCouponFormExpiresAt(date);
+            }
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -3310,6 +5433,16 @@ const styles = StyleSheet.create({
     gap: 4,
     alignItems: 'center',
   },
+  tabSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  tabSectionDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: '#E5E7EB',
+    marginHorizontal: 8,
+  },
   tab: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -3319,6 +5452,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
     height: 48,
+    borderRadius: 6,
+    marginHorizontal: 2,
   },
   tabActive: {
     borderBottomColor: '#6366F1',
@@ -3355,7 +5490,7 @@ const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 12,
   },
   sectionTitle: {
@@ -3436,6 +5571,78 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#111827',
+  },
+  // NEW: Line item description container with padding
+  lineItemDescriptionContainer: {
+    marginVertical: 8,
+  },
+  // NEW: Line item name row with tier badges
+  lineItemNameRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  // NEW: Tier Badges
+  tierBadgesContainer: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  tierBadge: {
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+  },
+  tierBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  // NEW: Package Detection Banner
+  packageDetectionBanner: {
+    backgroundColor: '#FFFBEB',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  packageDetectionContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 12,
+  },
+  packageDetectionText: {
+    flex: 1,
+  },
+  packageDetectionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#92400E',
+    marginBottom: 4,
+  },
+  packageDetectionSubtext: {
+    fontSize: 13,
+    color: '#78350F',
+    lineHeight: 18,
+  },
+  packageModeToggle: {
+    backgroundColor: '#FEF3C7',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+  },
+  packageModeToggleText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#92400E',
+    textAlign: 'center',
   },
   emptyState: {
     alignItems: 'center',
@@ -4240,6 +6447,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#111827',
   },
+  inputPrefix: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#6B7280',
+    marginRight: 8,
+    paddingTop: 2,
+  },
   inputFocused: {
     borderColor: '#6366F1',
     borderWidth: 2,
@@ -4868,14 +7082,6 @@ const styles = StyleSheet.create({
   contactInfoCard: {
     gap: 12,
   },
-  contactInfoRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
   contactInfoTextContainer: {
     flex: 1,
   },
@@ -5001,9 +7207,6 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     backgroundColor: '#F9FAFB',
-  },
-  modalContent: {
-    flex: 1,
   },
   modalContentInner: {
     paddingHorizontal: 20,
@@ -5531,6 +7734,895 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  // NEW: Customer field action styles
+  contactItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    marginBottom: 8,
+    gap: 12,
+  },
+  contactItemText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#111827',
+  },
+  contactMenuButton: {
+    padding: 4,
+  },
+  inlineActionMenu: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    padding: 12,
+    marginTop: -4,
+    marginBottom: 12,
+    marginLeft: 46,
+  },
+  quickActionsTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    marginBottom: 8,
+    letterSpacing: 0.5,
+  },
+  inlineActionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    gap: 12,
+    borderRadius: 8,
+  },
+  inlineActionText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#374151',
+  },
+  // NEW: Expiration settings styles
+  sectionSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 4,
+    marginBottom: 16,
+  },
+  optionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  optionCardActive: {
+    backgroundColor: '#EEF2FF',
+    borderColor: '#6366F1',
+  },
+  optionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  optionContent: {
+    flex: 1,
+  },
+  optionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  optionDescription: {
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  // NEW: Feedback actions styles
+  feedbackActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  confirmReceiptButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EEF2FF',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+  },
+  confirmReceiptButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  // NEW: Activity timeline styles
+  activityTimeline: {
+    padding: 20,
+    paddingTop: 0,
+  },
+  activityItem: {
+    flexDirection: 'row',
+    marginBottom: 16,
+  },
+  activityLeftColumn: {
+    alignItems: 'center',
+    marginRight: 16,
+    width: 32,
+  },
+  activityDot: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+  },
+  activityLine: {
+    position: 'absolute',
+    top: 32,
+    bottom: -16,
+    width: 2,
+    backgroundColor: '#E5E7EB',
+    left: 15,
+  },
+  activityContent: {
+    flex: 1,
+    paddingTop: 4,
+  },
+  activityDescription: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  activityMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  activityUser: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  activityTime: {
+    fontSize: 13,
+    color: '#9CA3AF',
+  },
+  // NEW: Modal content styles for new modals
+  customerInfoBox: {
+    backgroundColor: '#F9FAFB',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  customerInfoLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  customerInfoValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  toggleOption: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+  },
+  toggleOptionActive: {
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
+  },
+  toggleOptionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  toggleOptionTextActive: {
+    color: '#FFFFFF',
+  },
+  
+  // NEW: Timed Discount Styles
+  timedDiscountsContainer: {
+    marginTop: 16,
+  },
+  timedDiscountCard: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  timedDiscountHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  timedDiscountLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  timedDiscountSettings: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  discountTypeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  discountTypeButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+  },
+  discountTypeButtonActive: {
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
+  },
+  discountTypeText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  discountTypeTextActive: {
+    color: '#FFFFFF',
+  },
+  discountValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  discountValueLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+    flex: 1,
+  },
+  discountValueInput: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+    width: 80,
+    textAlign: 'right',
+  },
+  discountValueSuffix: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  timedDiscountNote: {
+    backgroundColor: '#EEF2FF',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  timedDiscountNoteText: {
+    fontSize: 13,
+    color: '#4338CA',
+    lineHeight: 18,
+  },
+  
+  // NEW: Enhanced Add Item Modal Styles
+  modeToggle: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  modeButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+  },
+  modeButtonActive: {
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
+  },
+  modeButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  modeButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  productSearchInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginBottom: 16,
+  },
+  productSearchTextInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#111827',
+  },
+  productsList: {
+    flex: 1,
+    marginBottom: 16,
+  },
+  productCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  productCardSelected: {
+    borderColor: '#6366F1',
+    borderWidth: 2,
+    backgroundColor: '#EEF2FF',
+  },
+  productCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  productName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    flex: 1,
+  },
+  categoryBadge: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginLeft: 8,
+  },
+  categoryText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  productPrice: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#10B981',
+    marginBottom: 4,
+  },
+  productDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 12,
+  },
+  productDescriptionContainer: {
+    height: 120,
+    marginBottom: 12,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#F9FAFB',
+  },
+  productDescriptionWebView: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  productSelectButton: {
+    backgroundColor: '#6366F1',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  productSelectButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  saveTemplateCheckbox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 12,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  saveTemplateLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#111827',
+    flex: 1,
+  },
+  
+  // Modal Structure Styles
+  modalContainerFull: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  modalSafeArea: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  modalHeaderTight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+  },
+  modalTitleCompact: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  formTextAreaExpanded: {
+    minHeight: 220,
+    maxHeight: 400,
+    textAlignVertical: 'top',
+    paddingTop: 14,
+    paddingBottom: 14,
+    paddingHorizontal: 14,
+    lineHeight: 24,
+    fontSize: 15,
+  },
+  characterCountText: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 4,
+  },
+  
+  // Rich Text Editor Styles
+  richEditorContainer: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+  },
+  richToolbar: {
+    backgroundColor: '#F9FAFB',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    minHeight: 50,
+  },
+  richEditorScroll: {
+    maxHeight: 300,
+    minHeight: 200,
+  },
+  richEditor: {
+    minHeight: 200,
+    maxHeight: 300,
+    backgroundColor: '#FFFFFF',
+  },
+  
+  // NEW: Coupon Management Styles
+  manageCouponButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#EEF2FF',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    marginTop: 12,
+  },
+  manageCouponButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#6366F1',
+    flex: 1,
+    textAlign: 'center',
+  },
+  addCouponButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#6366F1',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    marginBottom: 24,
+  },
+  addCouponButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  emptyCouponState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyCouponStateTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+    marginTop: 16,
+  },
+  emptyCouponStateText: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginTop: 8,
+    paddingHorizontal: 40,
+  },
+  couponCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+  },
+  couponCardActive: {
+    borderColor: '#10B981',
+    backgroundColor: '#F0FDF4',
+  },
+  couponCardInactive: {
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F9FAFB',
+    opacity: 0.7,
+  },
+  couponCardExpired: {
+    borderColor: '#EF4444',
+    backgroundColor: '#FEF2F2',
+  },
+  couponCodeText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    letterSpacing: 1,
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+  },
+  couponValueText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#10B981',
+    marginTop: 4,
+  },
+  couponStatusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  couponStatusBadgeActive: {
+    backgroundColor: '#10B981',
+  },
+  couponStatusBadgeInactive: {
+    backgroundColor: '#6B7280',
+  },
+  couponStatusBadgeExpired: {
+    backgroundColor: '#EF4444',
+  },
+  couponStatusText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textTransform: 'uppercase',
+  },
+  couponDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 8,
+  },
+  couponMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    marginTop: 8,
+    flexWrap: 'wrap',
+  },
+  couponMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  couponMetaText: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  couponActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  couponActionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  couponActionButtonEdit: {
+    borderColor: '#6366F1',
+    backgroundColor: '#FFFFFF',
+  },
+  couponActionButtonToggle: {
+    borderColor: '#F59E0B',
+    backgroundColor: '#FFFFFF',
+  },
+  couponActionButtonDelete: {
+    borderColor: '#EF4444',
+    backgroundColor: '#FFFFFF',
+  },
+  couponActionText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  couponActionTextEdit: {
+    color: '#6366F1',
+  },
+  couponActionTextToggle: {
+    color: '#F59E0B',
+  },
+  couponActionTextDelete: {
+    color: '#EF4444',
+  },
+  
+  // Coupon Form Styles
+  couponFormSection: {
+    marginBottom: 20,
+  },
+  couponFormLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  couponFormInput: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: '#111827',
+  },
+  couponFormCodeInput: {
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  couponFormToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 10,
+    marginBottom: 12,
+  },
+  couponFormToggleLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#111827',
+  },
+  // NEW: Package Detection Banner - Foundation Mode Styles
+  packageDetectionBannerFoundation: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FCA5A5',
+  },
+  packageDetectionTitleFoundation: {
+    color: '#991B1B',
+  },
+  packageModeToggleFoundation: {
+    backgroundColor: '#FEE2E2',
+    borderColor: '#FCA5A5',
+  },
+  // NEW: Unassigned Items Styles
+  lineItemUnassigned: {
+    borderColor: '#FCA5A5',
+    borderWidth: 2,
+    backgroundColor: '#FEF2F2',
+  },
+  unassignedBadge: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    marginLeft: 8,
+  },
+  unassignedBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#DC2626',
+  },
+  // NEW: Package Assignment Styles
+  packageAssignmentSection: {
+    backgroundColor: '#F9FAFB',
+    padding: 16,
+    marginTop: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  packageAssignmentTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  packageAssignmentHelper: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 12,
+  },
+  requiredIndicator: {
+    color: '#DC2626',
+  },
+  packageCheckboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    gap: 10,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#D1D5DB',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxActive: {
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
+  },
+  packageCheckboxLabel: {
+    flex: 1,
+    fontSize: 14,
+    color: '#111827',
+  },
+  packageTypeBadge: {
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  packageTypeBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  colorDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  // NEW: Product Update Modal Styles
+  confirmModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  confirmModalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  confirmModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  confirmModalText: {
+    fontSize: 15,
+    color: '#6B7280',
+    marginBottom: 24,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  confirmButton: {
+    backgroundColor: '#6366F1',
+    paddingVertical: 14,
+    borderRadius: 10,
+    marginBottom: 12,
+    alignItems: 'center',
+  },
+  confirmButtonSecondary: {
+    backgroundColor: '#F3F4F6',
+  },
+  confirmButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  confirmButtonTextSecondary: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  cancelText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+    textAlign: 'center',
+    marginTop: 8,
   },
 });
 
